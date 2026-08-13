@@ -1,0 +1,230 @@
+[
+  {
+    "id": "dd_menstrual_d1-3_1",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Day One Is Brave",
+    "body": "Your uterus is doing real, hormone-driven work right now. Estrogen and progesterone have both dropped, which is exactly why energy feels low — your body is literally renewing itself. That dip is not weakness, it's biology.",
+    "tip": "Cancel the optional plans. A warm drink, soft clothes, and zero guilt about resting today.",
+    "emoji": "🌊",
+    "companionVariants": {
+      "fox": "Luna thinks today is for soft blankets and quiet wins 🦊",
+      "bunny": "Pip says rest day = recovery day! Snuggle up 🐰",
+      "butterfly": "Mira whispers: even rivers slow down before they bend ✨",
+      "cat": "Nyx is curled up in solidarity. You should too 😼",
+      "owl": "Sage notes: estrogen + progesterone at their floor — rest is biology, not laziness 🦉",
+      "blossom": "I'm so proud you showed up today 🩷 Take it easy"
+    }
+  },
+  {
+    "id": "dd_menstrual_d1-3_2",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Why Cramps Happen",
+    "body": "Cramps come from prostaglandins — chemicals your uterus releases to help shed its lining. More prostaglandins = stronger cramps. The good news: anti-inflammatory foods, heat, and gentle movement can genuinely help.",
+    "tip": "Heat pad on the lower belly for 15 minutes. Magnesium-rich foods (dark chocolate, almonds) help too.",
+    "emoji": "🔥",
+    "companionVariants": {
+      "fox": "Luna recommends: heat + slow breaths. Your body is working hard 🦊",
+      "bunny": "Pip says cramps = your body cleaning house! Heat helps 🐰",
+      "butterfly": "Mira reminds you: breath is medicine your body already knows ✨",
+      "cat": "Nyx approves of dark chocolate as a medical intervention 🍫",
+      "owl": "Sage explains: prostaglandins drive cramps. Heat dilates vessels, reduces pain 🦉",
+      "blossom": "Be gentle with your body today 🩷 It's working hard for you"
+    }
+  },
+  {
+    "id": "dd_menstrual_d1-3_3",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Iron Matters Today",
+    "body": "Period blood contains iron, and replenishing it matters more than people realize. Low iron can amplify fatigue and brain fog. Pairing iron-rich foods with vitamin C boosts absorption.",
+    "tip": "Spinach + lemon juice. Lentils + tomato. Steak + orange. Tiny pairings, real difference.",
+    "emoji": "🥬",
+    "companionVariants": {
+      "fox": "Luna suggests something green on your plate today 🦊",
+      "bunny": "Pip loves a leafy snack! Iron boost incoming 🐰",
+      "butterfly": "Mira sees nourishment as a quiet kind of love ✨",
+      "cat": "Nyx demands a proper meal. No skipping today 😼",
+      "owl": "Sage notes: vitamin C converts non-heme iron to absorbable form 🦉",
+      "blossom": "Feed yourself well today 🩷 You deserve real food"
+    }
+  },
+  {
+    "id": "dd_menstrual_d4-7_1",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Energy Is Returning",
+    "body": "Estrogen is just starting to rise again. You might notice your mood lifting and the heaviness lifting too. It's the first signal of the follicular phase — your body's spring is approaching.",
+    "tip": "A short walk outside today. Sunlight + movement = mood medicine.",
+    "emoji": "🌤️",
+    "companionVariants": {
+      "fox": "Luna feels the shift — gentle energy returning 🦊",
+      "bunny": "Pip is BOUNCING! The fun phase is almost here 🐰",
+      "butterfly": "Mira watches the season change inside you ✨",
+      "cat": "Nyx might leave the bed today. Might. 😼",
+      "owl": "Sage notes: estrogen rebound begins, mood typically lifts 🦉",
+      "blossom": "Feel that lift? 🩷 Your body is amazing"
+    }
+  },
+  {
+    "id": "dd_menstrual_d4-7_2",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Hydration Hero",
+    "body": "You lose more fluid than you realize during your period — between blood, sweat, and the bloating shift. Dehydration sneaks in as headaches, fatigue, and worse cramps.",
+    "tip": "Aim for one extra glass of water today. Add lemon or cucumber if plain feels boring.",
+    "emoji": "💧",
+    "companionVariants": {
+      "fox": "Luna sips slowly. You should too 🦊",
+      "bunny": "Pip says hydrate to feel GREAT! 🐰💦",
+      "butterfly": "Mira knows: water is the quietest medicine ✨",
+      "cat": "Nyx demands fresh water bowl refills. Same goes for you 😼",
+      "owl": "Sage notes: even 2% dehydration impairs cognition 🦉",
+      "blossom": "Drink some water for me, friend 🩷"
+    }
+  },
+  {
+    "id": "dd_menstrual_d4-7_3",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Period Is Wrapping",
+    "body": "The flow tapers, hormones start their climb, and your body shifts gears. Many people feel a subtle 'reset' around this point — like a fresh start. It's real, and it's your biology at work.",
+    "tip": "Set one small intention for this new cycle. Just one. Make it gentle.",
+    "emoji": "🌱",
+    "companionVariants": {
+      "fox": "Luna invites you to plant one tiny seed of an idea today 🦊",
+      "bunny": "Pip's already excited for the next phase! What's next?! 🐰",
+      "butterfly": "Mira asks: what wants to unfold this cycle? ✨",
+      "cat": "Nyx supports ambition... within reason 😼",
+      "owl": "Sage notes: post-menstrual reset is real — neurogenesis spikes 🦉",
+      "blossom": "A new cycle, a new chance 🩷 What feels good?"
+    }
+  },
+  {
+    "id": "dd_menstrual_d8-11_1",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Bridge Days",
+    "body": "If you're still here in your menstrual phase past day 7, that's worth tracking. Longer periods can be totally normal for you — but consistent patterns (and changes from your norm) are useful info for any future doctor visit.",
+    "tip": "Note today's flow and any symptoms in your log. Future-you will thank you.",
+    "emoji": "📝",
+    "companionVariants": {
+      "fox": "Luna sees the value in noting today's details 🦊",
+      "bunny": "Pip loves a good data point! Log it! 🐰",
+      "butterfly": "Mira knows that small observations become wisdom ✨",
+      "cat": "Nyx judges your tracking habits. Approvingly 😼",
+      "owl": "Sage notes: cycles 21-35 days long are within normal range 🦉",
+      "blossom": "Quick log today? 🩷 Helps you understand yourself"
+    }
+  },
+  {
+    "id": "dd_menstrual_d8-11_2",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Stretch It Out",
+    "body": "Gentle yoga and stretching genuinely help with lingering pelvic tension. Cat-cow and child's pose specifically target the lower back and hips where menstrual ache loves to settle.",
+    "tip": "Five minutes of cat-cow before bed. That's it. That's the whole tip.",
+    "emoji": "🧘",
+    "companionVariants": {
+      "fox": "Luna stretches with you. Slow and kind 🦊",
+      "bunny": "Pip's doing bunny hops... I mean, stretches 🐰",
+      "butterfly": "Mira moves like a breeze through leaves ✨",
+      "cat": "Nyx invented yoga. You're welcome 😼",
+      "owl": "Sage notes: gentle motion reduces inflammatory cytokines 🦉",
+      "blossom": "Stretching counts as self-care 🩷"
+    }
+  },
+  {
+    "id": "dd_menstrual_d8-11_3",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Pain Check",
+    "body": "Some discomfort is normal. Pain so bad it stops you from going about your day is not — that's a signal worth investigating. Endometriosis affects 1 in 10 people, and it's often missed for years.",
+    "tip": "If pain regularly disrupts your life, save your symptom log to share with a doctor.",
+    "emoji": "🩺",
+    "companionVariants": {
+      "fox": "Luna believes your pain. It's worth listening to 🦊",
+      "bunny": "Pip says — pain isn't 'just part of it.' You deserve answers! 🐰",
+      "butterfly": "Mira honors what your body tells you ✨",
+      "cat": "Nyx doesn't tolerate dismissal. Neither should you 😼",
+      "owl": "Sage notes: endo affects ~10% of menstruators, avg diagnosis delay ~8 years 🦉",
+      "blossom": "Your pain matters 🩷 Don't let anyone tell you otherwise"
+    }
+  },
+  {
+    "id": "dd_menstrual_d12-14_1",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Long Cycle, Real Talk",
+    "body": "Cycles longer than 35 days can happen naturally, but they can also point to PCOS, thyroid imbalance, stress, or other shifts. None of this is alarming on its own — it's just information.",
+    "tip": "Track length over 3 cycles to spot a real pattern. One outlier doesn't mean much.",
+    "emoji": "📊",
+    "companionVariants": {
+      "fox": "Luna trusts patterns over panic 🦊",
+      "bunny": "Pip says one long cycle is no biggie — patterns are what matter! 🐰",
+      "butterfly": "Mira watches the long arc, not just today ✨",
+      "cat": "Nyx requires three data points. Minimum 😼",
+      "owl": "Sage notes: PCOS affects ~10% of menstruators — early tracking helps 🦉",
+      "blossom": "Just gather the info 🩷 No need to worry yet"
+    }
+  },
+  {
+    "id": "dd_menstrual_d12-14_2",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Be Your Own Advocate",
+    "body": "When you go to a doctor, vague descriptions ('it's bad') don't land as well as specific ones ('day 22 to 26, intensity 7/10, every cycle for 6 months'). Tracking turns vague into actionable.",
+    "tip": "Your symptom log is doctor-ready. Use it.",
+    "emoji": "💪",
+    "companionVariants": {
+      "fox": "Luna knows: knowledge is the best advocate 🦊",
+      "bunny": "Pip says you've GOT this! Your data, your voice! 🐰",
+      "butterfly": "Mira sees your story written in your tracking ✨",
+      "cat": "Nyx supports specificity. Always 😼",
+      "owl": "Sage notes: structured symptom data improves diagnostic accuracy 🦉",
+      "blossom": "You know your body best 🩷 Your log proves it"
+    }
+  },
+  {
+    "id": "dd_menstrual_d12-14_3",
+    "phase": "menstrual",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Patience With Patterns",
+    "body": "Sometimes hormones take time to settle, especially after stress, illness, travel, or going on/off birth control. A few odd cycles in a row aren't a verdict — they're a phase.",
+    "tip": "Give your body 2-3 cycles to find its rhythm. Track gently, judge nothing.",
+    "emoji": "⏳",
+    "companionVariants": {
+      "fox": "Luna waits patiently. Your body knows the way 🦊",
+      "bunny": "Pip says give it time! Your rhythm will return! 🐰",
+      "butterfly": "Mira whispers: nature doesn't rush, yet everything blooms ✨",
+      "cat": "Nyx is a master of patient observation 😼",
+      "owl": "Sage notes: cortisol elevation can shift cycle length by 5-10 days 🦉",
+      "blossom": "Be patient with yourself 🩷 You're doing fine"
+    }
+  }
+]

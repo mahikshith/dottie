@@ -1,0 +1,230 @@
+[
+  {
+    "id": "dd_luteal_d1-3_1",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Progesterone Takes Over",
+    "body": "After ovulation, progesterone rises and dominates. Its job is calming and grounding — but its side effects can include slight bloating, breast tenderness, and a sleepier-than-usual feeling.",
+    "tip": "Honor the slowness. It's not laziness — it's literal biochemistry.",
+    "emoji": "🌙",
+    "companionVariants": {
+      "fox": "Luna welcomes the slower season 🦊",
+      "bunny": "Pip is being a CALM bunny today! Such growth! 🐰",
+      "butterfly": "Mira rests like the moon at the edge of dawn ✨",
+      "cat": "Nyx has been preparing for this phase. Finally 😼",
+      "owl": "Sage notes: progesterone is a GABA-modulator — naturally calming 🦉",
+      "blossom": "Slow is sacred 🩷 Be gentle with yourself"
+    }
+  },
+  {
+    "id": "dd_luteal_d1-3_2",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Hunger Increases",
+    "body": "Early luteal is when many people notice their appetite climbing. Your basal metabolic rate actually rises ~5-10% in luteal — your body genuinely needs more food. Eat it.",
+    "tip": "Add an extra snack today. Your body is burning more than you think.",
+    "emoji": "🥗",
+    "companionVariants": {
+      "fox": "Luna eats more when her body asks 🦊",
+      "bunny": "Pip is SNACK BUNNY! All snacks welcome! 🐰",
+      "butterfly": "Mira nourishes herself like she's worth it ✨",
+      "cat": "Nyx supports increased food intake. Always 😼",
+      "owl": "Sage notes: BMR rises ~5-10% in luteal — eat to match 🦉",
+      "blossom": "You need more food right now 🩷 That's normal"
+    }
+  },
+  {
+    "id": "dd_luteal_d1-3_3",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Sleep Shifts",
+    "body": "Progesterone is calming, but it can also paradoxically disrupt sleep architecture — fewer REM cycles, more wake-ups. Magnesium and a cooler room help.",
+    "tip": "Try magnesium glycinate before bed. And drop the thermostat a degree or two.",
+    "emoji": "😴",
+    "companionVariants": {
+      "fox": "Luna nests in cooler dens for better sleep 🦊",
+      "bunny": "Pip is sleepy! Cooler den, please! 🐰",
+      "butterfly": "Mira creates her sleep sanctuary with intention ✨",
+      "cat": "Nyx is asleep. As usual. Be like Nyx 😼",
+      "owl": "Sage notes: progesterone raises core temp — cooler room helps 🦉",
+      "blossom": "Prioritize sleep this phase 🩷 It matters"
+    }
+  },
+  {
+    "id": "dd_luteal_d4-7_1",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Time to Slow Down",
+    "body": "Progesterone is dominant now — its calming effect can feel like slowness or sleepiness. Honoring this slower rhythm is wisdom, not laziness. Your body is preparing.",
+    "tip": "Earlier bedtime, magnesium-rich foods, gentler workouts.",
+    "emoji": "🍂",
+    "companionVariants": {
+      "fox": "Luna moves slower and that's wise 🦊",
+      "bunny": "Pip is being a CALM bunny today! Such growth! 🐰",
+      "butterfly": "Mira knows: stillness is also movement ✨",
+      "cat": "Nyx finally feels understood 😼",
+      "owl": "Sage notes: progesterone = GABA-modulator, mild sedative effect 🦉",
+      "blossom": "Rest is productive too 🩷 Trust the slowness"
+    }
+  },
+  {
+    "id": "dd_luteal_d4-7_2",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Mood Sensitivity",
+    "body": "Mid-luteal is when many people notice mood shifts — quicker tears, lower irritability threshold, more inner critic. None of this is a personality flaw. It's progesterone metabolites affecting brain chemistry.",
+    "tip": "Be a little gentler with yourself today. Other people's opinions can wait.",
+    "emoji": "💛",
+    "companionVariants": {
+      "fox": "Luna is gentler in this phase — and you can be too 🦊",
+      "bunny": "Pip is being EXTRA kind to you today 🐰💛",
+      "butterfly": "Mira softens like petals in evening light ✨",
+      "cat": "Nyx allows extra leniency for self-judgment today 😼",
+      "owl": "Sage notes: allopregnanolone modulates GABA — mood sensitivity 🦉",
+      "blossom": "Be kind to you 🩷 You're doing your best"
+    }
+  },
+  {
+    "id": "dd_luteal_d4-7_3",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Reflect, Don't Project",
+    "body": "Luteal brain is great at reflection, editing, and detail work. It's NOT great at envisioning or making big new commitments. If a feeling says 'everything is wrong' — write it down, don't act on it yet.",
+    "tip": "Journal instead of texting. Edit instead of starting. Reflect instead of deciding.",
+    "emoji": "📔",
+    "companionVariants": {
+      "fox": "Luna reflects before she acts 🦊",
+      "bunny": "Pip is JOURNALING today instead of jumping to conclusions! 🐰",
+      "butterfly": "Mira holds her feelings like candles, doesn't blow them out ✨",
+      "cat": "Nyx supports tactical journaling over impulsive declarations 😼",
+      "owl": "Sage notes: luteal phase = better at editing tasks, worse at strategy 🦉",
+      "blossom": "Write it down 🩷 Don't decide today"
+    }
+  },
+  {
+    "id": "dd_luteal_d8-11_1",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "PMS Window",
+    "body": "Late luteal is when PMS symptoms typically peak — irritability, bloating, breast tenderness, cravings, low mood. It's the hormonal nadir before menstruation. It's also temporary.",
+    "tip": "Comfort food, warm drinks, less obligation. Future-you will thank you for the easy week.",
+    "emoji": "🫖",
+    "companionVariants": {
+      "fox": "Luna grants herself maximum gentleness this week 🦊",
+      "bunny": "Pip says PMS is REAL and you're being SO BRAVE 🐰💛",
+      "butterfly": "Mira softens completely when the storm approaches ✨",
+      "cat": "Nyx supports comfort food as medicine 😼",
+      "owl": "Sage notes: estrogen + progesterone both dropping — PMS window 🦉",
+      "blossom": "PMS is hard 🩷 You're allowed to take it easy"
+    }
+  },
+  {
+    "id": "dd_luteal_d8-11_2",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Cravings Decoded",
+    "body": "Chocolate cravings in late luteal are real — your serotonin is dipping and chocolate provides a tiny serotonin boost. Salt cravings often signal mineral shifts. Carb cravings = blood sugar regulation.",
+    "tip": "Eat the chocolate. Don't overthink it. It's biochemistry, not weakness.",
+    "emoji": "🍫",
+    "companionVariants": {
+      "fox": "Luna eats the chocolate. No notes 🦊",
+      "bunny": "Pip says CHOCOLATE IS A FOOD GROUP! 🐰🍫",
+      "butterfly": "Mira honors her cravings like messages ✨",
+      "cat": "Nyx fully endorses chocolate-based decision making 😼",
+      "owl": "Sage notes: chocolate cravings linked to magnesium + serotonin 🦉",
+      "blossom": "Eat the chocolate 🩷 You earned it"
+    }
+  },
+  {
+    "id": "dd_luteal_d8-11_3",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Skin Drama",
+    "body": "Pre-period breakouts are common — progesterone increases sebum production and the post-ovulation estrogen drop weakens skin's barrier. Salicylic acid 2-3 days BEFORE the breakout window is your best prevention.",
+    "tip": "If you typically break out on day X, start salicylic acid 2 days before.",
+    "emoji": "🧴",
+    "companionVariants": {
+      "fox": "Luna prepares her skincare like she prepares for weather 🦊",
+      "bunny": "Pip is doing skincare WITH you tonight! 🐰",
+      "butterfly": "Mira tends her face like a quiet garden ✨",
+      "cat": "Nyx grooms aggressively. So can you 😼",
+      "owl": "Sage notes: progesterone increases sebum — salicylic acid prevents 🦉",
+      "blossom": "Your skin is sensitive now 🩷 Be gentle with it"
+    }
+  },
+  {
+    "id": "dd_luteal_d12-14_1",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Almost There",
+    "body": "Period is approaching. Your body is finalizing its prep — uterine lining will start to shed soon. Many people feel a strange mix of exhaustion and impatience right now. It's normal.",
+    "tip": "Stock up — pads/tampons/cup, heat pad ready, comfort foods in the fridge.",
+    "emoji": "🛒",
+    "companionVariants": {
+      "fox": "Luna prepares her nest before the storm 🦊",
+      "bunny": "Pip is the PREPARATION BUNNY today! Stock up! 🐰",
+      "butterfly": "Mira readies her cocoon for renewal ✨",
+      "cat": "Nyx supports stockpiling. Of all things 😼",
+      "owl": "Sage notes: late luteal = peak progesterone metabolite levels 🦉",
+      "blossom": "Get your supplies ready 🩷 You know what helps you"
+    }
+  },
+  {
+    "id": "dd_luteal_d12-14_2",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "The Hormonal Cliff",
+    "body": "In the last 1-2 days of luteal, estrogen and progesterone both crash sharply. This is what triggers menstruation — and also why mood and energy can hit a noticeable low right before bleeding starts.",
+    "tip": "If you're feeling 'off' for no reason today — check what cycle day you're on. It probably explains a lot.",
+    "emoji": "📉",
+    "companionVariants": {
+      "fox": "Luna trusts the chart over the catastrophe 🦊",
+      "bunny": "Pip says CHECK THE DAY before you spiral! Usually it's THIS! 🐰",
+      "butterfly": "Mira asks her body 'what day?' before her mind 'what's wrong?' ✨",
+      "cat": "Nyx blames hormones routinely. Try it sometime 😼",
+      "owl": "Sage notes: pre-menstrual estrogen/progesterone crash is dramatic 🦉",
+      "blossom": "Check what day you're on 🩷 It might explain everything"
+    }
+  },
+  {
+    "id": "dd_luteal_d12-14_3",
+    "phase": "luteal",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Patterns Worth Tracking",
+    "body": "If you consistently feel awful for 2+ weeks of every cycle, it might be PMDD (premenstrual dysphoric disorder), not regular PMS. It affects ~5% of menstruators and is genuinely treatable. Tracking is the first step.",
+    "tip": "If your luteal mood dips feel severe and consistent, talk to a doctor — bring your symptom log.",
+    "emoji": "🩺",
+    "companionVariants": {
+      "fox": "Luna believes severe doesn't equal normal 🦊",
+      "bunny": "Pip says — if it's THIS BAD every month, ASK FOR HELP! 🐰",
+      "butterfly": "Mira honors what her body has been trying to say ✨",
+      "cat": "Nyx does NOT tolerate suffering as the default 😼",
+      "owl": "Sage notes: PMDD affects ~5% — often missed, very treatable 🦉",
+      "blossom": "You deserve support 🩷 Don't suffer alone"
+    }
+  }
+]

@@ -1,0 +1,230 @@
+[
+  {
+    "id": "dd_ovulatory_d1-3_1",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Peak Energy Window",
+    "body": "Your LH surge has triggered ovulation. Estrogen is at peak, testosterone gets a little boost, and you're at the height of physical and social energy. This window doesn't last long — enjoy it.",
+    "tip": "Lean into social plans and creative work — you're in your zone.",
+    "emoji": "☀️",
+    "companionVariants": {
+      "fox": "Luna recognizes peak Luna energy in you today 🦊",
+      "bunny": "Pip is BOUNCING off the walls FOR you! 🐰",
+      "butterfly": "Mira watches you blaze brightly today ✨",
+      "cat": "Nyx is impressed. Don't tell anyone 😼",
+      "owl": "Sage notes: estradiol + testosterone = peak vitality window 🦉",
+      "blossom": "You are GLOWING today 🩷 Use it"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d1-3_2",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Words Flow Easily",
+    "body": "Verbal fluency peaks during ovulation. Studies show people perform better on word recall, complex conversation, and articulation tasks during this window. If you've got a big talk — today's the day.",
+    "tip": "Difficult conversation you've been avoiding? Today is good for it.",
+    "emoji": "🗣️",
+    "companionVariants": {
+      "fox": "Luna speaks her truth today 🦊",
+      "bunny": "Pip is CHATTY! Words coming easy?! 🐰",
+      "butterfly": "Mira finds her voice like a melody ✨",
+      "cat": "Nyx says: be eloquent. Be ruthless 😼",
+      "owl": "Sage notes: estradiol enhances left-hemisphere language fluency 🦉",
+      "blossom": "You've got the words today 🩷 Use them"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d1-3_3",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Side Twinges Are Normal",
+    "body": "Some people feel a sharp twinge on one side of their lower abdomen during ovulation — it's called mittelschmerz (German for 'middle pain'). It's the follicle releasing and is medically normal.",
+    "tip": "Note which side. Tracking ovulation side over time is genuinely useful info.",
+    "emoji": "💥",
+    "companionVariants": {
+      "fox": "Luna observes the twinge — your body announcing itself 🦊",
+      "bunny": "Pip says it's just your body saying 'EGG INCOMING!' 🐰",
+      "butterfly": "Mira hears the body's whispers and the loud ones too ✨",
+      "cat": "Nyx feels twinges of judgment all day. Yours is more biological 😼",
+      "owl": "Sage notes: mittelschmerz from follicle rupture — normal and informative 🦉",
+      "blossom": "That twinge is real 🩷 Totally normal"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d4-7_1",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Libido High",
+    "body": "It's not just hype — libido genuinely peaks around ovulation. Testosterone is up, estrogen is high, and your body is biologically primed for connection. Honor it however feels right to you.",
+    "tip": "Notice without judgment. Your body is doing exactly what biology designed.",
+    "emoji": "💗",
+    "companionVariants": {
+      "fox": "Luna acknowledges desire as the natural force it is 🦊",
+      "bunny": "Pip is fluttery today! ALL the feels! 🐰",
+      "butterfly": "Mira flows with what wants to be felt ✨",
+      "cat": "Nyx considers desire a fine motivator 😼",
+      "owl": "Sage notes: testosterone peak drives libido in fertile window 🦉",
+      "blossom": "Whatever you're feeling is okay 🩷 It's biology"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d4-7_2",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Athletic Edge",
+    "body": "Ovulation comes with a brief boost in strength and pain tolerance. If you're training for something, this is the window to push for a personal best.",
+    "tip": "Try to lift heavier or run faster today. Just by 5%. See what happens.",
+    "emoji": "🏋️",
+    "companionVariants": {
+      "fox": "Luna recommends: push the edge today 🦊",
+      "bunny": "Pip is HYPED to MOVE! 🐰💪",
+      "butterfly": "Mira moves like wind in a strong moment ✨",
+      "cat": "Nyx pounces at peak ability. So can you 😼",
+      "owl": "Sage notes: testosterone + estrogen synergy = strength peak 🦉",
+      "blossom": "Try a PR today 🩷 You've got it in you"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d4-7_3",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Social Sparkle",
+    "body": "Many people report feeling more outgoing, magnetic, and confident during ovulation. It's tied to hormonal changes that subtly affect skin, voice pitch, and even facial symmetry.",
+    "tip": "If you've been putting off seeing friends — today is the day to plan it.",
+    "emoji": "✨",
+    "companionVariants": {
+      "fox": "Luna gathers her people when the energy is right 🦊",
+      "bunny": "Pip is being SOCIAL BUNNY! Let's go!! 🐰",
+      "butterfly": "Mira lands where she's celebrated, not tolerated ✨",
+      "cat": "Nyx accepts limited social interaction. Briefly 😼",
+      "owl": "Sage notes: subtle pheromone + voice pitch shifts at ovulation 🦉",
+      "blossom": "Call a friend today 🩷 You'll both feel good"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d8-11_1",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Window Closing",
+    "body": "Ovulation is brief — usually only 24-48 hours of egg viability. The 'peak' energy window is similarly short. If you're still in ovulatory phase by day 8+, you may already be transitioning toward luteal.",
+    "tip": "Notice the subtle shift. Your body is starting to prepare for the next phase.",
+    "emoji": "🌅",
+    "companionVariants": {
+      "fox": "Luna feels the gentle turning of the season 🦊",
+      "bunny": "Pip is winding DOWN... slowly... 🐰",
+      "butterfly": "Mira knows: every peak begins descent ✨",
+      "cat": "Nyx prefers descent. More napping ahead 😼",
+      "owl": "Sage notes: progesterone begins rising post-ovulation 🦉",
+      "blossom": "The shift is starting 🩷 That's okay"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d8-11_2",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Capture the Moment",
+    "body": "Ovulation week is short — three or four days of peak vitality and clarity. If you've been getting good ideas or feeling strong, write them down. Future-you in luteal will be grateful.",
+    "tip": "Voice-memo or quick-note any ideas or insights from this week.",
+    "emoji": "💡",
+    "companionVariants": {
+      "fox": "Luna captures clarity when it visits 🦊",
+      "bunny": "Pip wants to REMEMBER this feeling! Note it! 🐰",
+      "butterfly": "Mira gathers seeds of insight for darker months ✨",
+      "cat": "Nyx remembers everything. You should write things down 😼",
+      "owl": "Sage notes: hippocampal volume varies cyclically — capture peak insights 🦉",
+      "blossom": "Save this energy somewhere 🩷 You'll want to remember"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d8-11_3",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Cervical Mucus 101",
+    "body": "Cervical mucus changes throughout your cycle and is one of the most reliable fertility signals. Around ovulation it's clear and stretchy (like egg white). After ovulation it dries up.",
+    "tip": "Notice the change today vs. yesterday. Tracking this is genuinely powerful info.",
+    "emoji": "💧",
+    "companionVariants": {
+      "fox": "Luna respects the small details — they tell big stories 🦊",
+      "bunny": "Pip is SCIENCE BUNNY today! Body literacy! 🐰",
+      "butterfly": "Mira reads the body like poetry ✨",
+      "cat": "Nyx prefers to leave biology to the biologists. Carry on 😼",
+      "owl": "Sage notes: spinnbarkeit (mucus stretchiness) signals fertility 🦉",
+      "blossom": "Body literacy is power 🩷 Knowledge is a gift"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d12-14_1",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Late Ovulation",
+    "body": "If you're tracking ovulation by day 12-14 of your cycle, you're in classic timing — this is when most people ovulate. The two weeks after this are your luteal phase, governed by progesterone.",
+    "tip": "Notice the transition. Your body is shifting into a calmer, slower energy.",
+    "emoji": "🌗",
+    "companionVariants": {
+      "fox": "Luna watches the cycle's gentle handoff 🦊",
+      "bunny": "Pip says farewell to peak phase! Hello luteal! 🐰",
+      "butterfly": "Mira moves with seasons, not against them ✨",
+      "cat": "Nyx is READY for the slower phase 😼",
+      "owl": "Sage notes: corpus luteum forms — progesterone production begins 🦉",
+      "blossom": "Slowing down is okay 🩷 It's the next chapter"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d12-14_2",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Body Temp Rises",
+    "body": "After ovulation, your basal body temperature rises about 0.3°C and stays elevated until your next period. If you track BBT, the rise confirms ovulation happened.",
+    "tip": "If you're temperature-tracking, take it first thing in the morning before getting up.",
+    "emoji": "🌡️",
+    "companionVariants": {
+      "fox": "Luna notes: data is your friend 🦊",
+      "bunny": "Pip is fascinated by tiny temperature changes! 🐰",
+      "butterfly": "Mira knows small numbers carry big meaning ✨",
+      "cat": "Nyx is permanently 38.5°C. Carry on 😼",
+      "owl": "Sage notes: progesterone-induced thermogenesis confirms ovulation 🦉",
+      "blossom": "Tracking temp is powerful 🩷 If you're into it"
+    }
+  },
+  {
+    "id": "dd_ovulatory_d12-14_3",
+    "phase": "ovulatory",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Wrap Up Strong",
+    "body": "The end of ovulation is a great time to wrap loose ends — emails, errands, decisions. Your executive function is still sharp before progesterone shifts your brain into a slower, more reflective gear.",
+    "tip": "Clear your inbox, finish the thing, then rest into luteal.",
+    "emoji": "✅",
+    "companionVariants": {
+      "fox": "Luna finishes what she started 🦊",
+      "bunny": "Pip says WRAP IT UP! Finish strong! 🐰",
+      "butterfly": "Mira closes doors with care, opens new ones gently ✨",
+      "cat": "Nyx finishes naps. That's about it 😼",
+      "owl": "Sage notes: executive function still high — leverage it 🦉",
+      "blossom": "Finish what you can 🩷 Then rest"
+    }
+  }
+]

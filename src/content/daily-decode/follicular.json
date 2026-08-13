@@ -1,0 +1,230 @@
+[
+  {
+    "id": "dd_follicular_d1-3_1",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Spring Has Started",
+    "body": "Your period just ended, estrogen is climbing, and your body is preparing for ovulation. Many people feel a noticeable lift in mood, energy, and motivation right around now. Lean into it.",
+    "tip": "Schedule the thing you've been putting off. Today is a great day to start.",
+    "emoji": "🌸",
+    "companionVariants": {
+      "fox": "Luna notices the spring in your step today 🦊",
+      "bunny": "Pip's BOUNCING for you! Energy is back! 🐰",
+      "butterfly": "Mira watches the bloom begin from within ✨",
+      "cat": "Nyx is impressed by your sudden ambition 😼",
+      "owl": "Sage notes: estrogen rising = enhanced neuroplasticity 🦉",
+      "blossom": "Look at you go! 🩷 This phase is yours"
+    }
+  },
+  {
+    "id": "dd_follicular_d1-3_2",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Your Brain on Estrogen",
+    "body": "Estrogen boosts dopamine and serotonin sensitivity. Translation: clearer thinking, sharper memory, and a brighter mood. Cognitive performance often peaks in mid-to-late follicular phase.",
+    "tip": "Tackle the mentally demanding task today. Your brain is ready.",
+    "emoji": "🧠",
+    "companionVariants": {
+      "fox": "Luna recommends the hard task. You can do it 🦊",
+      "bunny": "Pip thinks your brain is ON FIRE today! 🐰🔥",
+      "butterfly": "Mira sees your mind flying free today ✨",
+      "cat": "Nyx approves of intellectual rigor (when it suits) 😼",
+      "owl": "Sage notes: estrogen modulates hippocampal function — peak memory week 🦉",
+      "blossom": "Your brain is glowing 🩷 Use it for something fun"
+    }
+  },
+  {
+    "id": "dd_follicular_d1-3_3",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "1-3",
+    "symptomCluster": "none",
+    "title": "Move That Body",
+    "body": "Energy is rebounding, muscle recovery improves, and pain tolerance climbs. If you exercise, follicular phase is when you'll see strength gains and feel less wrecked the next day.",
+    "tip": "Try a slightly harder workout today. Your body can handle more right now.",
+    "emoji": "💪",
+    "companionVariants": {
+      "fox": "Luna says: push the pace a little 🦊",
+      "bunny": "Pip wants to GO! Workout time?! 🐰",
+      "butterfly": "Mira moves with strength and grace today ✨",
+      "cat": "Nyx is not a workout cat. But you do you 😼",
+      "owl": "Sage notes: muscle protein synthesis is more efficient in follicular phase 🦉",
+      "blossom": "Move your body! 🩷 It feels good right now"
+    }
+  },
+  {
+    "id": "dd_follicular_d4-7_1",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Your Brain Is Supercharging",
+    "body": "Estrogen is climbing toward its peak, and it's boosting your verbal fluency, memory, and creative thinking. If you have a big conversation or creative project, this week is gold.",
+    "tip": "Great day for the important conversation or the creative project.",
+    "emoji": "✨",
+    "companionVariants": {
+      "fox": "Luna noticed you might be extra sharp today 🦊",
+      "bunny": "Pip is BOUNCING — you're on fire today! 🐰",
+      "butterfly": "Mira sees light moving through your thoughts ✨",
+      "cat": "Nyx grudgingly admits: you're glowing 😼",
+      "owl": "Sage says: estrogen + hippocampus = peak memory 🦉",
+      "blossom": "You're shining today 🩷 What will you create?"
+    }
+  },
+  {
+    "id": "dd_follicular_d4-7_2",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Skin Glow Era",
+    "body": "Rising estrogen boosts collagen production, blood flow, and skin hydration. This is when people often notice their skin looking clearer and more luminous — it's not a coincidence.",
+    "tip": "Skip the heavy makeup today. Let your skin breathe and show off.",
+    "emoji": "🌟",
+    "companionVariants": {
+      "fox": "Luna sees the glow. So will everyone else 🦊",
+      "bunny": "Pip says SKIN GLOW WEEK! Soak it in! 🐰",
+      "butterfly": "Mira watches you shine from inside out ✨",
+      "cat": "Nyx grooms in solidarity with your skincare routine 😼",
+      "owl": "Sage notes: estrogen stimulates fibroblast collagen synthesis 🦉",
+      "blossom": "Look at that glow! 🩷 You earned it"
+    }
+  },
+  {
+    "id": "dd_follicular_d4-7_3",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "4-7",
+    "symptomCluster": "none",
+    "title": "Try Something New",
+    "body": "Dopamine sensitivity peaks in mid-follicular, making this the easiest week to start new habits, learn a skill, or take a small risk. Your brain is more open to novelty than usual.",
+    "tip": "Sign up for the class. Try the new recipe. Now is the time.",
+    "emoji": "🚀",
+    "companionVariants": {
+      "fox": "Luna whispers: now is the time to try 🦊",
+      "bunny": "Pip says GO FOR IT! Whatever IT is! 🐰",
+      "butterfly": "Mira knows: small risks plant big stories ✨",
+      "cat": "Nyx considers novelty... briefly 😼",
+      "owl": "Sage notes: dopamine receptor sensitivity peaks before ovulation 🦉",
+      "blossom": "Try the new thing 🩷 You've got nothing to lose"
+    }
+  },
+  {
+    "id": "dd_follicular_d8-11_1",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Almost Ovulation",
+    "body": "You're approaching peak fertility window. Estrogen and LH are climbing, energy is high, and many people notice subtle shifts in confidence, libido, and social energy.",
+    "tip": "Notice how you feel today. These are some of your strongest days of the cycle.",
+    "emoji": "🌺",
+    "companionVariants": {
+      "fox": "Luna feels the buildup. You're in your power 🦊",
+      "bunny": "Pip can FEEL the energy peak coming! 🐰",
+      "butterfly": "Mira watches you bloom toward the sun ✨",
+      "cat": "Nyx senses confidence. Approves 😼",
+      "owl": "Sage notes: LH surge imminent — peak performance window 🦉",
+      "blossom": "Feel your power 🩷 It's real"
+    }
+  },
+  {
+    "id": "dd_follicular_d8-11_2",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Schedule Strategy",
+    "body": "Late follicular through ovulation is when you'll typically feel most extroverted, articulate, and confident. If you can choose when to schedule presentations or social events, lean into this window.",
+    "tip": "If you're a planner — look at your calendar. Move important things into this window.",
+    "emoji": "📅",
+    "companionVariants": {
+      "fox": "Luna plans wisely with the cycle, not against it 🦊",
+      "bunny": "Pip is a STRATEGIC bunny! Plan the fun things HERE! 🐰",
+      "butterfly": "Mira aligns intention with energy ✨",
+      "cat": "Nyx approves of strategic napping schedules too 😼",
+      "owl": "Sage notes: pre-ovulatory phase = optimal cognitive + social performance 🦉",
+      "blossom": "Schedule the big things now 🩷 Future you will thank you"
+    }
+  },
+  {
+    "id": "dd_follicular_d8-11_3",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "8-11",
+    "symptomCluster": "none",
+    "title": "Pain Tolerance Peak",
+    "body": "Estrogen modulates pain perception, and your tolerance is actually highest in late follicular. Dentist appointments, waxing, hard workouts — all hurt less right now.",
+    "tip": "Schedule that uncomfortable appointment for this week if you can.",
+    "emoji": "🛡️",
+    "companionVariants": {
+      "fox": "Luna recommends: do the painful thing now 🦊",
+      "bunny": "Pip says: WAX NOW, REGRET LESS! 🐰",
+      "butterfly": "Mira knows the body's softest times — and its strongest ✨",
+      "cat": "Nyx avoids pain regardless of phase. But for you, do it 😼",
+      "owl": "Sage notes: estrogen modulates beta-endorphin release 🦉",
+      "blossom": "Now's the time for the appointment 🩷"
+    }
+  },
+  {
+    "id": "dd_follicular_d12-14_1",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Late Follicular Magic",
+    "body": "You're at the edge of ovulation now. Cervical mucus changes (clearer, stretchier), libido often climbs, and many people report feeling their most magnetic. This isn't woo — it's biology.",
+    "tip": "Notice the small cues your body gives. They're real information.",
+    "emoji": "💫",
+    "companionVariants": {
+      "fox": "Luna pays attention to the small signals 🦊",
+      "bunny": "Pip is HYPED for the peak! 🐰",
+      "butterfly": "Mira sees you brimming with cycle wisdom ✨",
+      "cat": "Nyx respects magnetism in all forms 😼",
+      "owl": "Sage notes: cervical mucus changes signal imminent ovulation 🦉",
+      "blossom": "Feel that magic? 🩷 It's all you"
+    }
+  },
+  {
+    "id": "dd_follicular_d12-14_2",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Hunger Patterns",
+    "body": "Estrogen tends to suppress appetite slightly. If you find you're naturally eating less without trying right now — that's normal and it'll shift later in the cycle.",
+    "tip": "Eat when you're hungry. Don't force, don't restrict. Your body knows.",
+    "emoji": "🍎",
+    "companionVariants": {
+      "fox": "Luna eats with awareness, not rules 🦊",
+      "bunny": "Pip's still snacking! No restriction here! 🐰",
+      "butterfly": "Mira listens to her body's hunger like a friend ✨",
+      "cat": "Nyx eats when hungry. Naps when not. Be like Nyx 😼",
+      "owl": "Sage notes: estrogen reduces neuropeptide Y, suppressing appetite 🦉",
+      "blossom": "Eat what feels good 🩷 Trust yourself"
+    }
+  },
+  {
+    "id": "dd_follicular_d12-14_3",
+    "phase": "follicular",
+    "mode": "adult",
+    "dayBand": "12-14",
+    "symptomCluster": "none",
+    "title": "Build the Plan",
+    "body": "Your follicular brain is great at envisioning, planning, and starting. Save the heavy execution for ovulation and the reflection work for luteal. This week — dream and design.",
+    "tip": "Write down your goal for the next two weeks. Don't overthink it.",
+    "emoji": "📝",
+    "companionVariants": {
+      "fox": "Luna sketches the path, then walks it slowly 🦊",
+      "bunny": "Pip is making PLANS! What's next?! 🐰",
+      "butterfly": "Mira knows: intention is how the future begins ✨",
+      "cat": "Nyx makes plans in dreams. You write yours down 😼",
+      "owl": "Sage notes: prefrontal cortex executive function peaks in late follicular 🦉",
+      "blossom": "What do you want this cycle? 🩷 Write it down"
+    }
+  }
+]

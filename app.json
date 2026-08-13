@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Dottie",
+    "slug": "dottie-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "dottie",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF8F2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.dottie.app",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Dottie uses health data to improve cycle predictions"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFF8F2"
+      },
+      "package": "com.dottie.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF8F2",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
