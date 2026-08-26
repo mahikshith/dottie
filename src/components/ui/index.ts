@@ -21,5 +21,8 @@ export type { BreathingViewProps } from './BreathingView';
 export { PopOnChange } from './PopOnChange';
 export type { PopOnChangeProps } from './PopOnChange';
 
+export { CompanionLottie } from './CompanionLottie';
+export type { CompanionLottieProps } from './CompanionLottie';
+
 // ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
 export * from './aurora';
