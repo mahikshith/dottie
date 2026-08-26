@@ -20,3 +20,6 @@ export type { BreathingViewProps } from './BreathingView';
 
 export { PopOnChange } from './PopOnChange';
 export type { PopOnChangeProps } from './PopOnChange';
+
+// ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
+export * from './aurora';

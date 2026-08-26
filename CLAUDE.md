@@ -55,8 +55,24 @@ Reanimated-backed (UI thread, 60fps), Reduce-Motion aware:
 - Haptics: `selectionAsync` on light taps, `impactAsync(Light)` on important, `notificationAsync`
   on celebrations. All tappables get `accessibilityRole`/`Label`/`State`.
 
-## Current design direction
-Applying premium frontend/UI + motion principles (Emil Kowalski school: restraint,
-purposeful spring motion, spacing rhythm, native-feel micro-interactions) via the `design:*`
-plugin skills. A visual reference of the current screens is published (URL in `docs/HANDOFF.md`).
+## Current design direction — "Mood Aurora" (on the `design-v2` branch)
+A bold from-scratch visual world being built on **`design-v2`** (NOT `main`): the cycle as a
+luminous night sky — **glassmorphism + claymorphism + aurora-mesh + grain**, a glowing cycle
+ring, a fluid glass tab bar. **The signature idea: the logged mood recolours the whole UI.**
+Default = Nocturne violet; each mood → a supportive palette (low/rough stay WARM & soothing,
+never grey — apple-design *Responsibility*). Visual mockups are published Artifacts (links in
+`docs/HANDOFF.md`).
+
+**Emil Kowalski's skills are vendored at `.claude/skills/`** (MIT). Before writing ANY motion,
+read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for our stack.
+
+**Aurora theme system (design-v2, statically written, ⚠️ UNVERIFIED — no device here):**
+- `src/theme/` — `palettes.ts` (5 mood palette token sets + `PHASE_AURORA`), `mood-palette.ts`
+  (`paletteForMood(score)`), `ThemeProvider.tsx` (`AuroraProvider` + `useAurora()`), barrel.
+- `src/components/ui/aurora/` — `AuroraBackground`, `GlassCard`, `ClayButton`, `GlowRing`,
+  `AuroraTabBar` (all read palette tokens via `useAurora()`). Exported from `src/components/ui`.
+- **Needs on a Node machine:** `expo-blur` (real frosted glass — GlassCard currently degrades to
+  a translucent panel), then wire `AuroraProvider` at the root + drive `applyMood(moodScore)`
+  from the check-in, plug in `AuroraTabBar`, and apply screen-by-screen. All UNVERIFIED until run.
+
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.

@@ -9,3 +9,4 @@
 
 export * from './palettes';
 export * from './mood-palette';
+export * from './ThemeProvider';

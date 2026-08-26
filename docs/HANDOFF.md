@@ -62,14 +62,30 @@ current palette):
     2→twilight,1→ember; care rule: low/rough stay warm).
   - `index.ts` — barrel.
 
-  **NEXT (needs the Node machine to verify):** (1) `ThemeProvider` + `useAurora()` hook
-  holding the active palette, defaulted Nocturne, driven by the latest check-in's mood,
-  cross-fading on change; (2) shared aurora UI in `src/components/ui/` (AuroraBackground
-  blobs, Glass card, Clay button, GlowRing, fluid tab bar) reading palette tokens;
-  (3) apply screen-by-screen. Use the `animate-expo` recipes throughout (transform/
-  opacity only, cross-fade on palette change, tab indicator measured-once + Haptics,
-  Reduce-Motion aware). expo-linear-gradient for gradients; a blur lib (expo-blur) for
-  real glass — that's a NEW dep to add on the Node machine.
+  **DONE — aurora components written (design-v2, ⚠️ UNVERIFIED, no device):**
+  - `src/theme/ThemeProvider.tsx` — `AuroraProvider` + `useAurora()` (holds active palette,
+    default Nocturne, `applyMood(score)` swaps it; token swap instant, cross-fade lives in
+    AuroraBackground). Barrel updated.
+  - `src/components/ui/aurora/` — `AuroraBackground` (SVG radial blooms + Reanimated drift +
+    re-bloom on palette change), `GlassCard` (translucent panel; upgrades to frost with
+    expo-blur — commented in file), `ClayButton` (gradient + sheen + two-view shadow, on
+    PressableScale), `GlowRing` (self-drawing SVG progress ring), `AuroraTabBar` (fluid glass
+    indicator, custom icons, haptics; NOT wired into `(tabs)/_layout.tsx` yet). Exported via
+    `src/components/ui`.
+
+  **NEXT (all needs the Node machine to build/run/verify):**
+  1. `npx expo install expo-blur` → enable real frost in `GlassCard` (commented block).
+  2. Wrap the root (`app/_layout.tsx`) in `<AuroraProvider>`; add an effect that calls
+     `applyMood(todayCheckIn?.moodScore)` so the check-in recolours the app.
+  3. Plug `AuroraTabBar` into `app/(tabs)/_layout.tsx` via `tabBar={...}` (only once screens
+     are themed, or the dark bar clashes with cream screens).
+  4. Apply the aurora system screen-by-screen (Today → Cycle → Learn → Circle → You), each
+     wrapped in `<AuroraBackground>` and reading `useAurora().palette` tokens.
+  5. `tsc` + device feel-check every animation (drift subtle, ring draw, tab spring, mood
+     re-bloom, Reduce-Motion). Everything above is STATICALLY written but unrun.
+
+  Reference mockups: all-screens https://claude.ai/code/artifact/ca1f800f-1f53-4f7d-a387-bf7c44c2d432
+  · interactive Mood Aurora https://claude.ai/code/artifact/64d7a36b-cca1-4c8d-a731-889d936b97d6
 
   ⚠️ **Git push to GitHub is intermittently hanging on the corporate network** — commits
   are safe LOCALLY on `design-v2`; `design-v2` may be ahead of origin. Retry push when
