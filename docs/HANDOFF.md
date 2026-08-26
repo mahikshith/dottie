@@ -87,6 +87,53 @@ current palette):
   Reference mockups: all-screens https://claude.ai/code/artifact/ca1f800f-1f53-4f7d-a387-bf7c44c2d432
   · interactive Mood Aurora https://claude.ai/code/artifact/64d7a36b-cca1-4c8d-a731-889d936b97d6
 
+  **DONE since — mood reveal + provider wiring (design-v2, ⚠️ UNVERIFIED):**
+  - `ThemeProvider.tsx` now does the **origin-aware mood reveal** (user request): a circle of
+    the new palette's colour grows from the tapped mood's {x,y} (~520ms ease-out), commits the
+    palette underneath, then fades out into the settled aurora. `applyMood(score, origin)`
+    (Reanimated + runOnJS). No origin / Reduce-Motion = instant swap.
+  - `app/_layout.tsx` now wraps the app in `<AuroraProvider>` (safe — only provides context;
+    non-aurora screens unaffected). So the palette + reveal are live app-wide once screens read it.
+  - **NEXT screen-theming step:** convert `app/(tabs)/home.tsx` to aurora (AuroraBackground +
+    GlassCard + ClayButton mood keys wired to `applyMood(score, {x:e.nativeEvent.pageX, y:pageY})`
+    + GlowRing), and its child cards (`PhaseWeatherCard`, `DottiePredictsCard`) — those are
+    cream-styled and must be themed together or a mood reveal flashes into a cream screen. Then
+    the other 4 screens. On mount, drive the palette from `todayCheckIn?.moodScore`.
+
+## 0.6 Research — predictor + feature gaps (2026-08, for the roadmap)
+
+**Predictor (what we have vs the field):** Our `src/engine/prediction/predictor.ts` is a
+multi-factor **heuristic** (weighted moving average + rule-based PCOS/thyroid/age/stress/sleep
+adjustments + error-bias correction) — labelled "Bayesian" but NOT a formal Bayesian/ML model.
+- **Flo** = two-step ML: per-user models learn individual patterns → features into a **neural
+  network** trained on population data (5M+ users); reported +54% accuracy.
+- **Natural Cycles** = FDA-cleared (De Novo) basal-body-temperature algorithm (93% typical /
+  98% perfect use). **Clue** = calendar/statistics (period dates only), FDA-cleared as
+  "substantially equivalent". Academic SOTA = **hierarchical Bayesian generative models**
+  (Urteaga et al., MLR 2021) — handle irregular cyclers, improve as cycles evolve.
+- **Recommendation for Dottie (local-first/offline/private):** replace the heuristic with a
+  **true hierarchical Bayesian generative model in pure TS** — runs on-device, interpretable,
+  gives a principled posterior (date + honest window/confidence), best for irregular/PCOS.
+  A tiny on-device NN (TFLite, Flo-style) is a heavier later option (needs a runtime + data).
+  Optional: **HealthKit temperature/HR** (app already declares HealthKit) → 85–87% fertile-window.
+
+**Feature gaps worth incorporating (feasible, differentiated):**
+1. **Lead with PRIVACY** — Flo paid a $59.5M (2025) settlement over data sharing; Dottie is
+   already local-first/no-ads. This is a huge trust moat — make it a headline, not a footnote.
+2. **Perimenopause mode** — fastest-growing segment; Flo/ENdi just entered. Dottie has an
+   Endocrine mode; a dedicated perimenopause experience (hot-flash/HRT tracking, cycle drift,
+   a "perimenopause score") is a big opportunity.
+3. **Personal symptom↔cycle correlation insights** (Bearable's strength) — "headaches tend to
+   hit 2 days pre-period". Extend the existing Dottie Predicts engine.
+4. **Responsible condition-pattern flags** (PCOS / PMDD / endometriosis) → gentle "worth asking
+   a doctor" + the doctor report (which Dottie already has). NOT diagnosis. PMDD is under-served.
+5. **Hormonal birth-control (pill) mode** — track packs/placebo week; commonly requested; do NOT
+   claim contraception (regulatory). Add a clear "not birth control" line.
+6. **Inclusivity** — research repeatedly flags heteronormative/over-pink/fertility-centric
+   assumptions; Dottie's modes + companion help — keep language inclusive + customization high.
+   Sources in the session transcript (Flo/InData Labs, Urteaga MLR 2021, Natural Cycles FDA,
+   BMC Women's Health 2025, bearable app roundups).
+
   ⚠️ **Git push to GitHub is intermittently hanging on the corporate network** — commits
   are safe LOCALLY on `design-v2`; `design-v2` may be ahead of origin. Retry push when
   the network allows. All design deliverables are published artifacts (safe on claude.ai).

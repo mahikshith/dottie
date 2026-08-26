@@ -2,45 +2,52 @@
  * Dottie — Aurora ThemeProvider + useAurora() (design-v2)
  *
  * Holds the ACTIVE mood palette for the whole app and exposes it via context.
- * Every aurora component reads its colours from `useAurora().palette`, so a
- * mood change re-themes the entire UI from one place.
+ * Every aurora component reads `useAurora().palette`, so a mood change re-themes
+ * the entire UI — all screens — from one place.
  *
- * ─── HOW IT DRIVES ──────────────────────────────────────────────────
+ * ─── THE MOOD REVEAL (user request) ─────────────────────────────────
  *
- *  - Default palette is Nocturne (calm) — the pre-check-in state.
- *  - `applyMood(score)` maps a check-in mood (1–5) → palette and swaps it.
- *  - Wire it once, near the root, to the latest check-in:
+ *  When a mood is logged, the new colour should NOT snap in — it should
+ *  RADIATE OUT from the tapped mood button at a medium pace, a soothing
+ *  circular reveal. `applyMood(score, origin)` drives it:
  *
- *      const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
- *      const { applyMood } = useAurora();
- *      useEffect(() => { applyMood(todayCheckIn?.moodScore); },
- *        [todayCheckIn?.moodScore, applyMood]);
+ *   1. A circle grows from `origin` {x,y}, filled with the NEW palette's
+ *      colour, until it covers the screen (~520ms, strong ease-out).
+ *   2. The palette is committed underneath the cover (so the permanent
+ *      background is now the new palette).
+ *   3. The cover fades out (~340ms), revealing the settled aurora — and
+ *      AuroraBackground plays its own gentle re-bloom.
  *
- *    (Kept OUT of the provider so the theme layer stays decoupled from the
- *     cycle store — the provider is pure state.)
+ *  Call `applyMood(score)` with NO origin (or under Reduce Motion) for an
+ *  instant swap. Origin-aware reveal is Apple's "hint in the direction of the
+ *  gesture / animate from the source" principle made literal.
  *
- * ─── CROSS-FADE ─────────────────────────────────────────────────────
+ *  Wire it from the check-in: pass the mood button's touch point —
+ *    onPress={(e) => applyMood(score, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })}
  *
- *  The token swap here is instantaneous (React re-render with new colours).
- *  The visible cross-fade lives in <AuroraBackground>, which owns the
- *  dominant colour on screen and animates between palettes on change — the
- *  same trick as the mockups (dip the aurora, swap, bring it back), which
- *  masks the instant swap of the smaller tokens. Animating every colour
- *  token across every component is deliberately NOT done: it's a lot of
- *  machinery for motion the background already sells.
- *
- *  ⚠️ design-v2 / UNVERIFIED: written without a device. Verify render +
- *  the background cross-fade on a Node machine.
+ *  ⚠️ design-v2 / UNVERIFIED (no device). Feel-check the reveal pace + the
+ *  hand-off into the settled aurora on a release build.
  */
 
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
+import { StyleSheet, useWindowDimensions } from 'react-native';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   AURORA_PALETTES,
   DEFAULT_PALETTE_ID,
@@ -50,17 +57,27 @@ import {
 } from './palettes';
 import { paletteForMood } from './mood-palette';
 
-// ─── CONTEXT ─────────────────────────────────────────────────────────
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1); // animate-expo strong ease-out
+
+export interface RevealOrigin {
+  x: number;
+  y: number;
+}
+
+interface RevealState {
+  toId: MoodPaletteId;
+  x: number;
+  y: number;
+  /** changes every call so the effect re-fires even for the same palette */
+  nonce: number;
+}
 
 interface AuroraContextValue {
-  /** The active palette's full token set. */
   palette: AuroraPalette;
-  /** The active palette id. */
   paletteId: MoodPaletteId;
-  /** Force a specific palette (e.g. a manual theme setting). */
   setPaletteId: (id: MoodPaletteId) => void;
-  /** Set the palette from a check-in mood score (null → default). */
-  applyMood: (moodScore: number | null | undefined) => void;
+  /** Set palette from a mood score; pass `origin` for the radiate-from-tap reveal. */
+  applyMood: (moodScore: number | null | undefined, origin?: RevealOrigin) => void;
 }
 
 const AuroraContext = createContext<AuroraContextValue | null>(null);
@@ -75,10 +92,23 @@ export function AuroraProvider({
   initialId?: MoodPaletteId;
 }): JSX.Element {
   const [paletteId, setPaletteId] = useState<MoodPaletteId>(initialId);
+  const [reveal, setReveal] = useState<RevealState | null>(null);
+  const reduce = useReducedMotion();
 
-  const applyMood = useCallback((moodScore: number | null | undefined) => {
-    setPaletteId(paletteForMood(moodScore));
-  }, []);
+  const applyMood = useCallback(
+    (moodScore: number | null | undefined, origin?: RevealOrigin) => {
+      const toId = paletteForMood(moodScore);
+      if (!origin || reduce) {
+        setPaletteId(toId);
+        return;
+      }
+      setReveal({ toId, x: origin.x, y: origin.y, nonce: Date.now() });
+    },
+    [reduce]
+  );
+
+  const commit = useCallback((id: MoodPaletteId) => setPaletteId(id), []);
+  const finish = useCallback(() => setReveal(null), []);
 
   const palette = useMemo(() => getPalette(paletteId), [paletteId]);
 
@@ -87,10 +117,89 @@ export function AuroraProvider({
     [palette, paletteId, applyMood]
   );
 
-  return <AuroraContext.Provider value={value}>{children}</AuroraContext.Provider>;
+  return (
+    <AuroraContext.Provider value={value}>
+      {children}
+      <MoodReveal reveal={reveal} onCommit={commit} onFinish={finish} />
+    </AuroraContext.Provider>
+  );
 }
 
-// ─── HOOK ────────────────────────────────────────────────────────────
+// ─── THE REVEAL OVERLAY ──────────────────────────────────────────────
+
+function MoodReveal({
+  reveal,
+  onCommit,
+  onFinish,
+}: {
+  reveal: RevealState | null;
+  onCommit: (id: MoodPaletteId) => void;
+  onFinish: () => void;
+}): JSX.Element | null {
+  const { width, height } = useWindowDimensions();
+  const scale = useSharedValue(0);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (!reveal) return;
+    const toId = reveal.toId;
+    scale.value = 0;
+    opacity.value = 1;
+    // 1) grow to cover → 2) commit palette underneath → 3) fade the cover out
+    scale.value = withTiming(1, { duration: 520, easing: EASE_OUT }, (finished) => {
+      if (!finished) return;
+      runOnJS(onCommit)(toId);
+      opacity.value = withTiming(0, { duration: 340, easing: EASE_OUT }, (done) => {
+        if (done) runOnJS(onFinish)();
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reveal?.nonce]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  if (!reveal) return null;
+
+  const palette = AURORA_PALETTES[reveal.toId];
+  // radius that reaches the farthest screen corner from the origin
+  const maxR = Math.hypot(
+    Math.max(reveal.x, width - reveal.x),
+    Math.max(reveal.y, height - reveal.y)
+  );
+  const d = maxR * 2;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.circle,
+        { width: d, height: d, borderRadius: maxR, left: reveal.x - maxR, top: reveal.y - maxR },
+        style,
+      ]}
+    >
+      <LinearGradient
+        colors={[palette.accent, palette.ground] as const}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
+
+const styles = StyleSheet.create({
+  circle: {
+    position: 'absolute',
+    overflow: 'hidden',
+    zIndex: 9999,
+    elevation: 9999,
+  },
+});
+
+// ─── HOOKS ───────────────────────────────────────────────────────────
 
 export function useAurora(): AuroraContextValue {
   const ctx = useContext(AuroraContext);
@@ -101,10 +210,9 @@ export function useAurora(): AuroraContextValue {
 }
 
 /**
- * Escape hatch: read a palette's tokens. Pass an `id` to read a fixed palette
- * without needing the provider (previews, tests); omit it to read the active
- * palette from context. `useContext` is called unconditionally either way, so
- * this stays rules-of-hooks compliant.
+ * Read a palette's tokens. Pass an `id` for a fixed palette without needing the
+ * provider (previews/tests); omit it for the active palette. `useContext` is
+ * called unconditionally so this stays rules-of-hooks compliant.
  */
 export function useAuroraPalette(id?: MoodPaletteId): AuroraPalette {
   const ctx = useContext(AuroraContext);

@@ -8,6 +8,7 @@ import { Typography } from '../src/constants/typography';
 import { Spacing } from '../src/constants/spacing';
 import { Shadows } from '../src/constants/shadows';
 import { hydrateAppState } from '../src/stores';
+import { AuroraProvider } from '../src/theme';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
@@ -231,7 +232,11 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    // AuroraProvider (design-v2) holds the mood-driven palette + renders the
+    // mood-reveal overlay app-wide. It only PROVIDES context — screens that
+    // don't call useAurora() are unaffected, so this is safe to wrap now while
+    // screens are themed one by one.
+    <AuroraProvider>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -263,7 +268,7 @@ export default function RootLayout() {
           Renders nothing (zero cost) when ghost mode is disabled or
           the user is unlocked. */}
       <AppLockGate />
-    </>
+    </AuroraProvider>
   );
 }
 
