@@ -56,7 +56,9 @@ export type InsightKind =
   /** "You've logged X check-ins in a row — Dottie sees you 💛" */
   | 'consistency_celebration'
   /** "Based on your pattern, your next period is in ~N days." */
-  | 'period_countdown';
+  | 'period_countdown'
+  /** "You tend to log [symptom] ~N days before your period / in your [phase] phase." */
+  | 'symptom_pattern_learned';
 
 // ─── TONE & ICONOGRAPHY ──────────────────────────────────────────────
 
@@ -165,6 +167,9 @@ export const INSIGHT_PRIORITY: Record<InsightKind, number> = {
   cramp_window_ahead: 90,
   energy_dip_ahead: 85,
   focus_peak_today: 75,
+  // A learned personal symptom pattern is high-value ("Dottie *gets* me"),
+  // but sits just under the actionable heads-ups.
+  symptom_pattern_learned: 72,
   skin_clear_window: 60,
   cycle_irregularity_gentle: 55,
   cycle_regularity_praise: 45,

@@ -286,6 +286,62 @@ export function buildPeriodCountdown(
   });
 }
 
+export interface SymptomPatternLearnedVars {
+  /** lowercased symptom label, e.g. "headaches" */
+  symptomType: string;
+  dominantPhase: Phase;
+  medianDayInCycle: number;
+  /** for luteal symptoms: ~days before next period (else null) */
+  daysBeforePeriod: number | null;
+  count: number;
+  confidence: number;
+}
+
+export function buildSymptomPatternLearned(
+  v: SymptomPatternLearnedVars,
+  isoDate: string
+): DottieInsight {
+  const times = `${v.count} time${v.count === 1 ? '' : 's'} now`;
+
+  let body: string;
+  let timingHighlight: InsightHighlight;
+
+  if (v.dominantPhase === 'luteal' && v.daysBeforePeriod !== null) {
+    const d = v.daysBeforePeriod;
+    body =
+      d === 0
+        ? `Dottie's noticed you tend to log ${v.symptomType} right as your period arrives — ${times}. Knowing it's part of your rhythm can make it feel less out of the blue. 💛`
+        : `Dottie's noticed you tend to log ${v.symptomType} around ${d} day${d === 1 ? '' : 's'} before your period — ${times}. Naming the pattern can make it feel less out of the blue. 💛`;
+    timingHighlight = { label: 'Before period', value: d === 0 ? 'day of' : `~${d}d` };
+  } else if (v.dominantPhase === 'luteal') {
+    body = `Dottie's noticed ${v.symptomType} tends to show up in your luteal phase — the stretch before your period — ${times}.`;
+    timingHighlight = { label: 'Phase', value: 'Luteal' };
+  } else if (v.dominantPhase === 'menstrual') {
+    body = `You often log ${v.symptomType} in the first days of your period — Dottie's seen it ${times}. A pattern worth being gentle with. 💛`;
+    timingHighlight = { label: 'Phase', value: 'Menstrual' };
+  } else if (v.dominantPhase === 'follicular') {
+    body = `Dottie's noticed ${v.symptomType} tends to land in your follicular phase, around day ${v.medianDayInCycle} — ${times}.`;
+    timingHighlight = { label: 'Around', value: `Day ${v.medianDayInCycle}` };
+  } else {
+    body = `${v.symptomType} tends to show up around your ovulation window for you — ${times}.`;
+    timingHighlight = { label: 'Phase', value: 'Ovulatory' };
+  }
+
+  return base({
+    kind: 'symptom_pattern_learned',
+    id: `symptom_pattern_learned__${v.symptomType.replace(/\s+/g, '_')}__${isoDate}`,
+    tone: 'curious',
+    emoji: '💫',
+    title: 'Dottie noticed a pattern',
+    body,
+    // Deliberately non-diagnostic — an observation + a gentle door to care.
+    tip: `This is just your own pattern, not medical advice — but if it ever feels heavy, it's always okay to mention to a doctor.`,
+    highlights: [{ label: 'Seen', value: `${v.count}×` }, timingHighlight],
+    confidence: v.confidence,
+    relatedPhase: v.dominantPhase,
+  });
+}
+
 // ─── INTERNAL BASE BUILDER ───────────────────────────────────────────
 
 interface BaseInput {

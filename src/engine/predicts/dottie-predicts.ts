@@ -47,7 +47,9 @@ import {
   buildFocusPeakToday,
   buildPeriodCountdown,
   buildSkinClearWindow,
+  buildSymptomPatternLearned,
 } from './templates';
+import { findSymptomPatterns } from './symptom-correlations';
 
 // ─── INPUT SHAPES ────────────────────────────────────────────────────
 
@@ -124,6 +126,8 @@ export function buildPredictsDeck(input: PredictsEngineInput): DottiePredictsDec
   pushIf(candidates, tryCycleRegularityPraise(input));
   pushIf(candidates, tryCycleIrregularityGentle(input));
   pushIf(candidates, tryConsistencyCelebration(input));
+  // Learned symptom→cycle patterns can yield 0–2 insights.
+  for (const insight of trySymptomPatterns(input)) candidates.push(insight);
 
   // Filter by min confidence, then rank by priority × confidence
   const ranked = candidates
@@ -403,6 +407,36 @@ function tryConsistencyCelebration(input: PredictsEngineInput): DottieInsight | 
       confidence,
     },
     input.date
+  );
+}
+
+/**
+ * Learned symptom→cycle patterns ("you tend to log X ~N days before your
+ * period"). Returns 0–2 insights. Cramps are excluded — they already have a
+ * dedicated heads-up (cramp_window_ahead), so a second cramp card would be noise.
+ */
+function trySymptomPatterns(input: PredictsEngineInput): DottieInsight[] {
+  // Need cycle context to place symptoms meaningfully.
+  if (input.cycleHistory.length < 2) return [];
+
+  const entries = input.recentSymptoms.filter((s) => !isCrampSymptom(s.symptomType));
+  if (entries.length < 3) return [];
+
+  const avgLen = averageCycleLength(input.cycleHistory); // proxy for cycle length
+  const patterns = findSymptomPatterns(entries, avgLen);
+
+  return patterns.map((p) =>
+    buildSymptomPatternLearned(
+      {
+        symptomType: p.symptomType,
+        dominantPhase: p.dominantPhase,
+        medianDayInCycle: p.medianDayInCycle,
+        daysBeforePeriod: p.daysBeforePeriod,
+        count: p.count,
+        confidence: p.confidence,
+      },
+      input.date
+    )
   );
 }
 

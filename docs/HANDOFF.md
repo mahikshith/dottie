@@ -133,7 +133,12 @@ adjustments + error-bias correction) — labelled "Bayesian" but NOT a formal Ba
    Endocrine mode; a dedicated perimenopause experience (hot-flash/HRT tracking, cycle drift,
    a "perimenopause score") is a big opportunity.
 3. **Personal symptom↔cycle correlation insights** (Bearable's strength) — "headaches tend to
-   hit 2 days pre-period". Extend the existing Dottie Predicts engine.
+   hit 2 days pre-period". **✅ DONE (design-v2, ⚠️ UNVERIFIED)** — purely additive to Dottie
+   Predicts: `src/engine/predicts/symptom-correlations.ts` (finds concentrated symptom→phase/
+   day patterns, derives phase from cycle day when needed), new `symptom_pattern_learned`
+   insight kind + priority (72) + `buildSymptomPatternLearned` template (curious, explicitly
+   NON-diagnostic) + `trySymptomPatterns` generator (excludes cramps; 0–2 insights). No store/
+   UI changes (UI auto-renders any DottieInsight). Verify counts/framing on a Node machine.
 4. **Responsible condition-pattern flags** (PCOS / PMDD / endometriosis) → gentle "worth asking
    a doctor" + the doctor report (which Dottie already has). NOT diagnosis. PMDD is under-served.
 5. **Hormonal birth-control (pill) mode** — track packs/placebo week; commonly requested; do NOT
