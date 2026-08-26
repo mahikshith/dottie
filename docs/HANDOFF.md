@@ -22,10 +22,28 @@ faithful HTML recreations from source were built instead of screenshots):
   (six core screens: Welcome, Home, Calendar, Learn, Community, Sisterhood — real tokens).
 - Source of that page: it was authored to scratchpad and published; not in the repo.
 
-**Next step:** get the user's read on the gallery → run `design:design-critique` on the
-chosen screens → apply improvements screen-by-screen using the `src/components/ui`
-primitives + tokens. The `design` canvas skill needs Node to seed, so it's unavailable
-here; use plain Artifacts for any further visual mockups.
+**Emil Kowalski's skills are installed** at `code/.claude/skills/` (vendored from
+github.com/emilkowalski/skills, MIT). The load-bearing ones: `apple-design`,
+`emil-design-eng`, and **`animate-expo`** (exact Reanimated recipes for OUR RN stack —
+read it before implementing any motion: tabs never slide, springs `dampingRatio` 1.0
+default / 0.8 for momentum, `EASE_OUT = bezier(0.23,1,0.32,1)`, press `scale 0.97` in
+100–150ms, haptic on the same frame). Also `find-animation-opportunities`,
+`review-animations`, `improve-animations`.
+
+**Design approach = VISUALIZE FIRST, code later** (user's call — smart, since the app
+can't run here). Work happens on the **`design-v2` branch** (pushed).
+- **Reimagined Home (interactive, live motion):**
+  https://claude.ai/code/artifact/db9078f7-b9fc-42c8-ae60-84e6a37ceaa9
+  Direction = "elevate, keep the soul": phase-as-atmosphere, translucent glass depth,
+  rounded display hero, custom line-icon tab set (Today/Cycle/Learn/Circle/You),
+  primary-action-first, one insight card not three, signature motion (streak ticker,
+  floating companion). Notes panel ties each move to its principle.
+- **"Before" gallery:** https://claude.ai/code/artifact/b24440b0-c454-4752-ae43-e1686c8dc2ad
+
+**Next step:** get the user's reactions to the reimagined Home → refine that direction →
+extend the language to the other screens as mockups → ONLY THEN implement on `design-v2`
+in RN using the `animate-expo` recipes + `src/components/ui` primitives. The `design`
+canvas skill needs Node to seed, so use plain Artifacts for mockups.
 
 ---
 
