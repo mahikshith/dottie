@@ -36,14 +36,30 @@ Two directions for Home are visualized (user wants bold + morphisms, free of the
 current palette):
 - **Direction A — "Elevate, keep the soul"** (warm, cream/coral, subtle glass):
   https://claude.ai/code/artifact/db9078f7-b9fc-42c8-ae60-84e6a37ceaa9
-- **Direction B — "Aurora Palettes"** (BOLD, from-scratch; the cycle as a night sky;
-  glassmorphism + claymorphism + aurora-mesh + grain; glowing cycle ring). **User loved
-  this; asked to explore warm+cool palettes + a toggle + a fluid glass tab bar.** Now
-  ships a live **4-palette toggle** — Nocturne (cool violet/aqua), Sunset (warm/joyful),
-  Reef (cool teal), Dawn (light warm) — sharing ONE glass/clay/aurora system, plus a
-  spring-driven sliding glass tab indicator:
+- **CHOSEN DIRECTION → "Mood Aurora"** (BOLD, from-scratch aurora system; the cycle as
+  a night sky; glassmorphism + claymorphism + aurora-mesh + grain; glowing cycle ring;
+  fluid spring-driven glass tab indicator). Same artifact URL, evolved:
   https://claude.ai/code/artifact/64d7a36b-cca1-4c8d-a731-889d936b97d6
-  Proposed model: Dawn = friendly default, others = premium theme settings.
+  **THE BIG IDEA (user's): the logged MOOD recolours the entire UI.** Default = Nocturne
+  violet; tapping a mood morphs the whole palette → makes the daily check-in the hook.
+  Mood→palette map (ALL supportive — low/rough stay WARM & soothing, never grey/dark,
+  per apple-design *Responsibility*):
+  - 😊 great → Radiance (warm gold/coral) · 🙂 good → Meadow (mint/aqua)
+  - 😐 okay → Nocturne (violet/aqua, default) · 😔 low → Twilight (soft periwinkle)
+  - 😤 rough → Ember (warm rose/amber)
+  Phase stays in the ring; mood owns the atmosphere. A separate light "Dawn" theme +
+  cool "Reef" remain optional user settings (were in the prior 4-palette version).
+
+  **NEXT (user wants to implement):** write the RN **theme architecture** on `design-v2`
+  — a `theme/palettes.ts` (the 5 palette token sets), a `mood → palette` map, a theme
+  store/provider wired to the check-in, then apply gradients/glass across screens. The
+  token/data layer is statically safe to build now; the visual application needs the
+  Node machine to verify. Use the `animate-expo` recipe for the tab indicator
+  (measured-once, transform-only Reanimated + `Haptics.selectionAsync()`).
+
+  ⚠️ **Git push to GitHub is intermittently hanging on the corporate network** — commits
+  are safe LOCALLY on `design-v2`; `design-v2` may be ahead of origin. Retry push when
+  the network allows. All design deliverables are published artifacts (safe on claude.ai).
 Both are interactive (press moods, ring draws, streak ticks). Shared IA in both:
 hero states the day, primary action (mood) first, glass stats, one insight card,
 glass tab bar with custom line icons + honest labels (Today/Cycle/Learn/Circle/You).
