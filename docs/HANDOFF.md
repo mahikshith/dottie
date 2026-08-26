@@ -5,10 +5,27 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-13
-**Updated by:** Claude (Opus 4.8) — "Fix, Polish & Get-It-Running" session
-**Companion doc:** `docs/SESSION-CONTEXT.md` (the original full project brief — still
-valid for product/design/architecture context) and `docs/BETA-TESTING-GUIDE.md`.
+**Last updated:** 2026-08-13 (design-visualization + continuity update)
+**Updated by:** Claude (Opus 4.8) — "Fix, Polish & Get-It-Running" → design phase
+**Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide — read alongside this),
+`docs/SESSION-CONTEXT.md` (original full project brief), `docs/BETA-TESTING-GUIDE.md`.
+
+## 0. Design phase (current) — where we are RIGHT NOW
+Phase-2 premium polish is code-complete across all 13 screens (see §4.5). The user has
+installed the **`design:*` plugin skills** and wants premium frontend/UI + motion
+principles (Emil Kowalski school: restraint, purposeful spring motion, spacing rhythm,
+native micro-interactions) applied to Dottie's design.
+
+**Before improving, the current screens were visualized** (app can't run — no Node — so
+faithful HTML recreations from source were built instead of screenshots):
+- **Screen gallery Artifact:** https://claude.ai/code/artifact/b24440b0-c454-4752-ae43-e1686c8dc2ad
+  (six core screens: Welcome, Home, Calendar, Learn, Community, Sisterhood — real tokens).
+- Source of that page: it was authored to scratchpad and published; not in the repo.
+
+**Next step:** get the user's read on the gallery → run `design:design-critique` on the
+chosen screens → apply improvements screen-by-screen using the `src/components/ui`
+primitives + tokens. The `design` canvas skill needs Node to seed, so it's unavailable
+here; use plain Artifacts for any further visual mockups.
 
 ---
 
