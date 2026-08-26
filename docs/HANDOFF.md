@@ -5,10 +5,21 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-13 (design-visualization + continuity update)
-**Updated by:** Claude (Opus 4.8) — "Fix, Polish & Get-It-Running" → design phase
-**Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide — read alongside this),
-`docs/SESSION-CONTEXT.md` (original full project brief), `docs/BETA-TESTING-GUIDE.md`.
+**Last updated:** 2026-08-13 (predictor v2 + 2 features + deep-dive doc)
+**Updated by:** Claude (Opus 4.8) — design phase → engine/features phase
+**Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/FEATURES-AND-RESEARCH.md`
+(the COMPLETE picture: predictor math, features, aurora system, research)**,
+`docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
+
+## Session-end snapshot (engine/features phase)
+On **`design-v2`** (all committed + pushed; `main` untouched; everything ⚠️ UNVERIFIED — no Node):
+- **Predictor v2** — real Bayesian model (NIG → Student-t), drop-in. (§0.6 + FEATURES doc §1)
+- **Symptom↔cycle correlation insights** — additive to Dottie Predicts (§0.6 · FEATURES §2)
+- **Condition-pattern flags** — in the doctor report, non-diagnostic (§0.6 · FEATURES §3)
+- **Mood Aurora** design system + mood-reveal + aurora components (§0 · FEATURES §4)
+**Next (UI/UX phase, needs a Node machine):** `expo install expo-blur`; theme screens to
+aurora (Home + its cards first); render the report "patterns" section in `ReportPreview.tsx`;
+perimenopause / birth-control-pill modes; then `tsc` + device verify + merge to `main`.
 
 ## 0. Design phase (current) — where we are RIGHT NOW
 Phase-2 premium polish is code-complete across all 13 screens (see §4.5). The user has

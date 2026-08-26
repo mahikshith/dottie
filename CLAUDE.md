@@ -1,7 +1,19 @@
 # Dottie — Claude Code project guide
 
 Auto-loaded every session. **Read `docs/HANDOFF.md` first** — it is the live status
-log (what's done, what's next, decisions). This file is the stable how-we-work guide.
+log (what's done, what's next, decisions). For the *complete picture* of features +
+algorithms (the Bayesian predictor math, the two new engine features, the aurora
+system, and the research), read **`docs/FEATURES-AND-RESEARCH.md`**. This file is the
+stable how-we-work guide.
+
+## Engine/feature state (design-v2, ⚠️ UNVERIFIED — no Node here)
+- **Predictor v2** = a REAL Bayesian model (Normal-Inverse-Gamma → Student-t, on-device,
+  closed-form): `src/engine/prediction/bayesian-predictor.ts` + rewritten `predictor.ts`
+  (same public API). Replaces the old heuristic. Math in `docs/FEATURES-AND-RESEARCH.md §1`.
+- **Symptom↔cycle correlation insights** — additive to Dottie Predicts
+  (`src/engine/predicts/symptom-correlations.ts` + new insight kind). Non-diagnostic.
+- **Condition-pattern flags** — in the DOCTOR REPORT only
+  (`src/engine/reports/condition-signals.ts`), NON-diagnostic "worth mentioning". Never home feed.
 
 ## What Dottie is
 A warm, local-first women's-health / cycle-tracking companion. React Native + Expo
