@@ -1,14 +1,21 @@
-import { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, type GestureResponderEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { useAurora, PHASE_AURORA } from '../../src/theme';
+import {
+  AuroraBackground,
+  GlassCard,
+  ClayButton,
+  GlowRing,
+  BreathingView,
+  PopOnChange,
+  PressableScale,
+} from '../../src/components/ui';
 import {
   useContentStore,
   useCycleStore,
@@ -31,43 +38,40 @@ import { getTimeGreeting } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
-import { PressableScale, BreathingView, PopOnChange } from '../../src/components/ui';
 import { todayISO } from '../../src/utils/date.utils';
 
 /**
  * Home Dashboard — The daily ritual screen.
  *
- * ─── PREMIUM POLISH PASS (Phase 2) ──────────────────────────────────
+ * ─── MOOD AURORA THEME (design-v2) ──────────────────────────────────
  *
- *  The design system was already rich; this pass activates it:
+ *  Themed to the mood-driven aurora system:
+ *   - The whole screen is wrapped in <AuroraBackground> (dark ground +
+ *     drifting blooms). Every colour comes from the active mood palette via
+ *     `useAurora()` (inline, since StyleSheet is static and the palette changes
+ *     per mood).
+ *   - The day sits in a self-drawing <GlowRing>; cards are <GlassCard>s; the
+ *     mood keys are <ClayButton>s.
+ *   - THE MOOD REVEAL: tapping a mood calls `applyMood(score, {x,y})` with the
+ *     tap point, so the new palette RADIATES OUT from the tapped key across the
+ *     whole app (see ThemeProvider). This is IN ADDITION to the existing
+ *     check-in save/streak/celebration logic — none of which changed.
+ *   - On mount, the palette reflects today's already-logged mood.
  *
- *   - Entrance choreography: each card fades + rises in a gentle stagger
- *     (Reanimated `FadeInDown`, UI thread) so the dashboard assembles
- *     with intent on every visit.
- *   - The greeting card is now a soft phase-tinted gradient with the
- *     companion sitting in a breathing gradient "halo" — it reads as a
- *     living companion, not a static emoji. Body text stays on the light
- *     end of the gradient so contrast (dark-brown on cream) is preserved.
- *   - Streak + gem counters "pop" (PopOnChange) when they change, so
- *     logging feels immediately rewarding.
- *   - Mood buttons + the full-check-in CTA use the shared spring-press
- *     primitive (PressableScale) for buttery 60fps tap feedback.
- *   - Real safe-area insets replace a fixed top padding.
+ *  Child cards (PhaseWeatherCard, DottiePredictsCard) are themed in their own
+ *  files — rendered here unchanged.
  *
- *  All motion honors "Reduce Motion" via the shared primitives.
+ *  ⚠️ design-v2 / UNVERIFIED (no device). Verify layout + the reveal on a run.
  *
  * ─── EMOTIONAL TRIO (unchanged) ─────────────────────────────────────
- *
- *    1. Daily Decode   (universal phase insight)
- *    2. Phase Weather  (anonymous community pulse)
- *    3. Dottie Predicts (personal pattern recognition)
- *
- *  Companion greeting, phase bar, streak/gems, quick mood, full check-in
- *  CTA, phase-responsive questions, all-caught-up state — all preserved.
+ *    1. Daily Decode · 2. Phase Weather · 3. Dottie Predicts
+ *  Companion greeting, phase bar, streak/gems, quick mood, full check-in CTA,
+ *  phase-responsive questions, all-caught-up state — all preserved.
  */
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette, applyMood } = useAurora();
 
   // ─── Live store reads via selectors (efficient re-renders) ────
   const companionType = useUserStore(selectCompanionType);
@@ -82,7 +86,19 @@ export default function HomeScreen() {
   const predictsDeck = usePredictsStore(selectPredictsDeck);
 
   const companion = getCompanion(companionType);
-  const phaseColors = Colors.phase[phase];
+
+  // Selected mood (presentation only — lights the chosen ClayButton).
+  const [selectedMood, setSelectedMood] = useState<number | null>(
+    todayCheckIn?.moodScore ?? null
+  );
+
+  // ─── On mount, reflect today's logged mood in the palette ───────
+  useEffect(() => {
+    if (todayCheckIn?.moodScore != null) {
+      applyMood(todayCheckIn.moodScore); // no origin = instant swap
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ─── Compose greeting (time + companion + phase) ────────────────
   const greeting = useMemo(() => {
@@ -100,31 +116,23 @@ export default function HomeScreen() {
   // ─── Refresh today's content + ambient cards on phase/day change ─
   useEffect(() => {
     useContentStore.getState().refreshTodaysContent();
-    // Safety net: if the user kept the app open across midnight, the
-    // cached weather snapshot is invalidated by daily rollover.
-    // ensureToday() regenerates lazily on the next read. Cheap.
     usePhaseWeatherStore.getState().ensureToday();
-    // Same safety net for Dottie Predicts — also re-runs when the
-    // user's cycle position shifts so insights stay relevant.
     void usePredictsStore.getState().ensureToday();
   }, [phase, dayInCycle]);
 
   // ─── Quick mood tap handler ─────────────────────────────────────
   //
-  // Note: This is the *quick* path — we deliberately do NOT route into
-  // the recap modal here. The quick tap should feel like saying hi in
-  // passing. Milestones and level-ups still earn a celebration moment,
-  // because those *are* moments and skipping them would feel cold.
-  const onMoodSelect = async (moodScore: number, _emoji: string) => {
+  // The quick path — saying hi in passing. Milestones/level-ups still earn a
+  // celebration. Now it ALSO drives the mood-colour reveal from the tap point.
+  const onMoodSelect = async (moodScore: number, e: GestureResponderEvent) => {
+    setSelectedMood(moodScore);
+    applyMood(moodScore, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const today = todayISO();
 
     try {
       // 1. Save the check-in (mood field)
-      await useCycleStore.getState().saveCheckIn({
-        date: today,
-        moodScore,
-      });
+      await useCycleStore.getState().saveCheckIn({ date: today, moodScore });
 
       // 2. Process streak / XP / gems
       const result = await useGamificationStore.getState().recordCheckIn(today);
@@ -132,12 +140,10 @@ export default function HomeScreen() {
       // 3. Prefetch tomorrow for an instant feel next time
       useContentStore.getState().prefetchTomorrow();
 
-      // 4. Regenerate the Dottie Predicts deck — new check-in could
-      //    nudge the consistency_celebration insight into the deck.
+      // 4. Regenerate the Dottie Predicts deck
       void usePredictsStore.getState().regenerate();
 
-      // 5. Route into the right celebration ONLY if it's a notable moment.
-      //    Quick mood taps stay quick by default — no recap modal here.
+      // 5. Route into a celebration ONLY if it's a notable moment.
       if (result.milestone !== null) {
         router.push({
           pathname: '/(modals)/streak-celebration',
@@ -158,7 +164,6 @@ export default function HomeScreen() {
           },
         });
       }
-      // No-op for ordinary check-ins: the quick path stays quick.
     } catch (err) {
       if (__DEV__) console.warn('[Home] check-in failed:', err);
     }
@@ -189,8 +194,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Has the user already opened the full check-in today (i.e. provided
-  // energy / stress / sleep / symptoms beyond just mood)?
   const hasFullCheckIn = Boolean(
     todayCheckIn &&
       (todayCheckIn.energyLevel !== null ||
@@ -198,256 +201,258 @@ export default function HomeScreen() {
         todayCheckIn.sleepQuality !== null)
   );
 
+  const phaseHue = PHASE_AURORA[phase];
+  const cycleProgress = Math.min(1, Math.max(0, dayInCycle / 28));
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + Spacing.lg },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Companion Greeting — soft phase-tinted gradient card with the
-          companion sitting in a breathing gradient halo. Two-view
-          shadow/clip so the iOS shadow renders alongside the rounded
-          gradient clip. */}
-      <Animated.View entering={rise(60)} style={styles.greetingShadow}>
-        <View style={styles.greetingClip}>
-          <LinearGradient
-            colors={[Colors.surface.card, phaseColors.light] as const}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.greetingRow}>
-            <BreathingView>
-              <LinearGradient
-                colors={phaseColors.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.companionHalo}
-              >
-                <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-              </LinearGradient>
+    <AuroraBackground>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero — greeting + a breathing companion + the day in a glow ring */}
+        <Animated.View entering={rise(60)} style={styles.hero}>
+          <View style={styles.heroText}>
+            <BreathingView style={styles.companionWrap}>
+              <Text style={styles.companionEmoji}>{companion.emoji}</Text>
             </BreathingView>
-            <View style={styles.greetingContent}>
-              <Text style={styles.greetingText}>{greeting}</Text>
-            </View>
+            <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>
-        </View>
-      </Animated.View>
-
-      {/* Phase Indicator */}
-      <Animated.View entering={rise(140)} style={styles.phaseBar}>
-        <View style={[styles.phaseDot, { backgroundColor: phaseColors.primary }]} />
-        <Text style={styles.phaseLabel}>{phaseColors.label} Phase</Text>
-        <Text style={styles.phaseDay}>Day {dayInCycle}</Text>
-      </Animated.View>
-
-      {/* Phase Weather — the "you're not alone" moment */}
-      {weatherView ? (
-        <Animated.View entering={rise(220)}>
-          <PhaseWeatherCard view={weatherView} />
+          <GlowRing progress={cycleProgress} size={92}>
+            <Text style={[styles.ringDay, { color: palette.ink }]}>{dayInCycle}</Text>
+            <Text style={[styles.ringLabel, { color: palette.ink3 }]}>day</Text>
+          </GlowRing>
         </Animated.View>
-      ) : null}
 
-      {/* Streak & Gems Row */}
-      <Animated.View entering={rise(300)} style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statEmoji}>🔥</Text>
-          <PopOnChange value={streak.currentStreak}>
-            <Text style={styles.statNumber}>{streak.currentStreak}</Text>
-          </PopOnChange>
-          <Text style={styles.statLabel}>Day Streak</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statEmoji}>💎</Text>
-          <PopOnChange value={gemsBalance}>
-            <Text style={styles.statNumber}>{gemsBalance}</Text>
-          </PopOnChange>
-          <Text style={styles.statLabel}>Gems</Text>
-        </View>
-      </Animated.View>
-
-      {/* Dottie Predicts — the "Dottie *gets* you" moment */}
-      <Animated.View entering={rise(380)}>
-        <DottiePredictsCard
-          deck={predictsDeck}
-          companionName={companion.name}
-          companionEmoji={companion.emoji}
-        />
-      </Animated.View>
-
-      {/* Daily Decode Card */}
-      {todaysCard && (
-        <Animated.View
-          entering={rise(460)}
-          style={[
-            styles.dailyDecodeCard,
-            {
-              backgroundColor: phaseColors.light,
-              borderLeftColor: phaseColors.primary,
-            },
-          ]}
-        >
-          <Text style={[styles.dailyDecodeLabel, { color: phaseColors.primary }]}>
-            ✨ Daily Decode
+        {/* Phase Indicator */}
+        <Animated.View entering={rise(140)} style={styles.phaseBar}>
+          <View style={[styles.phaseDot, { backgroundColor: phaseHue }]} />
+          <Text style={[styles.phaseLabel, { color: palette.ink }]}>
+            {capitalize(phase)} Phase
           </Text>
-          <Text style={styles.dailyDecodeTitle}>{todaysCard.title}</Text>
-          <Text style={styles.dailyDecodeBody}>{todaysCard.body}</Text>
-          {todaysCard.tip ? (
-            <Text style={styles.dailyDecodeTip}>{todaysCard.tip}</Text>
-          ) : null}
+          <Text style={[styles.phaseDay, { color: palette.ink3 }]}>Day {dayInCycle}</Text>
         </Animated.View>
-      )}
 
-      {/* Quick Check-in (Mood) */}
-      <Animated.View entering={rise(540)} style={styles.checkInSection}>
-        <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-        <View style={styles.moodRow}>
-          {moodOptions.map((option) => (
-            <PressableScale
-              key={option.emoji}
-              style={styles.moodButton}
-              scaleTo={0.88}
-              haptic="none"
-              onPress={() => onMoodSelect(option.score, option.emoji)}
-              accessibilityRole="button"
-              accessibilityLabel={`Log mood: ${option.label}`}
-            >
-              <Text style={styles.moodEmoji}>{option.emoji}</Text>
-            </PressableScale>
-          ))}
-        </View>
+        {/* Phase Weather — themed in its own file */}
+        {weatherView ? (
+          <Animated.View entering={rise(220)}>
+            <PhaseWeatherCard view={weatherView} />
+          </Animated.View>
+        ) : null}
 
-        {/* Full check-in CTA — opens the polished modal flow */}
-        <PressableScale
-          onPress={onOpenFullCheckIn}
-          haptic="none"
-          style={[styles.fullCheckInButton, { borderColor: phaseColors.primary }]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            hasFullCheckIn
-              ? "Update today's check-in"
-              : "Open today's full check-in"
-          }
-        >
-          <Text style={[styles.fullCheckInText, { color: phaseColors.primary }]}>
-            {hasFullCheckIn ? '✓ ' : '🌸 '}
-            {hasFullCheckIn ? "Update today's check-in" : 'Do a full check-in'}
-          </Text>
-          <Text style={styles.fullCheckInHint}>
-            Energy, stress, sleep, symptoms — in one warm sheet.
-          </Text>
-        </PressableScale>
-      </Animated.View>
-
-      {/* Phase-Responsive Questions */}
-      {todaysQuestions.length > 0 && (
-        <Animated.View entering={rise(620)} style={styles.questionsSection}>
-          {todaysQuestions.slice(0, 2).map((q) => (
-            <View key={q.id} style={styles.questionsCard}>
-              <Text style={[styles.questionLabel, { color: companion.accentColor }]}>
-                {companion.name} asks {companion.emoji}
+        {/* Streak & Gems Row */}
+        <Animated.View entering={rise(300)} style={styles.statsRow}>
+          <GlassCard style={styles.statCard} padding={Spacing.cardPadding}>
+            <Text style={styles.statEmoji}>🔥</Text>
+            <PopOnChange value={streak.currentStreak}>
+              <Text style={[styles.statNumber, { color: palette.accent }]}>
+                {streak.currentStreak}
               </Text>
-              <Text style={styles.questionText}>{q.text}</Text>
-              <View style={styles.questionOptions}>
-                {q.options.map((option, idx) => (
-                  <PressableScale
-                    key={`${q.id}_${idx}`}
-                    style={styles.questionChip}
-                    scaleTo={0.97}
-                    haptic="none"
-                    onPress={() => onAnswerQuestion(q.id, option, idx, q.tracksMetric)}
-                    accessibilityRole="button"
-                    accessibilityLabel={option}
-                  >
-                    <Text style={styles.questionChipText}>{option}</Text>
-                  </PressableScale>
-                ))}
-              </View>
-            </View>
-          ))}
+            </PopOnChange>
+            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Day Streak</Text>
+          </GlassCard>
+          <GlassCard style={styles.statCard} padding={Spacing.cardPadding}>
+            <Text style={styles.statEmoji}>💎</Text>
+            <PopOnChange value={gemsBalance}>
+              <Text style={[styles.statNumber, { color: palette.accent2 }]}>
+                {gemsBalance}
+              </Text>
+            </PopOnChange>
+            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Gems</Text>
+          </GlassCard>
         </Animated.View>
-      )}
 
-      {/* All caught up message */}
-      {todaysQuestions.length === 0 && (
-        <Animated.View entering={rise(620)} style={styles.allCaughtUpCard}>
-          <Text style={styles.allCaughtUpEmoji}>🌸</Text>
-          <Text style={styles.allCaughtUpTitle}>You're all caught up!</Text>
-          <Text style={styles.allCaughtUpBody}>
-            Come back tomorrow for fresh insights from {companion.name}.
+        {/* Dottie Predicts — themed in its own file */}
+        <Animated.View entering={rise(380)}>
+          <DottiePredictsCard
+            deck={predictsDeck}
+            companionName={companion.name}
+            companionEmoji={companion.emoji}
+          />
+        </Animated.View>
+
+        {/* Daily Decode Card */}
+        {todaysCard && (
+          <Animated.View entering={rise(460)}>
+            <GlassCard style={styles.decodeCard}>
+              <Text style={[styles.decodeLabel, { color: palette.accent }]}>
+                ✨ Daily Decode
+              </Text>
+              <Text style={[styles.decodeTitle, { color: palette.ink }]}>
+                {todaysCard.title}
+              </Text>
+              <Text style={[styles.decodeBody, { color: palette.ink2 }]}>
+                {todaysCard.body}
+              </Text>
+              {todaysCard.tip ? (
+                <Text style={[styles.decodeTip, { color: palette.ink }]}>
+                  {todaysCard.tip}
+                </Text>
+              ) : null}
+            </GlassCard>
+          </Animated.View>
+        )}
+
+        {/* Quick Check-in (Mood) — the mood colours the world */}
+        <Animated.View entering={rise(540)} style={styles.checkInSection}>
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+            How are you feeling today?
           </Text>
-        </Animated.View>
-      )}
+          <View style={styles.moodRow}>
+            {moodOptions.map((option) => (
+              <ClayButton
+                key={option.emoji}
+                style={styles.moodButton}
+                radius={18}
+                haptic="none"
+                selected={selectedMood === option.score}
+                onPress={(e) => onMoodSelect(option.score, e)}
+                accessibilityLabel={`Log mood: ${option.label}`}
+              >
+                <Text style={styles.moodEmoji}>{option.emoji}</Text>
+              </ClayButton>
+            ))}
+          </View>
 
-      {/* Bottom padding for tab bar */}
-      <View style={{ height: Spacing.tabBarHeight }} />
-    </ScrollView>
+          {/* Full check-in CTA */}
+          <PressableScale
+            onPress={onOpenFullCheckIn}
+            haptic="none"
+            style={[
+              styles.fullCheckInButton,
+              { backgroundColor: palette.glass.bg, borderColor: palette.accent },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              hasFullCheckIn ? "Update today's check-in" : "Open today's full check-in"
+            }
+          >
+            <Text style={[styles.fullCheckInText, { color: palette.accent }]}>
+              {hasFullCheckIn ? '✓ ' : '🌸 '}
+              {hasFullCheckIn ? "Update today's check-in" : 'Do a full check-in'}
+            </Text>
+            <Text style={[styles.fullCheckInHint, { color: palette.ink3 }]}>
+              Energy, stress, sleep, symptoms — in one warm sheet.
+            </Text>
+          </PressableScale>
+        </Animated.View>
+
+        {/* Phase-Responsive Questions */}
+        {todaysQuestions.length > 0 && (
+          <Animated.View entering={rise(620)} style={styles.questionsSection}>
+            {todaysQuestions.slice(0, 2).map((q) => (
+              <GlassCard key={q.id} style={styles.questionsCard}>
+                <Text style={[styles.questionLabel, { color: palette.accent }]}>
+                  {companion.name} asks {companion.emoji}
+                </Text>
+                <Text style={[styles.questionText, { color: palette.ink }]}>{q.text}</Text>
+                <View style={styles.questionOptions}>
+                  {q.options.map((option, idx) => (
+                    <PressableScale
+                      key={`${q.id}_${idx}`}
+                      style={[
+                        styles.questionChip,
+                        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+                      ]}
+                      scaleTo={0.97}
+                      haptic="none"
+                      onPress={() => onAnswerQuestion(q.id, option, idx, q.tracksMetric)}
+                      accessibilityRole="button"
+                      accessibilityLabel={option}
+                    >
+                      <Text style={[styles.questionChipText, { color: palette.ink }]}>
+                        {option}
+                      </Text>
+                    </PressableScale>
+                  ))}
+                </View>
+              </GlassCard>
+            ))}
+          </Animated.View>
+        )}
+
+        {/* All caught up message */}
+        {todaysQuestions.length === 0 && (
+          <Animated.View entering={rise(620)}>
+            <GlassCard style={styles.allCaughtUpCard}>
+              <Text style={styles.allCaughtUpEmoji}>🌸</Text>
+              <Text style={[styles.allCaughtUpTitle, { color: palette.ink }]}>
+                You're all caught up!
+              </Text>
+              <Text style={[styles.allCaughtUpBody, { color: palette.ink2 }]}>
+                Come back tomorrow for fresh insights from {companion.name}.
+              </Text>
+            </GlassCard>
+          </Animated.View>
+        )}
+
+        {/* Bottom padding for tab bar */}
+        <View style={{ height: Spacing.tabBarHeight }} />
+      </ScrollView>
+    </AuroraBackground>
   );
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
 
-// Shared entrance rhythm — fade + rise with a soft spring settle.
 function rise(delayMs: number) {
   return FadeInDown.duration(560).delay(delayMs).springify().damping(16);
 }
 
+function capitalize(s: string): string {
+  return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 const moodOptions: { emoji: string; score: number; label: string }[] = [
-  { emoji: '😊', score: 5, label: 'great' },
-  { emoji: '🙂', score: 4, label: 'good' },
-  { emoji: '😐', score: 3, label: 'okay' },
-  { emoji: '😔', score: 2, label: 'low' },
   { emoji: '😤', score: 1, label: 'rough' },
+  { emoji: '😔', score: 2, label: 'low' },
+  { emoji: '😐', score: 3, label: 'okay' },
+  { emoji: '🙂', score: 4, label: 'good' },
+  { emoji: '😊', score: 5, label: 'great' },
 ];
 
-// ─── STYLES ──────────────────────────────────────────────────────────
+// ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
   },
-  // Greeting card: outer owns shadow + radius + opaque fallback so the
-  // iOS shadow casts; inner owns the rounded clip the gradient fills.
-  greetingShadow: {
-    backgroundColor: Colors.surface.card,
-    borderRadius: Spacing.radius['2xl'],
-    marginBottom: Spacing.base,
-    ...Shadows.card,
-  },
-  greetingClip: {
-    borderRadius: Spacing.radius['2xl'],
-    overflow: 'hidden',
-  },
-  greetingRow: {
+  hero: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.cardPadding,
+    gap: Spacing.md,
+    marginBottom: Spacing.base,
   },
-  companionHalo: {
-    width: 60,
-    height: 60,
-    borderRadius: Spacing.radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
+  heroText: {
+    flex: 1,
+  },
+  companionWrap: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.sm,
   },
   companionEmoji: {
-    fontSize: 34,
-  },
-  greetingContent: {
-    flex: 1,
+    fontSize: 40,
   },
   greetingText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
     lineHeight: 22,
+  },
+  ringDay: {
+    ...Typography.preset.number,
+    fontSize: 26,
+  },
+  ringLabel: {
+    ...Typography.preset.caption,
+    fontSize: 10,
+    marginTop: 1,
   },
   phaseBar: {
     flexDirection: 'row',
@@ -463,12 +468,10 @@ const styles = StyleSheet.create({
   },
   phaseLabel: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
     flex: 1,
   },
   phaseDay: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
   },
   statsRow: {
     flexDirection: 'row',
@@ -477,11 +480,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.cardPadding,
-    borderRadius: Spacing.radius.xl,
     alignItems: 'center',
-    ...Shadows.sm,
   },
   statEmoji: {
     fontSize: 24,
@@ -489,35 +488,27 @@ const styles = StyleSheet.create({
   },
   statNumber: {
     ...Typography.preset.number,
-    color: Colors.text.primary,
   },
   statLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
-  dailyDecodeCard: {
-    padding: Spacing.cardPaddingLarge,
-    borderRadius: Spacing.radius['2xl'],
+  decodeCard: {
     marginBottom: Spacing.sectionGap,
-    borderLeftWidth: 4,
   },
-  dailyDecodeLabel: {
+  decodeLabel: {
     ...Typography.preset.overline,
     marginBottom: Spacing.sm,
   },
-  dailyDecodeTitle: {
+  decodeTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
-  dailyDecodeBody: {
+  decodeBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     lineHeight: 24,
   },
-  dailyDecodeTip: {
+  decodeTip: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
     marginTop: Spacing.md,
     lineHeight: 22,
   },
@@ -526,34 +517,27 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
   moodRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
     marginBottom: Spacing.base,
   },
   moodButton: {
-    width: 56,
-    height: 56,
-    backgroundColor: Colors.surface.card,
-    borderRadius: Spacing.radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Shadows.sm,
+    flex: 1,
+    aspectRatio: 1,
   },
   moodEmoji: {
-    fontSize: 28,
+    fontSize: 26,
   },
   fullCheckInButton: {
-    backgroundColor: Colors.surface.card,
     borderRadius: Spacing.radius['2xl'],
     padding: Spacing.cardPadding,
     borderWidth: 1.5,
     alignItems: 'center',
     gap: Spacing.xs,
-    ...Shadows.sm,
   },
   fullCheckInText: {
     ...Typography.preset.bodySemibold,
@@ -561,50 +545,36 @@ const styles = StyleSheet.create({
   },
   fullCheckInHint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
   },
   questionsSection: {
     gap: Spacing.base,
     marginBottom: Spacing.sectionGap,
   },
-  questionsCard: {
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.cardPaddingLarge,
-    borderRadius: Spacing.radius['2xl'],
-    ...Shadows.card,
-  },
+  questionsCard: {},
   questionLabel: {
     ...Typography.preset.captionBold,
     marginBottom: Spacing.sm,
   },
   questionText: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.primary,
     marginBottom: Spacing.base,
   },
   questionOptions: {
     gap: Spacing.sm,
   },
   questionChip: {
-    backgroundColor: Colors.surface.background,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
     borderRadius: Spacing.radius.xl,
     borderWidth: 1,
-    borderColor: Colors.border.light,
   },
   questionChipText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
   },
   allCaughtUpCard: {
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.cardPaddingLarge,
-    borderRadius: Spacing.radius['2xl'],
     alignItems: 'center',
     marginBottom: Spacing.sectionGap,
-    ...Shadows.sm,
   },
   allCaughtUpEmoji: {
     fontSize: 36,
@@ -612,12 +582,10 @@ const styles = StyleSheet.create({
   },
   allCaughtUpTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   allCaughtUpBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     textAlign: 'center',
   },
 });

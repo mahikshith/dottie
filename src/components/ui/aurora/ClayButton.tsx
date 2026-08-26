@@ -19,14 +19,20 @@
  */
 
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PressableScale, type PressableScaleHaptic } from '../PressableScale';
 import { useAurora } from '../../../theme/ThemeProvider';
 
 export interface ClayButtonProps {
   children?: ReactNode;
-  onPress?: () => void;
+  /**
+   * Press handler. Receives the touch event (forwarded from Pressable) so
+   * callers can read the tap origin — e.g. the mood keys pass
+   * `e.nativeEvent.pageX/pageY` into `applyMood(score, origin)` for the
+   * radiate-from-tap colour reveal.
+   */
+  onPress?: (event: GestureResponderEvent) => void;
   /** Lights the button in the accent gradient + glow. */
   selected?: boolean;
   radius?: number;
