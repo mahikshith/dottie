@@ -1,13 +1,48 @@
+/**
+ * Calendar Tab — MOOD AURORA THEME (design-v2)
+ *
+ * Visual cycle calendar, re-skinned onto the aurora world: a luminous dark
+ * ground (AuroraBackground), glass surfaces (phase summary + legend), and day
+ * cells that glow in their PHASE_AURORA hue. The whole screen re-tints with the
+ * active mood palette via `useAurora()` — colours are inline; the StyleSheet is
+ * layout only.
+ *
+ * ─── WHAT THIS DELIVERS (unchanged) ─────────────────────────────────
+ *
+ *  - Month grid with color-coded phase days (live data)
+ *  - Period days marked from actual `cycle_entries` rows
+ *  - Predicted next period band overlaid in a lighter/dashed treatment
+ *  - Tap a day → quick action sheet to log it as a period day
+ *  - Phase summary showing current position in cycle
+ *  - Confidence-aware prediction message (gentle, never alarming)
+ *
+ * ─── WHAT CHANGED IN THIS PASS ──────────────────────────────────────
+ *
+ *  Presentation only. The grid math (`buildMonthGrid`), phase computation,
+ *  tap-to-log handler, month navigation, every store read, and all date
+ *  helpers are byte-for-byte unchanged from the polished version. Only the
+ *  colours + surfaces moved to the palette:
+ *   - Screen wrapped in <AuroraBackground>; StatusBar flipped to light so it
+ *     reads on the dark ground.
+ *   - Phase colours now come from PHASE_AURORA (constant across moods — phase
+ *     identity must not shift with mood), tinted via 8-digit-hex alpha.
+ *   - Phase summary + legend chips are GlassCards / glass pills.
+ *   - Day cells: period = filled phase hue with ground-dark ink; predicted =
+ *     dashed hue on glass; phase day = soft hue tint; today = accent ring.
+ *
+ *  ⚠️ design-v2 / UNVERIFIED (no device).
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { PressableScale } from '../../src/components/ui';
+import { PressableScale, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { useAurora, PHASE_AURORA } from '../../src/theme';
 import {
   useCycleStore,
   useUserStore,
@@ -20,48 +55,9 @@ import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase } from '../../src/types/cycle.types';
 
-/**
- * Calendar Tab — Visual cycle calendar.
- *
- * ─── WHAT THIS DELIVERS ─────────────────────────────────────────────
- *
- *  - Month grid with color-coded phase days (live data)
- *  - Period days marked from actual `cycle_entries` rows
- *  - Predicted next period band overlaid in lighter color
- *  - Tap a day → quick action sheet to log it as a period day
- *  - Phase bar showing current position in cycle
- *  - Confidence-aware prediction message (gentle, never alarming)
- *
- * ─── HOW PHASE COLORS WORK ──────────────────────────────────────────
- *
- *  For each day in the visible month, we compute which phase it falls
- *  in by running the pure `calculateCurrentPhase()` function with that
- *  day as "today". This gives the calendar a consistent color story
- *  without needing to store phase per day in the database.
- *
- *  Period days (from `is_period_day = 1` rows) override the computed
- *  phase color with the menstrual gradient.
- *
- * ─── PREMIUM POLISH PASS (Phase 2) ──────────────────────────────────
- *
- *  Presentation/animation only — grid math, phase coloring, tap logging,
- *  month nav, and every store read/handler are byte-for-byte unchanged.
- *
- *  - Safe-area top: fixed paddingTop: Spacing['5xl'] on the scroll
- *    content is replaced with insets.top + Spacing.lg so the month
- *    header clears the notch on every device instead of a magic number.
- *  - Entrance motion: the month header, weekday+grid block, phase
- *    summary, and legend rise + fade in with a gentle staggered spring
- *    (FadeInDown, ~75ms apart) on mount. entering runs on MOUNT only, so
- *    month navigation / period logging re-renders never re-trigger it.
- *  - Tactile press: every month-nav control and every day cell now uses
- *    the shared <PressableScale> so taps spring on the UI thread at
- *    60fps. Existing handlers already fire Haptics.* (selection/impact),
- *    so haptic="none" is passed to avoid a double buzz. The old JS-driven
- *    `pressed` scale style on day cells is retired in favor of the spring.
- */
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const { palette } = useAurora();
 
   // ─── Live state ─────────────────────────────────────────────────
   const phase = useCycleStore(selectCurrentPhase);
@@ -183,105 +179,101 @@ export default function CalendarScreen() {
     setViewedMonth(startOfMonth(new Date()));
   };
 
+  const phaseHue = PHASE_AURORA[phase];
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + Spacing.lg },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Month navigation */}
-      <Animated.View entering={rise(40)} style={styles.monthHeader}>
-        <PressableScale
-          onPress={goPrevMonth}
-          haptic="none"
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Previous month"
-        >
-          <Text style={styles.monthNavArrow}>‹</Text>
-        </PressableScale>
-        <PressableScale
-          onPress={goToday}
-          haptic="none"
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Jump to current month"
-        >
-          <Text style={styles.monthLabel}>{monthLabel}</Text>
-        </PressableScale>
-        <PressableScale
-          onPress={goNextMonth}
-          haptic="none"
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Next month"
-        >
-          <Text style={styles.monthNavArrow}>›</Text>
-        </PressableScale>
-      </Animated.View>
-
-      {/* Weekday header + calendar grid */}
-      <Animated.View entering={rise(115)}>
-        <View style={styles.weekdayRow}>
-          {WEEKDAY_LABELS.map((d) => (
-            <Text key={d} style={styles.weekdayLabel}>
-              {d}
-            </Text>
-          ))}
-        </View>
-
-        <View style={styles.grid}>
-          {monthGrid.map((cell) => (
-            <DayCell key={cell.iso} cell={cell} onPress={() => onDayTap(cell.iso, cell)} />
-          ))}
-        </View>
-      </Animated.View>
-
-      {/* Current phase summary */}
-      <Animated.View
-        entering={rise(190)}
-        style={[styles.phaseSummary, { backgroundColor: Colors.phase[phase].light }]}
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[
-            styles.phaseSummaryDot,
-            { backgroundColor: Colors.phase[phase].primary },
-          ]}
-        />
-        <View style={styles.phaseSummaryText}>
-          <Text style={styles.phaseSummaryTitle}>
-            {Colors.phase[phase].label} Phase · Day {dayInCycle}
-          </Text>
-          {predictionMessage && (
-            <Text style={styles.phaseSummaryBody}>{predictionMessage}</Text>
-          )}
-          {!predictionMessage && (
-            <Text style={styles.phaseSummaryBody}>
-              Tap any day to log a period. I'll learn your pattern over time.
-            </Text>
-          )}
-        </View>
-      </Animated.View>
+        {/* Month navigation */}
+        <Animated.View entering={rise(40)} style={styles.monthHeader}>
+          <PressableScale
+            onPress={goPrevMonth}
+            haptic="none"
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+          >
+            <Text style={[styles.monthNavArrow, { color: palette.accent }]}>‹</Text>
+          </PressableScale>
+          <PressableScale
+            onPress={goToday}
+            haptic="none"
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Jump to current month"
+          >
+            <Text style={[styles.monthLabel, { color: palette.ink }]}>{monthLabel}</Text>
+          </PressableScale>
+          <PressableScale
+            onPress={goNextMonth}
+            haptic="none"
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+          >
+            <Text style={[styles.monthNavArrow, { color: palette.accent }]}>›</Text>
+          </PressableScale>
+        </Animated.View>
 
-      {/* Legend */}
-      <Animated.View entering={rise(265)} style={styles.legend}>
-        <LegendChip color={Colors.phase.menstrual.primary} label="Period" />
-        <LegendChip color={Colors.phase.follicular.primary} label="Follicular" />
-        <LegendChip color={Colors.phase.ovulatory.primary} label="Ovulatory" />
-        <LegendChip color={Colors.phase.luteal.primary} label="Luteal" />
-        <LegendChip
-          color={Colors.phase.menstrual.primary}
-          label="Predicted"
-          dashed
-        />
-      </Animated.View>
+        {/* Weekday header + calendar grid */}
+        <Animated.View entering={rise(115)}>
+          <View style={styles.weekdayRow}>
+            {WEEKDAY_LABELS.map((d, i) => (
+              <Text key={`${d}_${i}`} style={[styles.weekdayLabel, { color: palette.ink3 }]}>
+                {d}
+              </Text>
+            ))}
+          </View>
 
-      {/* Bottom padding */}
-      <View style={{ height: Spacing.tabBarHeight }} />
-    </ScrollView>
+          <View style={styles.grid}>
+            {monthGrid.map((cell) => (
+              <DayCell key={cell.iso} cell={cell} onPress={() => onDayTap(cell.iso, cell)} />
+            ))}
+          </View>
+        </Animated.View>
+
+        {/* Current phase summary */}
+        <Animated.View entering={rise(190)}>
+          <GlassCard style={styles.phaseSummary} padding={Spacing.cardPadding}>
+            <View style={[styles.phaseSummaryDot, { backgroundColor: phaseHue }]} />
+            <View style={styles.phaseSummaryText}>
+              <Text style={[styles.phaseSummaryTitle, { color: palette.ink }]}>
+                {phaseLabel(phase)} Phase · Day {dayInCycle}
+              </Text>
+              {predictionMessage ? (
+                <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
+                  {predictionMessage}
+                </Text>
+              ) : (
+                <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
+                  Tap any day to log a period. I'll learn your pattern over time.
+                </Text>
+              )}
+            </View>
+          </GlassCard>
+        </Animated.View>
+
+        {/* Legend */}
+        <Animated.View entering={rise(265)} style={styles.legend}>
+          <LegendChip color={PHASE_AURORA.menstrual} label="Period" />
+          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" />
+          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
+          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
+          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+        </Animated.View>
+
+        {/* Bottom padding */}
+        <View style={{ height: Spacing.tabBarHeight }} />
+      </ScrollView>
+    </AuroraBackground>
   );
 }
 
@@ -293,30 +285,32 @@ function rise(delay: number) {
 // ─── SUBCOMPONENTS ───────────────────────────────────────────────────
 
 function DayCell({ cell, onPress }: { cell: MonthCell; onPress: () => void }) {
+  const { palette } = useAurora();
   const isToday = cell.iso === formatISO(new Date());
   const isPeriod = cell.isPeriodDay;
   const isPredicted = cell.isPredictedPeriod;
 
   // Resolve background based on state precedence:
-  // period (filled) > today highlight > predicted (dashed) > phase color > muted
+  // period (filled) > predicted (dashed) > phase color (soft tint) > muted.
+  // Phase hues come from PHASE_AURORA (constant across moods); alpha via 8-hex.
   let bgColor: string | undefined;
-  let textColor = Colors.text.secondary;
-  let borderStyle: 'solid' | 'dashed' | undefined;
+  let textColor = palette.ink2;
+  let borderStyle: 'dashed' | undefined;
   let borderColor: string | undefined;
 
   if (!cell.inMonth) {
-    textColor = Colors.text.tertiary;
+    textColor = palette.ink3;
   } else if (isPeriod) {
-    bgColor = Colors.phase.menstrual.primary;
-    textColor = Colors.text.inverse;
+    bgColor = PHASE_AURORA.menstrual;
+    textColor = palette.ground; // dark ink on the bright fill
   } else if (isPredicted) {
-    bgColor = Colors.phase.menstrual.light;
-    textColor = Colors.phase.menstrual.primary;
+    bgColor = `${PHASE_AURORA.menstrual}1F`;
+    textColor = PHASE_AURORA.menstrual;
     borderStyle = 'dashed';
-    borderColor = Colors.phase.menstrual.primary;
+    borderColor = PHASE_AURORA.menstrual;
   } else if (cell.phase) {
-    bgColor = Colors.phase[cell.phase].light;
-    textColor = Colors.text.primary;
+    bgColor = `${PHASE_AURORA[cell.phase]}24`;
+    textColor = palette.ink;
   }
 
   return (
@@ -327,7 +321,7 @@ function DayCell({ cell, onPress }: { cell: MonthCell; onPress: () => void }) {
         borderStyle === 'dashed' && borderColor
           ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor }
           : null,
-        isToday && styles.dayCellToday,
+        isToday ? { borderWidth: 2, borderColor: palette.accent } : null,
       ]}
       scaleTo={0.9}
       haptic="none"
@@ -335,11 +329,11 @@ function DayCell({ cell, onPress }: { cell: MonthCell; onPress: () => void }) {
       disabled={!cell.inMonth || cell.isFuture}
       accessibilityRole="button"
     >
-      <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.4 }]}>
+      <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
       </Text>
       {cell.inMonth && cell.isFuture && !isPredicted && (
-        <View style={styles.dayCellFutureDot} />
+        <View style={[styles.dayCellFutureDot, { backgroundColor: palette.ink3 }]} />
       )}
     </PressableScale>
   );
@@ -354,12 +348,18 @@ function LegendChip({
   label: string;
   dashed?: boolean;
 }) {
+  const { palette } = useAurora();
   return (
-    <View style={styles.legendChip}>
+    <View
+      style={[
+        styles.legendChip,
+        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+      ]}
+    >
       <View
         style={[
           styles.legendSwatch,
-          { backgroundColor: dashed ? Colors.surface.card : color },
+          { backgroundColor: dashed ? 'transparent' : color },
           dashed && {
             borderWidth: 1.5,
             borderStyle: 'dashed',
@@ -367,7 +367,7 @@ function LegendChip({
           },
         ]}
       />
-      <Text style={styles.legendLabel}>{label}</Text>
+      <Text style={[styles.legendLabel, { color: palette.ink2 }]}>{label}</Text>
     </View>
   );
 }
@@ -375,6 +375,17 @@ function LegendChip({
 // ─── DATE / GRID HELPERS ─────────────────────────────────────────────
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+const PHASE_LABELS: Record<Phase, string> = {
+  menstrual: 'Menstrual',
+  follicular: 'Follicular',
+  ovulatory: 'Ovulatory',
+  luteal: 'Luteal',
+};
+
+function phaseLabel(phase: Phase): string {
+  return PHASE_LABELS[phase] ?? 'Cycle';
+}
 
 interface MonthCell {
   iso: string;
@@ -492,12 +503,11 @@ function formatFriendlyDate(iso: string): string {
   });
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────
+// ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -511,13 +521,11 @@ const styles = StyleSheet.create({
   },
   monthNavArrow: {
     fontSize: 32,
-    color: Colors.primary.coral,
     width: 32,
     textAlign: 'center',
   },
   monthLabel: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
   },
   weekdayRow: {
     flexDirection: 'row',
@@ -526,7 +534,6 @@ const styles = StyleSheet.create({
   },
   weekdayLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
     width: 40,
     textAlign: 'center',
   },
@@ -544,10 +551,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 2,
   },
-  dayCellToday: {
-    borderWidth: 2,
-    borderColor: Colors.primary.coral,
-  },
   dayCellText: {
     ...Typography.preset.bodySemibold,
   },
@@ -557,13 +560,10 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: Colors.text.tertiary,
   },
   phaseSummary: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: Spacing.cardPadding,
-    borderRadius: Spacing.radius['2xl'],
     marginBottom: Spacing.base,
   },
   phaseSummaryDot: {
@@ -578,12 +578,10 @@ const styles = StyleSheet.create({
   },
   phaseSummaryTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   phaseSummaryBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     lineHeight: 22,
   },
   legend: {
@@ -596,11 +594,10 @@ const styles = StyleSheet.create({
   legendChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    borderWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.full,
-    ...Shadows.sm,
   },
   legendSwatch: {
     width: 10,
@@ -610,6 +607,5 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
   },
 });
