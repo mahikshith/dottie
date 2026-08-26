@@ -26,6 +26,40 @@ FIRST — it's the mood-logging hook; then community/sisterhood/profile-sub/onbo
 modals + lesson/quiz); `expo install expo-blur` (real frost); perimenopause / birth-control-pill
 modes; then `tsc` + device verify + merge to `main`.
 
+## 0.8 Learn + Calendar REIMAGINING (approved direction, 2026-08-27)
+User wants a striking, Duolingo-grade Learn experience + an intuitive interactive Calendar.
+**Two concept mockups built + approved (published artifacts, faithful to real aurora tokens/content):**
+- **Learn Quest** 🦊 https://claude.ai/code/artifact/55ed5962-a5ba-497f-91bc-f753d250c7a5
+- **Calendar Planner** 📅 https://claude.ai/code/artifact/7b2dfab6-4069-4b4f-a51b-b9e7fc7831d9
+
+**Decisions (user):** (1) **Lottie illustrated characters** for the companions (not just emoji) —
+but ship emoji-first, art drop-in. (2) Learn placement = **hybrid**: guided/mode-gated rail for
+beginners + free topic/level choice for the knowledgeable, difficulty adapts from quiz scores.
+(3) **Sequence: source Lottie art FIRST**, then build engines.
+
+**Learn vision:** path-map UI (winding trail of lesson nodes) replacing the card list; an
+**exercise-type engine** widening the existing MCQ quiz loop to 5 interactive types (tap-the-pairs,
+drag-to-order, fill-the-blank, tap-the-diagram, tap-the-word) — additive, same instant-feedback +
+companion-reaction + XP/gems; animated companion moments (celebrate, mid-lesson hydration nudge).
+**Calendar vision:** tap a day → **glass day-detail popover** magnifies from the cell (calendar
+blurs behind), showing phase + prediction + phase/mode/condition-aware suggestions (supplies,
+clothes, food, movement) + plans/notes/quick-add + planning dots on close; **week-ahead** strip;
+G-Cal sync + OS reminders = LATER (needs expo-notifications/OAuth). All suggestions NON-diagnostic.
+
+**✅ DONE this session — drop-in Lottie pipeline (design-v2, ⚠️ UNVERIFIED):**
+- `src/content/companion-lottie.ts` — manifest: 6 companions × states + shared moments → Lottie
+  asset; all empty now (→ emoji fallback). Add art = one `require()`.
+- `src/components/ui/CompanionLottie.tsx` — renders wired Lottie, else the emoji spirit-animal
+  breathing; Reduce-Motion aware; exported from ui barrel. (`lottie-react-native` = Apache-2.0, a
+  dep already; needs a dev build to render.)
+- `assets/lottie/README.md` + **`docs/LOTTIE-SOURCING.md`** — inventory (P0 = 6×{idle,celebrate}),
+  specs, **Lottie Simple License** (commercial OK, no attribution, mods = derivative), candidate
+  sources (LottieFiles animal/mascot/confetti categories), attribution ledger, wiring checklist.
+- **Art recommendation:** commission/adopt ONE matched-style set for the 6 heroes (consistency >
+  free grab-bag); free singles OK for shared moments.
+**NEXT here:** source/commission the art (fill the ledger, drop into `assets/lottie/`, wire the
+manifest) — then build the exercise-type engine + path-map, then the calendar popover. All UNVERIFIED.
+
 ## 0. Design phase (current) — where we are RIGHT NOW
 Phase-2 premium polish is code-complete across all 13 screens (see §4.5). The user has
 installed the **`design:*` plugin skills** and wants premium frontend/UI + motion

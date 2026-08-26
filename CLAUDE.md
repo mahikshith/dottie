@@ -15,6 +15,17 @@ stable how-we-work guide.
 - **Condition-pattern flags** — in the DOCTOR REPORT only
   (`src/engine/reports/condition-signals.ts`), NON-diagnostic "worth mentioning". Never home feed.
 
+## Learn + Calendar reimagining (approved 2026-08-27 — see HANDOFF §0.8)
+Duolingo-grade Learn (path-map + 5 interactive exercise types, additive to the MCQ quiz loop) +
+interactive Calendar (glass day-detail popover w/ phase/mode/condition-aware suggestions,
+week-ahead, planning dots). Two concept artifacts approved (URLs in HANDOFF §0.8). **Companions
+use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
+- `src/content/companion-lottie.ts` (manifest: companion×state → asset; empty→emoji fallback) +
+  `src/components/ui/CompanionLottie.tsx` (renders wired Lottie else breathing emoji). Add art =
+  one `require()` into `assets/lottie/`. Full brief + license + inventory: **`docs/LOTTIE-SOURCING.md`**.
+- Render ANY companion via `<CompanionLottie type="fox" state="celebrate" />` — never hardcode emoji.
+- All learn/calendar suggestions stay NON-diagnostic (doctor-report-signals discipline).
+
 ## What Dottie is
 A warm, local-first women's-health / cycle-tracking companion. React Native + Expo
 (managed), TypeScript strict, expo-router, Zustand stores, expo-sqlite + MMKV.
