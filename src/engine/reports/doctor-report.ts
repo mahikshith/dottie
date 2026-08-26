@@ -48,11 +48,13 @@ import {
   ReportDateRange,
   ReportMedicationSection,
   ReportRecentCyclesSection,
+  ReportPatternsSection,
   ReportSymptomEntry,
   ReportSymptomSection,
   ReportTemplate,
   ReportWellbeingSection,
 } from '../../types/report.types';
+import { detectPatternsToDiscuss } from './condition-signals';
 
 // ─── INPUT SHAPE ─────────────────────────────────────────────────────
 
@@ -91,6 +93,7 @@ export function generateDoctorReport(input: DoctorReportInput): DoctorReportData
   const wellbeing = computeWellbeingSection(input.checkIns, input.range);
   const recentCycles = computeRecentCyclesSection(input.cycleRecords);
   const medications = computeMedicationSection();
+  const patternsToDiscuss = computePatternsSection(cycleSummary, symptoms);
 
   const isSparse =
     cycleSummary.cyclesTracked < 1 &&
@@ -107,7 +110,25 @@ export function generateDoctorReport(input: DoctorReportInput): DoctorReportData
     wellbeing,
     recentCycles,
     medications,
+    patternsToDiscuss,
     isSparse,
+  };
+}
+
+// ─── PATTERNS-TO-DISCUSS SECTION (gentle, non-diagnostic) ────────────
+
+function computePatternsSection(
+  cycleSummary: ReportCycleSummary,
+  symptoms: ReportSymptomSection
+): ReportPatternsSection {
+  return {
+    observations: detectPatternsToDiscuss({
+      cyclesTracked: cycleSummary.cyclesTracked,
+      averageCycleLength: cycleSummary.averageCycleLength,
+      averagePeriodLength: cycleSummary.averagePeriodLength,
+      regularity: cycleSummary.regularity,
+      symptoms: symptoms.entries,
+    }),
   };
 }
 
@@ -438,6 +459,18 @@ export function formatDoctorReportText(data: DoctorReportData): string {
   lines.push(sep);
   lines.push(data.medications.note);
   lines.push('');
+
+  // Patterns worth mentioning — only when there's something to say.
+  if (data.patternsToDiscuss.observations.length > 0) {
+    lines.push('PATTERNS WORTH MENTIONING');
+    lines.push(sep);
+    lines.push('Gentle observations from self-reported data — not a diagnosis:');
+    for (const o of data.patternsToDiscuss.observations) {
+      lines.push(`• ${o.title}`);
+      lines.push(`  ${o.detail}`);
+    }
+    lines.push('');
+  }
 
   // Footer
   lines.push(sep);

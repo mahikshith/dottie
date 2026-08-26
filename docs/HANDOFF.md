@@ -140,7 +140,15 @@ adjustments + error-bias correction) — labelled "Bayesian" but NOT a formal Ba
    NON-diagnostic) + `trySymptomPatterns` generator (excludes cramps; 0–2 insights). No store/
    UI changes (UI auto-renders any DottieInsight). Verify counts/framing on a Node machine.
 4. **Responsible condition-pattern flags** (PCOS / PMDD / endometriosis) → gentle "worth asking
-   a doctor" + the doctor report (which Dottie already has). NOT diagnosis. PMDD is under-served.
+   a doctor". **✅ DONE (design-v2, ⚠️ UNVERIFIED)** — surfaced in the DOCTOR REPORT (the safe,
+   medically-appropriate place; NOT the home feed where it could alarm a teen):
+   `src/engine/reports/condition-signals.ts` (conservative, NON-diagnostic detection: irregular/
+   long/short cycles, long periods, frequent high-severity pain → endo-adjacent, strong luteal
+   mood → PMDD-adjacent — all framed as "worth mentioning", never a diagnosis). New
+   `ReportPatternObservation`/`ReportPatternsSection` types + `patternsToDiscuss` on
+   `DoctorReportData`; `doctor-report.ts` computes it and adds a "PATTERNS WORTH MENTIONING"
+   block to the shared text. **UI-phase TODO:** render the new section in `ReportPreview.tsx`.
+   ⚠️ Thresholds are clinician-informed rules of thumb — review with a professional before launch.
 5. **Hormonal birth-control (pill) mode** — track packs/placebo week; commonly requested; do NOT
    claim contraception (regulatory). Add a clear "not birth control" line.
 6. **Inclusivity** — research repeatedly flags heteronormative/over-pink/fertility-centric

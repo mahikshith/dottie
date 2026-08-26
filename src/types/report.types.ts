@@ -127,6 +127,29 @@ export interface ReportMedicationSection {
   note: string;
 }
 
+/**
+ * A single gentle, NON-diagnostic "pattern worth mentioning to a clinician"
+ * derived from the user's own aggregated data (see engine/condition-signals).
+ * Never a diagnosis — an observation + an open door to care.
+ */
+export interface ReportPatternObservation {
+  id: string;
+  /** short label, e.g. "Your cycles run on the longer side" */
+  title: string;
+  /** the observation + why it may be worth discussing (non-diagnostic) */
+  detail: string;
+  /** 'discuss' = worth raising; 'note' = lower-key FYI */
+  severity: 'discuss' | 'note';
+}
+
+/**
+ * Patterns-to-discuss section. Usually EMPTY (the healthy, common case) —
+ * the UI shows it only when there's something gentle worth surfacing.
+ */
+export interface ReportPatternsSection {
+  observations: ReportPatternObservation[];
+}
+
 // ─── TOP-LEVEL REPORT DATA ───────────────────────────────────────────
 
 /**
@@ -149,6 +172,8 @@ export interface DoctorReportData {
   wellbeing: ReportWellbeingSection;
   recentCycles: ReportRecentCyclesSection;
   medications: ReportMedicationSection;
+  /** Gentle, non-diagnostic "worth mentioning" observations (often empty). */
+  patternsToDiscuss: ReportPatternsSection;
 
   /**
    * True when the underlying data is too sparse for meaningful insight.
