@@ -5,8 +5,8 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-13 (predictor v2 + 2 features + deep-dive doc)
-**Updated by:** Claude (Opus 4.8) — design phase → engine/features phase
+**Last updated:** 2026-08-27 (all 5 tab screens themed + AuroraTabBar wired + report patterns UI)
+**Updated by:** Claude (Opus 4.8) — aurora theming phase (screen-by-screen)
 **Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/FEATURES-AND-RESEARCH.md`
 (the COMPLETE picture: predictor math, features, aurora system, research)**,
 `docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
@@ -17,9 +17,14 @@ On **`design-v2`** (all committed + pushed; `main` untouched; everything ⚠️ 
 - **Symptom↔cycle correlation insights** — additive to Dottie Predicts (§0.6 · FEATURES §2)
 - **Condition-pattern flags** — in the doctor report, non-diagnostic (§0.6 · FEATURES §3)
 - **Mood Aurora** design system + mood-reveal + aurora components (§0 · FEATURES §4)
-**Next (UI/UX phase, needs a Node machine):** `expo install expo-blur`; theme screens to
-aurora (Home + its cards first); render the report "patterns" section in `ReportPreview.tsx`;
-perimenopause / birth-control-pill modes; then `tsc` + device verify + merge to `main`.
+**Aurora theming — DONE so far (design-v2, ⚠️ UNVERIFIED — no Node):** all **5 tab screens**
+(Home, Calendar, Learn, Community, Profile) themed to the aurora palette + StatusBar flipped
+to light; **AuroraTabBar wired** into `(tabs)/_layout.tsx` (retired the old cream bar + TabIcon);
+report **`patternsToDiscuss` section rendered** in `ReportPreview.tsx`.
+**Next (UI/UX phase, needs a Node machine):** theme the **deep screens** (daily-checkin modal
+FIRST — it's the mood-logging hook; then community/sisterhood/profile-sub/onboarding/celebration
+modals + lesson/quiz); `expo install expo-blur` (real frost); perimenopause / birth-control-pill
+modes; then `tsc` + device verify + merge to `main`.
 
 ## 0. Design phase (current) — where we are RIGHT NOW
 Phase-2 premium polish is code-complete across all 13 screens (see §4.5). The user has
@@ -111,11 +116,28 @@ current palette):
     its child cards `DottiePredictsCard.tsx` + `PhaseWeatherCard.tsx` (palette glass; also removed
     stale `Colors.primary.sunshine/rose`/`surface.warmIvory` refs). `ClayButton` now forwards the
     press event. ⚠️ UNVERIFIED.
-  - **NEXT theming (needs Node to verify):** (a) other 4 tab screens + deep screens to aurora;
-    (b) wire `AuroraTabBar` into `(tabs)/_layout.tsx`; (c) flip `StatusBar` to light on aurora
-    screens (currently `style="dark"` — invisible on dark ground); (d) render the report's
-    `patternsToDiscuss` section in `ReportPreview.tsx`; (e) `expo install expo-blur` for real frost;
-    (f) `tsc` + device feel-check; then merge design-v2 → main.
+  - **✅ DONE — all 4 remaining tab screens themed** (design-v2, ⚠️ UNVERIFIED):
+    `calendar.tsx` (glass phase-summary/legend, day cells glow in PHASE_AURORA hues),
+    `learn.tsx` (glass stat/path/lesson cards; each path keeps its own brand accent),
+    `community.tsx` (glass post cards + filter chips; warm GradientButton/Fab kept as the
+    action pop), `profile.tsx` (glass stat/level/settings cards; companion keeps its accent).
+    Each: `<AuroraBackground>` wrap, `<StatusBar style="light"/>`, colours inline from
+    `useAurora()`, StyleSheet = layout only, all logic/handlers/copy byte-for-byte unchanged.
+  - **✅ DONE — `AuroraTabBar` wired** into `(tabs)/_layout.tsx` via `tabBar={props => …}`;
+    removed the old cream `tabBar` style + per-icon `TabIcon` spring (AuroraTabBar owns icons,
+    labels Today/Cycle/Learn/Circle/You, active tint, selection haptic, indicator motion).
+  - **✅ DONE — StatusBar** flipped to light on every aurora screen (added per-screen
+    `<StatusBar style="light"/>` from expo-status-bar).
+  - **✅ DONE — report `patternsToDiscuss` section** now renders in `ReportPreview.tsx`
+    ("Patterns Worth Mentioning", shown only when non-empty; warm-amber accent for 'discuss',
+    neutral for 'note'; report intentionally stays on the clean light theme, not aurora).
+  - **NEXT theming (needs Node to verify):** (a) **deep screens** to aurora — do the
+    **`(modals)/daily-checkin.tsx`** FIRST (it's the primary mood-logging surface; wire its mood
+    pick to `applyMood(score, origin)` like Home does, so a full check-in also recolours the app),
+    then `checkin-recap`, `(community)/new-post` + `post/[id]`, all `(sisterhood)/*`,
+    `(profile)/doctor-report` + `ghost-mode`, `(onboarding)/*`, the celebration modals
+    (`level-up`, `streak-celebration`), and `lesson/[id]` + `quiz/[id]`; (b) `expo install
+    expo-blur` for real frost; (c) `tsc` + device feel-check; then merge design-v2 → main.
 
 ## 0.6 Research — predictor + feature gaps (2026-08, for the roadmap)
 

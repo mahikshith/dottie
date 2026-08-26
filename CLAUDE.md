@@ -82,9 +82,19 @@ read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for o
 - `src/theme/` — `palettes.ts` (5 mood palette token sets + `PHASE_AURORA`), `mood-palette.ts`
   (`paletteForMood(score)`), `ThemeProvider.tsx` (`AuroraProvider` + `useAurora()`), barrel.
 - `src/components/ui/aurora/` — `AuroraBackground`, `GlassCard`, `ClayButton`, `GlowRing`,
-  `AuroraTabBar` (all read palette tokens via `useAurora()`). Exported from `src/components/ui`.
-- **Needs on a Node machine:** `expo-blur` (real frosted glass — GlassCard currently degrades to
-  a translucent panel), then wire `AuroraProvider` at the root + drive `applyMood(moodScore)`
-  from the check-in, plug in `AuroraTabBar`, and apply screen-by-screen. All UNVERIFIED until run.
+  `AuroraTabBar` (all read palette tokens via `useAurora()`; AuroraTabBar is now live in the tab
+  layout). Exported from `src/components/ui`.
+- **Applied so far (design-v2, ⚠️ UNVERIFIED):** `AuroraProvider` wraps the root; **all 5 tab
+  screens** (Home, Calendar, Learn, Community, Profile) read palette tokens + StatusBar is light;
+  **`AuroraTabBar` is wired** into `(tabs)/_layout.tsx`; the report's `patternsToDiscuss` section
+  renders in `ReportPreview.tsx` (kept on the clean light theme). Pattern for a screen: wrap in
+  `<AuroraBackground>`, `const { palette } = useAurora()`, `<StatusBar style="light"/>`, colours
+  inline (`palette.ink/ink2/ink3`, `palette.glass.*`, `PHASE_AURORA[phase]`), StyleSheet = layout
+  only, logic/handlers/copy untouched.
+- **Still to do (needs a Node machine):** theme the **deep screens** — do `(modals)/daily-checkin.tsx`
+  FIRST and wire its mood pick to `applyMood(score, origin)` so a full check-in also recolours the
+  app (like Home); then the other modals, community/sisterhood/profile-sub/onboarding, lesson/quiz.
+  Then `expo-blur` for real frosted glass (GlassCard currently degrades to a translucent panel),
+  `tsc` + device feel-check, and merge design-v2 → main. All UNVERIFIED until run.
 
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.
