@@ -1,3 +1,23 @@
+/**
+ * Community Tab — "The Circle" — MOOD AURORA THEME (design-v2)
+ *
+ * Re-skinned onto the aurora world: luminous dark ground, glass post cards,
+ * glass filter chips (active = accent), palette ink throughout. The warm shared
+ * CTA / FAB (GradientButton / GradientFab) stay as the coral pop of action.
+ *
+ * ─── WHAT CHANGED IN THIS PASS ──────────────────────────────────────
+ *
+ *  Presentation only. Seeding, feed fetch/cache, Teen-Mode space filtering,
+ *  pull-to-refresh, navigation, and every copy string are unchanged. Colours
+ *  moved to the palette (inline); the StyleSheet is layout only:
+ *   - Outer container is <AuroraBackground>; StatusBar flipped to light.
+ *   - Filter chips: inactive = glass, active = accent fill with ground ink.
+ *   - Post cards + credibility pills are glass surfaces; refresh/spinner tint
+ *     is the palette accent.
+ *
+ *  ⚠️ design-v2 / UNVERIFIED (no device).
+ */
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -7,15 +27,15 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { GradientButton, GradientFab, PressableScale } from '../../src/components/ui';
+import { GradientButton, GradientFab, PressableScale, AuroraBackground } from '../../src/components/ui';
+import { useAurora } from '../../src/theme';
 import {
   useCommunityStore,
   useUserStore,
@@ -34,37 +54,12 @@ import {
 } from '../../src/types/community.types';
 import { getCompanion } from '../../src/content/companions';
 
-/**
- * Community Tab — "The Circle"
- *
- * ─── WHAT THIS SCREEN DOES ──────────────────────────────────────────
- *
- *  - Space filter chips ('All' + each space; Teen Mode hides adult spaces)
- *  - Feed list (latest posts in the active space)
- *  - Pull-to-refresh
- *  - Empty state that's warm and encouraging, not stark
- *  - Floating "+" action that opens the new-post modal
- *
- * ─── DATA FLOW ──────────────────────────────────────────────────────
- *
- *  - On focus: ensureSeeded() runs once (idempotent) so first-time
- *    users see content instead of an empty void.
- *  - fetchFeed(activeSpace) populates the cache for instant subsequent
- *    renders. The selector reads directly from cache for zero-latency
- *    redraws.
- *  - Pull-to-refresh forces a re-fetch.
- *
- * ─── PERF ───────────────────────────────────────────────────────────
- *
- *  Feed renders directly from the per-space cache via selector — tab
- *  switches feel instant because the cache survives navigation.
- */
-
 type FilterKey = SpaceId | 'all';
 
 export default function CommunityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useAurora();
 
   // ─── Store reads ────────────────────────────────────────────────
   const userMode = useUserStore((s) => s.user?.mode ?? 'adult');
@@ -130,14 +125,15 @@ export default function CommunityScreen() {
   // ─── Render ─────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
       {/* Header */}
       <Animated.View
         entering={FadeInDown.duration(500).delay(40).springify().damping(16)}
         style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
       >
-        <Text style={styles.headerTitle}>The Circle</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { color: palette.ink }]}>The Circle</Text>
+        <Text style={[styles.headerSubtitle, { color: palette.ink2 }]}>
           A safe space to share, ask, and support. 💛
         </Text>
       </Animated.View>
@@ -174,15 +170,15 @@ export default function CommunityScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={Colors.primary.coral}
-            colors={[Colors.primary.coral]}
+            tintColor={palette.accent}
+            colors={[palette.accent]}
           />
         }
       >
         {isFetching && feed.length === 0 ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator color={Colors.primary.coral} />
-            <Text style={styles.loadingText}>
+            <ActivityIndicator color={palette.accent} />
+            <Text style={[styles.loadingText, { color: palette.ink3 }]}>
               {companion.name} is gathering the feed...
             </Text>
           </View>
@@ -215,7 +211,7 @@ export default function CommunityScreen() {
         bottom={Spacing.tabBarHeight + Spacing.base}
         accessibilityLabel="Share something with the Circle"
       />
-    </View>
+    </AuroraBackground>
   );
 }
 
@@ -232,19 +228,27 @@ function FilterChip({
   active: boolean;
   onPress: () => void;
 }) {
+  const { palette } = useAurora();
   return (
     <PressableScale
       onPress={onPress}
       haptic="none"
       scaleTo={0.94}
-      style={[styles.filterChip, active && styles.filterChipActive]}
+      style={[
+        styles.filterChip,
+        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+        active && { backgroundColor: palette.accent, borderColor: palette.accent },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`Filter: ${label}`}
       accessibilityState={{ selected: active }}
     >
       <Text style={styles.filterChipEmoji}>{emoji}</Text>
       <Text
-        style={[styles.filterChipLabel, active && styles.filterChipLabelActive]}
+        style={[
+          styles.filterChipLabel,
+          { color: active ? palette.ground : palette.ink2 },
+        ]}
         numberOfLines={1}
       >
         {label}
@@ -260,6 +264,7 @@ function PostCard({
   post: CommunityPost;
   onPress: () => void;
 }) {
+  const { palette } = useAurora();
   const space = getSpaceById(post.spaceId);
   const isAnonymous = post.mode === 'anonymous';
   const snapshot = post.authorSnapshot;
@@ -269,7 +274,10 @@ function PostCard({
       onPress={onPress}
       haptic="none"
       scaleTo={0.985}
-      style={styles.postCard}
+      style={[
+        styles.postCard,
+        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+      ]}
       accessibilityRole="button"
     >
       {/* Author row */}
@@ -278,12 +286,12 @@ function PostCard({
           {isAnonymous ? snapshot.spiritEmoji ?? '🌸' : '💛'}
         </Text>
         <View style={styles.postAuthorMeta}>
-          <Text style={styles.postAuthorName}>
+          <Text style={[styles.postAuthorName, { color: palette.ink }]}>
             {isAnonymous
               ? snapshot.spiritAlias ?? 'Anonymous Friend'
               : snapshot.displayName ?? 'A Dottie friend'}
           </Text>
-          <Text style={styles.postSpaceTag}>
+          <Text style={[styles.postSpaceTag, { color: palette.ink3 }]}>
             {space.emoji} {space.title} · {formatRelativeTime(post.createdAt)}
           </Text>
         </View>
@@ -295,7 +303,7 @@ function PostCard({
       )}
 
       {/* Body */}
-      <Text style={styles.postBody} numberOfLines={6}>
+      <Text style={[styles.postBody, { color: palette.ink }]} numberOfLines={6}>
         {post.body}
       </Text>
 
@@ -303,11 +311,11 @@ function PostCard({
       <View style={styles.postFooter}>
         <View style={styles.postFooterItem}>
           <Text style={styles.postFooterEmoji}>🤗</Text>
-          <Text style={styles.postFooterCount}>{post.hugsCount}</Text>
+          <Text style={[styles.postFooterCount, { color: palette.ink2 }]}>{post.hugsCount}</Text>
         </View>
         <View style={styles.postFooterItem}>
           <Text style={styles.postFooterEmoji}>💬</Text>
-          <Text style={styles.postFooterCount}>{post.repliesCount}</Text>
+          <Text style={[styles.postFooterCount, { color: palette.ink2 }]}>{post.repliesCount}</Text>
         </View>
       </View>
     </PressableScale>
@@ -333,10 +341,11 @@ function CredibilityStrip({
 }
 
 function CredibilityPill({ emoji, value }: { emoji: string; value: string }) {
+  const { palette } = useAurora();
   return (
-    <View style={styles.credPill}>
+    <View style={[styles.credPill, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
       <Text style={styles.credPillEmoji}>{emoji}</Text>
-      <Text style={styles.credPillValue}>{value}</Text>
+      <Text style={[styles.credPillValue, { color: palette.ink2 }]}>{value}</Text>
     </View>
   );
 }
@@ -350,11 +359,12 @@ function EmptyState({
   companionName: string;
   onShare: () => void;
 }) {
+  const { palette } = useAurora();
   return (
     <View style={styles.emptyState}>
       <Text style={styles.emptyEmoji}>{companionEmoji}</Text>
-      <Text style={styles.emptyTitle}>It's quiet here right now</Text>
-      <Text style={styles.emptyBody}>
+      <Text style={[styles.emptyTitle, { color: palette.ink }]}>It's quiet here right now</Text>
+      <Text style={[styles.emptyBody, { color: palette.ink2 }]}>
         {companionName} would love to see the first share in this space.{'\n'}
         Be the kind voice someone else needs today. 💛
       </Text>
@@ -391,25 +401,18 @@ function formatMemberSince(iso: string): string {
 // Touch unused selector import so future refactors keep barrel intact
 void useGamificationStore;
 
-// ─── STYLES ──────────────────────────────────────────────────────────
+// ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface.background,
-  },
   header: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing['5xl'],
     paddingBottom: Spacing.md,
   },
   headerTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
   },
   headerSubtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     marginTop: Spacing.xs,
   },
   filterScrollContainer: {
@@ -423,16 +426,10 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
     borderWidth: 1,
-    borderColor: Colors.border.light,
-  },
-  filterChipActive: {
-    backgroundColor: Colors.primary.coral,
-    borderColor: Colors.primary.coral,
   },
   filterChipEmoji: {
     fontSize: 14,
@@ -440,10 +437,6 @@ const styles = StyleSheet.create({
   },
   filterChipLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
-  },
-  filterChipLabelActive: {
-    color: Colors.text.inverse,
   },
   feed: {
     flex: 1,
@@ -460,14 +453,18 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   // Post card
   postCard: {
-    backgroundColor: Colors.surface.card,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
-    ...Shadows.card,
+    borderWidth: 1,
+    // aurora glass sits on the dark ground — soft dark lift
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 26,
+    elevation: 6,
   },
   postAuthorRow: {
     flexDirection: 'row',
@@ -483,11 +480,9 @@ const styles = StyleSheet.create({
   },
   postAuthorName: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
   },
   postSpaceTag: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
   // Credibility strip
@@ -500,7 +495,7 @@ const styles = StyleSheet.create({
   credPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    borderWidth: 1,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: Spacing.radius.full,
@@ -512,12 +507,10 @@ const styles = StyleSheet.create({
   credPillValue: {
     ...Typography.preset.caption,
     fontSize: 11,
-    color: Colors.text.secondary,
   },
   // Body & footer
   postBody: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
     lineHeight: 22,
     marginTop: Spacing.xs,
     marginBottom: Spacing.md,
@@ -537,7 +530,6 @@ const styles = StyleSheet.create({
   },
   postFooterCount: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
   },
   // Empty state
   emptyState: {
@@ -550,15 +542,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   emptyBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Empty-state CTA + FAB are now the shared GradientButton / GradientFab
-  // primitives, so their bespoke styles were removed.
 });
