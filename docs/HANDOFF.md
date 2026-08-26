@@ -50,12 +50,26 @@ current palette):
   Phase stays in the ring; mood owns the atmosphere. A separate light "Dawn" theme +
   cool "Reef" remain optional user settings (were in the prior 4-palette version).
 
-  **NEXT (user wants to implement):** write the RN **theme architecture** on `design-v2`
-  — a `theme/palettes.ts` (the 5 palette token sets), a `mood → palette` map, a theme
-  store/provider wired to the check-in, then apply gradients/glass across screens. The
-  token/data layer is statically safe to build now; the visual application needs the
-  Node machine to verify. Use the `animate-expo` recipe for the tab indicator
-  (measured-once, transform-only Reanimated + `Haptics.selectionAsync()`).
+  **Full-app visual (all 5 screens in the aurora world):**
+  https://claude.ai/code/artifact/ca1f800f-1f53-4f7d-a387-bf7c44c2d432
+  (Today, Cycle — ring-as-hero + glass calendar with glowing phase days, Learn, Circle,
+  You — glowing avatar/level ring/badges/glass settings). Shown in Nocturne default.
+
+  **DONE — theme foundation code (`src/theme/`, committed on design-v2, statically safe):**
+  - `palettes.ts` — the 5 mood palettes as typed token sets + `PHASE_AURORA` (constant
+    phase hues) + `getPalette()`.
+  - `mood-palette.ts` — `paletteForMood(score)` map (5→radiance,4→meadow,3→nocturne,
+    2→twilight,1→ember; care rule: low/rough stay warm).
+  - `index.ts` — barrel.
+
+  **NEXT (needs the Node machine to verify):** (1) `ThemeProvider` + `useAurora()` hook
+  holding the active palette, defaulted Nocturne, driven by the latest check-in's mood,
+  cross-fading on change; (2) shared aurora UI in `src/components/ui/` (AuroraBackground
+  blobs, Glass card, Clay button, GlowRing, fluid tab bar) reading palette tokens;
+  (3) apply screen-by-screen. Use the `animate-expo` recipes throughout (transform/
+  opacity only, cross-fade on palette change, tab indicator measured-once + Haptics,
+  Reduce-Motion aware). expo-linear-gradient for gradients; a blur lib (expo-blur) for
+  real glass — that's a NEW dep to add on the Node machine.
 
   ⚠️ **Git push to GitHub is intermittently hanging on the corporate network** — commits
   are safe LOCALLY on `design-v2`; `design-v2` may be ahead of origin. Retry push when
