@@ -1,13 +1,40 @@
+/**
+ * Profile Tab — MOOD AURORA THEME (design-v2)
+ *
+ * Live user stats, companion display, and settings — re-skinned onto the aurora
+ * world: luminous dark ground, glass stat/level/settings cards, palette ink
+ * throughout. The companion's own accent (companion.accentColor) stays for the
+ * mode badge + level bar so the companion keeps its identity while the
+ * surrounding surfaces re-tint with the mood palette.
+ *
+ * ─── WHAT CHANGED IN THIS PASS ──────────────────────────────────────
+ *
+ *  Presentation only. Every selector, handler, navigation target, the live
+ *  ghost-mode subtitle, and all copy are unchanged. Colours moved to the
+ *  palette (inline); the StyleSheet is layout only:
+ *   - Screen wrapped in <AuroraBackground>; StatusBar flipped to light.
+ *   - Stat cards, level card, and settings rows are glass surfaces.
+ *   - Companion breathing hero + PopOnChange stat pops are preserved.
+ *
+ *  ─── WHAT'S WIRED (unchanged) ──────────────────────────────────────
+ *   Sisterhood Circle  → /(sisterhood)/circle
+ *   Doctor Report      → /(profile)/doctor-report
+ *   Ghost Mode         → /(profile)/ghost-mode
+ *   Medications / Notifications / Theme / Export → gentle "coming soon" noop.
+ *
+ *  ⚠️ design-v2 / UNVERIFIED (no device).
+ */
+
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { PressableScale, PopOnChange, BreathingView } from '../../src/components/ui';
+import { PressableScale, PopOnChange, BreathingView, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { useAurora } from '../../src/theme';
 import {
   useUserStore,
   useGamificationStore,
@@ -27,45 +54,10 @@ import {
 } from '../../src/security/ghost-mode-store';
 import { getCompanion } from '../../src/content/companions';
 
-/**
- * Profile Tab — Live user stats, companion display, settings.
- *
- * ─── PREMIUM POLISH PASS (Phase 2) ──────────────────────────────────
- *
- *  Presentation-only pass that activates the shared motion system. No
- *  handler, selector, navigation target, or copy string changed.
- *
- *   - Entrance choreography: the companion header, stats grid, level
- *     card, and each settings row fade + rise in a gentle stagger
- *     (Reanimated `FadeInDown`, UI thread) so the screen assembles with
- *     intent on every visit. `entering` fires on mount only, so live
- *     store updates (streak/gems/ghost-mode) never re-trigger it.
- *   - The companion hero emoji now sits in a soft breathing loop
- *     (BreathingView) so it reads as a living companion, not a static
- *     glyph.
- *   - Every stat number (streak / XP / gems / badges) "pops" (PopOnChange)
- *     the instant its underlying value changes, so progress feels earned.
- *   - Settings rows are now spring-press surfaces (PressableScale) for
- *     buttery 60fps tap feedback. Their handlers already fire a selection
- *     haptic, so PressableScale runs haptic="none" to avoid a double buzz.
- *   - Real safe-area insets replace the fixed top padding.
- *
- *  All motion honors "Reduce Motion" via the shared primitives.
- *
- * ─── WHAT'S WIRED ───────────────────────────────────────────────────
- *
- *  Sisterhood Circle  → /(sisterhood)/circle      (Chunk 8)
- *  Doctor Report      → /(profile)/doctor-report  (Chunk 10 Batch 1)
- *  Ghost Mode         → /(profile)/ghost-mode     (Chunk 11)
- *
- *  Unshipped rows (Medications, Notifications, Theme, Export) stay
- *  visible as roadmap teasers but tap into a gentle "coming soon"
- *  noop until those PRs land. We deliberately keep them visible to
- *  signal direction to early testers.
- */
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useAurora();
 
   const companionType = useUserStore(selectCompanionType);
   const userMode = useUserStore(selectUserMode);
@@ -114,145 +106,150 @@ export default function ProfileScreen() {
   // ─── Render ─────────────────────────────────────────────────────
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + Spacing.lg },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Companion & Identity */}
-      <Animated.View entering={rise(60)} style={styles.profileHeader}>
-        <BreathingView>
-          <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-        </BreathingView>
-        <Text style={styles.companionName}>{companion.name}</Text>
-        <View style={[styles.modeBadge, { backgroundColor: companion.accentColor }]}>
-          <Text style={styles.modeBadgeText}>{formatMode(userMode)}</Text>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Companion & Identity */}
+        <Animated.View entering={rise(60)} style={styles.profileHeader}>
+          <BreathingView>
+            <Text style={styles.companionEmoji}>{companion.emoji}</Text>
+          </BreathingView>
+          <Text style={[styles.companionName, { color: palette.ink }]}>{companion.name}</Text>
+          <View style={[styles.modeBadge, { backgroundColor: companion.accentColor }]}>
+            <Text style={styles.modeBadgeText}>{formatMode(userMode)}</Text>
+          </View>
+        </Animated.View>
+
+        {/* Stats Grid */}
+        <Animated.View entering={rise(140)} style={styles.statsGrid}>
+          <StatCard emoji="🔥" value={String(streak.currentStreak)} label="Streak" />
+          <StatCard emoji="⭐" value={String(xpTotal)} label="XP" />
+          <StatCard emoji="💎" value={String(gemsBalance)} label="Gems" />
+          <StatCard emoji="🏅" value={String(badgesEarned.length)} label="Badges" />
+        </Animated.View>
+
+        {/* Level Progress */}
+        <Animated.View entering={rise(220)}>
+          <GlassCard style={styles.levelCard} padding={Spacing.cardPadding}>
+            <View style={styles.levelHeader}>
+              <Text style={[styles.levelLabel, { color: palette.ink }]}>
+                Level {currentLevel} — {levelProgress.currentLevel.name} {levelProgress.currentLevel.emoji}
+              </Text>
+              {!levelProgress.isMaxLevel && (
+                <Text style={[styles.levelXP, { color: palette.ink3 }]}>
+                  {levelProgress.xpInCurrentLevel} / {levelProgress.xpNeededForNext} XP
+                </Text>
+              )}
+            </View>
+            <View style={[styles.progressBarBg, { backgroundColor: palette.glass.edge }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${Math.max(2, progressPct)}%`,
+                    backgroundColor: companion.accentColor,
+                  },
+                ]}
+              />
+            </View>
+            {levelProgress.nextLevel && (
+              <Text style={[styles.nextLevelHint, { color: palette.ink3 }]}>
+                Next: {levelProgress.nextLevel.name} {levelProgress.nextLevel.emoji}
+              </Text>
+            )}
+          </GlassCard>
+        </Animated.View>
+
+        {/* Settings List */}
+        <View style={styles.settingsSection}>
+          <Animated.View entering={rise(300)}>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>Settings</Text>
+          </Animated.View>
+
+          {/* ✅ Shipped — Sisterhood Circle */}
+          <Animated.View entering={rise(360)}>
+            <SettingsItem
+              emoji="👯"
+              title="Sisterhood Circle"
+              subtitle={
+                sisterCount > 0
+                  ? `${sisterCount} ${sisterCount === 1 ? 'sister' : 'sisters'} in your circle`
+                  : 'Connect friends & family'
+              }
+              onPress={handleSisterhoodTap}
+            />
+          </Animated.View>
+
+          {/* ✅ Shipped — Doctor Report */}
+          <Animated.View entering={rise(430)}>
+            <SettingsItem
+              emoji="🩺"
+              title="Doctor Report"
+              subtitle="Gentle summary you can share"
+              onPress={handleDoctorReportTap}
+            />
+          </Animated.View>
+
+          {/* ✅ Shipped — Ghost Mode (live subtitle, see selector above) */}
+          <Animated.View entering={rise(500)}>
+            <SettingsItem
+              emoji="🔒"
+              title="Ghost Mode"
+              subtitle={
+                ghostEnabled
+                  ? 'PIN protection is on'
+                  : 'Set up a PIN to keep Dottie private'
+              }
+              onPress={handleGhostModeTap}
+            />
+          </Animated.View>
+
+          {/* 🌱 Coming soon */}
+          <Animated.View entering={rise(570)}>
+            <SettingsItem
+              emoji="💊"
+              title="Medications"
+              subtitle="Track birth control & meds · coming soon"
+              onPress={() => handleComingSoon('Medications')}
+            />
+          </Animated.View>
+          <Animated.View entering={rise(640)}>
+            <SettingsItem
+              emoji="🔔"
+              title="Notifications"
+              subtitle="Discrete reminders · coming soon"
+              onPress={() => handleComingSoon('Notifications')}
+            />
+          </Animated.View>
+          <Animated.View entering={rise(710)}>
+            <SettingsItem
+              emoji="🎨"
+              title="Theme"
+              subtitle="Customize your look · coming soon"
+              onPress={() => handleComingSoon('Theme')}
+            />
+          </Animated.View>
+          <Animated.View entering={rise(780)}>
+            <SettingsItem
+              emoji="📤"
+              title="Export Data"
+              subtitle="Your data belongs to you · coming soon"
+              onPress={() => handleComingSoon('Export Data')}
+            />
+          </Animated.View>
         </View>
-      </Animated.View>
 
-      {/* Stats Grid */}
-      <Animated.View entering={rise(140)} style={styles.statsGrid}>
-        <StatCard emoji="🔥" value={String(streak.currentStreak)} label="Streak" />
-        <StatCard emoji="⭐" value={String(xpTotal)} label="XP" />
-        <StatCard emoji="💎" value={String(gemsBalance)} label="Gems" />
-        <StatCard emoji="🏅" value={String(badgesEarned.length)} label="Badges" />
-      </Animated.View>
-
-      {/* Level Progress */}
-      <Animated.View entering={rise(220)} style={styles.levelCard}>
-        <View style={styles.levelHeader}>
-          <Text style={styles.levelLabel}>
-            Level {currentLevel} — {levelProgress.currentLevel.name} {levelProgress.currentLevel.emoji}
-          </Text>
-          {!levelProgress.isMaxLevel && (
-            <Text style={styles.levelXP}>
-              {levelProgress.xpInCurrentLevel} / {levelProgress.xpNeededForNext} XP
-            </Text>
-          )}
-        </View>
-        <View style={styles.progressBarBg}>
-          <View
-            style={[
-              styles.progressBarFill,
-              {
-                width: `${Math.max(2, progressPct)}%`,
-                backgroundColor: companion.accentColor,
-              },
-            ]}
-          />
-        </View>
-        {levelProgress.nextLevel && (
-          <Text style={styles.nextLevelHint}>
-            Next: {levelProgress.nextLevel.name} {levelProgress.nextLevel.emoji}
-          </Text>
-        )}
-      </Animated.View>
-
-      {/* Settings List */}
-      <View style={styles.settingsSection}>
-        <Animated.View entering={rise(300)}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-        </Animated.View>
-
-        {/* ✅ Shipped — Sisterhood Circle */}
-        <Animated.View entering={rise(360)}>
-          <SettingsItem
-            emoji="👯"
-            title="Sisterhood Circle"
-            subtitle={
-              sisterCount > 0
-                ? `${sisterCount} ${sisterCount === 1 ? 'sister' : 'sisters'} in your circle`
-                : 'Connect friends & family'
-            }
-            onPress={handleSisterhoodTap}
-          />
-        </Animated.View>
-
-        {/* ✅ Shipped — Doctor Report */}
-        <Animated.View entering={rise(430)}>
-          <SettingsItem
-            emoji="🩺"
-            title="Doctor Report"
-            subtitle="Gentle summary you can share"
-            onPress={handleDoctorReportTap}
-          />
-        </Animated.View>
-
-        {/* ✅ Shipped — Ghost Mode (live subtitle, see selector above) */}
-        <Animated.View entering={rise(500)}>
-          <SettingsItem
-            emoji="🔒"
-            title="Ghost Mode"
-            subtitle={
-              ghostEnabled
-                ? 'PIN protection is on'
-                : 'Set up a PIN to keep Dottie private'
-            }
-            onPress={handleGhostModeTap}
-          />
-        </Animated.View>
-
-        {/* 🌱 Coming soon */}
-        <Animated.View entering={rise(570)}>
-          <SettingsItem
-            emoji="💊"
-            title="Medications"
-            subtitle="Track birth control & meds · coming soon"
-            onPress={() => handleComingSoon('Medications')}
-          />
-        </Animated.View>
-        <Animated.View entering={rise(640)}>
-          <SettingsItem
-            emoji="🔔"
-            title="Notifications"
-            subtitle="Discrete reminders · coming soon"
-            onPress={() => handleComingSoon('Notifications')}
-          />
-        </Animated.View>
-        <Animated.View entering={rise(710)}>
-          <SettingsItem
-            emoji="🎨"
-            title="Theme"
-            subtitle="Customize your look · coming soon"
-            onPress={() => handleComingSoon('Theme')}
-          />
-        </Animated.View>
-        <Animated.View entering={rise(780)}>
-          <SettingsItem
-            emoji="📤"
-            title="Export Data"
-            subtitle="Your data belongs to you · coming soon"
-            onPress={() => handleComingSoon('Export Data')}
-          />
-        </Animated.View>
-      </View>
-
-      {/* Bottom padding */}
-      <View style={{ height: Spacing.tabBarHeight + Spacing.xl }} />
-    </ScrollView>
+        {/* Bottom padding */}
+        <View style={{ height: Spacing.tabBarHeight + Spacing.xl }} />
+      </ScrollView>
+    </AuroraBackground>
   );
 }
 
@@ -267,14 +264,15 @@ function StatCard({
   value: string;
   label: string;
 }): JSX.Element {
+  const { palette } = useAurora();
   return (
-    <View style={styles.statCard}>
+    <GlassCard style={styles.statCard} padding={Spacing.md}>
       <Text style={styles.statEmoji}>{emoji}</Text>
       <PopOnChange value={value}>
-        <Text style={styles.statValue}>{value}</Text>
+        <Text style={[styles.statValue, { color: palette.ink }]}>{value}</Text>
       </PopOnChange>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      <Text style={[styles.statLabel, { color: palette.ink3 }]}>{label}</Text>
+    </GlassCard>
   );
 }
 
@@ -289,9 +287,13 @@ function SettingsItem({
   subtitle: string;
   onPress?: () => void;
 }): JSX.Element {
+  const { palette } = useAurora();
   return (
     <PressableScale
-      style={styles.settingsItem}
+      style={[
+        styles.settingsItem,
+        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+      ]}
       onPress={onPress}
       haptic="none"
       accessibilityRole="button"
@@ -300,10 +302,10 @@ function SettingsItem({
     >
       <Text style={styles.settingsEmoji}>{emoji}</Text>
       <View style={styles.settingsContent}>
-        <Text style={styles.settingsTitle}>{title}</Text>
-        <Text style={styles.settingsSubtitle}>{subtitle}</Text>
+        <Text style={[styles.settingsTitle, { color: palette.ink }]}>{title}</Text>
+        <Text style={[styles.settingsSubtitle, { color: palette.ink3 }]}>{subtitle}</Text>
       </View>
-      <Text style={styles.settingsArrow}>›</Text>
+      <Text style={[styles.settingsArrow, { color: palette.ink3 }]}>›</Text>
     </PressableScale>
   );
 }
@@ -328,12 +330,11 @@ function formatMode(mode: string): string {
   }
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────
+// ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -348,7 +349,6 @@ const styles = StyleSheet.create({
   },
   companionName: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   modeBadge: {
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   modeBadgeText: {
     ...Typography.preset.captionBold,
-    color: Colors.text.inverse,
+    color: '#FFFFFF',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -367,11 +367,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.md,
-    borderRadius: Spacing.radius.xl,
     alignItems: 'center',
-    ...Shadows.sm,
   },
   statEmoji: {
     fontSize: 20,
@@ -380,18 +376,12 @@ const styles = StyleSheet.create({
   statValue: {
     ...Typography.preset.number,
     fontSize: 20,
-    color: Colors.text.primary,
   },
   statLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   levelCard: {
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.cardPadding,
-    borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sectionGap,
-    ...Shadows.sm,
   },
   levelHeader: {
     flexDirection: 'row',
@@ -401,16 +391,13 @@ const styles = StyleSheet.create({
   },
   levelLabel: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
     flexShrink: 1,
   },
   levelXP: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: Colors.surface.background,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -420,7 +407,6 @@ const styles = StyleSheet.create({
   },
   nextLevelHint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     marginTop: Spacing.sm,
   },
   settingsSection: {
@@ -428,16 +414,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
   settingsItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    borderWidth: 1,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
-    ...Shadows.sm,
   },
   settingsEmoji: {
     fontSize: 24,
@@ -448,14 +432,11 @@ const styles = StyleSheet.create({
   },
   settingsTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
   },
   settingsSubtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   settingsArrow: {
     fontSize: 24,
-    color: Colors.text.tertiary,
   },
 });
