@@ -24,6 +24,7 @@ import { Spacing } from '../../constants/spacing';
 import {
   DoctorReportData,
   ReportSymptomEntry,
+  ReportPatternObservation,
 } from '../../types/report.types';
 import { ReportSection } from './ReportSection';
 
@@ -93,6 +94,21 @@ export function ReportPreview({ data }: ReportPreviewProps) {
       <ReportSection emoji="💊" title="Medications">
         <Text style={styles.bodyText}>{data.medications.note}</Text>
       </ReportSection>
+
+      {/* Patterns worth mentioning — only rendered when there's something
+          gentle to surface. Usually empty (the healthy, common case), so the
+          section never shows a wall of "nothing here". Non-diagnostic by
+          design; mirrors the "PATTERNS WORTH MENTIONING" block in the shared
+          text report. */}
+      {data.patternsToDiscuss.observations.length > 0 && (
+        <ReportSection
+          emoji="📝"
+          title="Patterns Worth Mentioning"
+          subtitle="Gentle observations — not a diagnosis"
+        >
+          <PatternsBody data={data} />
+        </ReportSection>
+      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -208,7 +224,36 @@ function RecentCyclesBody({ data }: { data: DoctorReportData }) {
   );
 }
 
+function PatternsBody({ data }: { data: DoctorReportData }) {
+  return (
+    <View style={styles.patternsList}>
+      <Text style={[styles.bodyText, styles.patternsIntro]}>
+        These come from your own self-reported data. They aren't diagnoses —
+        just gentle things you might find helpful to mention. 💛
+      </Text>
+      {data.patternsToDiscuss.observations.map((o) => (
+        <PatternRow key={o.id} observation={o} />
+      ))}
+    </View>
+  );
+}
+
 // ─── SUBCOMPONENTS ───────────────────────────────────────────────────
+
+function PatternRow({ observation }: { observation: ReportPatternObservation }) {
+  // 'discuss' = worth raising (warm amber accent); 'note' = lower-key FYI.
+  const accent =
+    observation.severity === 'discuss'
+      ? Colors.phase.ovulatory.primary
+      : Colors.text.tertiary;
+
+  return (
+    <View style={[styles.patternRow, { borderLeftColor: accent }]}>
+      <Text style={styles.patternTitle}>{observation.title}</Text>
+      <Text style={styles.patternDetail}>{observation.detail}</Text>
+    </View>
+  );
+}
 
 function KeyValue({ label, value }: { label: string; value: string }) {
   return (
@@ -387,6 +432,30 @@ const styles = StyleSheet.create({
   moreNote: {
     fontStyle: 'italic',
     marginTop: Spacing.xs,
+  },
+
+  // Patterns worth mentioning
+  patternsList: {
+    gap: Spacing.sm,
+  },
+  patternsIntro: {
+    marginBottom: Spacing.xs,
+    fontStyle: 'italic',
+  },
+  patternRow: {
+    borderLeftWidth: 3,
+    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  patternTitle: {
+    ...Typography.preset.bodySemibold,
+    color: Colors.text.primary,
+  },
+  patternDetail: {
+    ...Typography.preset.caption,
+    color: Colors.text.secondary,
+    marginTop: 2,
+    lineHeight: 20,
   },
 
   // Footer
