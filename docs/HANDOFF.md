@@ -32,12 +32,17 @@ default / 0.8 for momentum, `EASE_OUT = bezier(0.23,1,0.32,1)`, press `scale 0.9
 
 **Design approach = VISUALIZE FIRST, code later** (user's call — smart, since the app
 can't run here). Work happens on the **`design-v2` branch** (pushed).
-- **Reimagined Home (interactive, live motion):**
+Two directions for Home are visualized (user wants bold + morphisms, free of the
+current palette):
+- **Direction A — "Elevate, keep the soul"** (warm, cream/coral, subtle glass):
   https://claude.ai/code/artifact/db9078f7-b9fc-42c8-ae60-84e6a37ceaa9
-  Direction = "elevate, keep the soul": phase-as-atmosphere, translucent glass depth,
-  rounded display hero, custom line-icon tab set (Today/Cycle/Learn/Circle/You),
-  primary-action-first, one insight card not three, signature motion (streak ticker,
-  floating companion). Notes panel ties each move to its principle.
+- **Direction B — "Dottie Aurora"** (BOLD, from-scratch dark palette; the cycle as a
+  night sky; glassmorphism + claymorphism + aurora-mesh + grain; glowing cycle ring):
+  https://claude.ai/code/artifact/64d7a36b-cca1-4c8d-a731-889d936b97d6
+Both are interactive (press moods, ring draws, streak ticks). Shared IA in both:
+hero states the day, primary action (mood) first, glass stats, one insight card,
+glass tab bar with custom line icons + honest labels (Today/Cycle/Learn/Circle/You).
+Awaiting the user's pick (A, B, or a blend) before extending across screens.
 - **"Before" gallery:** https://claude.ai/code/artifact/b24440b0-c454-4752-ae43-e1686c8dc2ad
 
 **Next step:** get the user's reactions to the reimagined Home → refine that direction →
