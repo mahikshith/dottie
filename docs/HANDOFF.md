@@ -111,11 +111,20 @@ adjustments + error-bias correction) — labelled "Bayesian" but NOT a formal Ba
   98% perfect use). **Clue** = calendar/statistics (period dates only), FDA-cleared as
   "substantially equivalent". Academic SOTA = **hierarchical Bayesian generative models**
   (Urteaga et al., MLR 2021) — handle irregular cyclers, improve as cycles evolve.
-- **Recommendation for Dottie (local-first/offline/private):** replace the heuristic with a
-  **true hierarchical Bayesian generative model in pure TS** — runs on-device, interpretable,
-  gives a principled posterior (date + honest window/confidence), best for irregular/PCOS.
-  A tiny on-device NN (TFLite, Flo-style) is a heavier later option (needs a runtime + data).
-  Optional: **HealthKit temperature/HR** (app already declares HealthKit) → 85–87% fertile-window.
+- **Recommendation for Dottie (local-first/offline/private):** a true Bayesian generative
+  model in pure TS. A tiny on-device NN (TFLite, Flo-style) is a heavier later option
+  (runtime + data). Optional: **HealthKit temperature/HR** → 85–87% fertile-window.
+- **✅ DONE (design-v2, ⚠️ UNVERIFIED — no device):** implemented as a **Normal-Inverse-Gamma
+  conjugate model → Student-t posterior predictive**, closed-form on-device:
+  - `src/engine/prediction/bayesian-predictor.ts` — the model: `buildPopulationPrior()`
+    (population prior, widened for teen/PCOS/thyroid/perimenopause) + `posteriorPredictiveCycleLength()`
+    (recency-weighted conjugate update → predicted length, principled SD, df, effective-n).
+  - `src/engine/prediction/predictor.ts` — REWRITTEN to use it; SAME public API
+    (`predictNextPeriod`/`generateFullPrediction`/`getPredictionMessage`/`PredictionInput`), so
+    `useCycleStore` is unchanged. Window now = ~1.15·posterior SD (+condition inflation);
+    confidence from predictive spread × data volume. Lifestyle shifts (stress/sleep) kept.
+  - **Verify on Node:** unit-test known histories (regular → tight window; PCOS/sparse → wide;
+    cold-start → prior). NN + HealthKit remain future options.
 
 **Feature gaps worth incorporating (feasible, differentiated):**
 1. **Lead with PRIVACY** — Flo paid a $59.5M (2025) settlement over data sharing; Dottie is
