@@ -36,9 +36,14 @@ Two directions for Home are visualized (user wants bold + morphisms, free of the
 current palette):
 - **Direction A — "Elevate, keep the soul"** (warm, cream/coral, subtle glass):
   https://claude.ai/code/artifact/db9078f7-b9fc-42c8-ae60-84e6a37ceaa9
-- **Direction B — "Dottie Aurora"** (BOLD, from-scratch dark palette; the cycle as a
-  night sky; glassmorphism + claymorphism + aurora-mesh + grain; glowing cycle ring):
+- **Direction B — "Aurora Palettes"** (BOLD, from-scratch; the cycle as a night sky;
+  glassmorphism + claymorphism + aurora-mesh + grain; glowing cycle ring). **User loved
+  this; asked to explore warm+cool palettes + a toggle + a fluid glass tab bar.** Now
+  ships a live **4-palette toggle** — Nocturne (cool violet/aqua), Sunset (warm/joyful),
+  Reef (cool teal), Dawn (light warm) — sharing ONE glass/clay/aurora system, plus a
+  spring-driven sliding glass tab indicator:
   https://claude.ai/code/artifact/64d7a36b-cca1-4c8d-a731-889d936b97d6
+  Proposed model: Dawn = friendly default, others = premium theme settings.
 Both are interactive (press moods, ring draws, streak ticks). Shared IA in both:
 hero states the day, primary action (mood) first, glass stats, one insight card,
 glass tab bar with custom line icons + honest labels (Today/Cycle/Learn/Circle/You).
