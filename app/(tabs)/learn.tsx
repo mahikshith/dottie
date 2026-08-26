@@ -1,14 +1,37 @@
+/**
+ * Learn Tab — MOOD AURORA THEME (design-v2)
+ *
+ * Bundled learning paths with real progress tracking, re-skinned onto the
+ * aurora world: luminous dark ground, glass stat boxes / path cards / lesson
+ * rows, and each path keeping its own brand accent (path.gradient[0]) for
+ * identity while the surrounding surfaces re-tint with the mood palette.
+ *
+ * ─── WHAT CHANGED IN THIS PASS ──────────────────────────────────────
+ *
+ *  Presentation only. Progress loading, path/mode filtering, sequential
+ *  lesson LOCKING, navigation, every store read, and all copy are unchanged.
+ *  Colours moved to the palette (inline); the StyleSheet is layout only:
+ *   - Screen wrapped in <AuroraBackground>; StatusBar flipped to light.
+ *   - Stat boxes, path cards, lesson rows, and the empty state are glass.
+ *   - Path accent still comes from path.gradient[0] (brand identity per path);
+ *     progress bar + emoji bubble use it. Text is palette ink.
+ *   - Lesson status bubble: complete = soft aurora green, in-progress = accent,
+ *     locked = faint glass, not-started = accent tint. Glyph ink = ground.
+ *
+ *  ⚠️ design-v2 / UNVERIFIED (no device).
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { PressableScale, PopOnChange } from '../../src/components/ui';
+import { PressableScale, PopOnChange, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { useAurora } from '../../src/theme';
 import {
   useUserStore,
   useGamificationStore,
@@ -27,53 +50,9 @@ import { contentRepository, LessonProgress } from '../../src/database/repositori
 import { getCompanion } from '../../src/content/companions';
 import { LearningPath, Lesson } from '../../src/types/content.types';
 
-/**
- * Learn Tab — Bundled learning paths with real progress tracking.
- *
- * ─── HOW THIS WIRES UP ──────────────────────────────────────────────
- *
- *  Paths and lessons are STATIC content from `src/content/learning-paths.ts`
- *  (no server fetch — bundled with the app for offline-first).
- *
- *  Progress is LIVE from `lesson_progress` table:
- *    1. On mount, load all progress rows for this user via the repo
- *    2. For each path, count complete vs total → percentage
- *    3. Render with progress overlay
- *
- *  Tapping a path expands it inline to show its lessons with their
- *  individual progress + unlock state.
- *
- *  Tapping a lesson navigates to `/lesson/[id]` (see lesson screen file).
- *
- * ─── LOCKING ────────────────────────────────────────────────────────
- *
- *  Lessons within a path are sequential — lesson N is locked until
- *  lesson N-1 is complete. First lesson is always unlocked.
- *
- *  This is computed in `lessonsWithProgress` below using the lesson's
- *  `order` field and the loaded progress map.
- *
- * ─── PREMIUM POLISH PASS (Phase 2) ──────────────────────────────────
- *
- *  Presentation-only pass — zero logic, wiring, or copy changed:
- *
- *   - Entrance choreography: the header, stat row, section, and each
- *     path card fade + rise in a gentle stagger (Reanimated `FadeInDown`,
- *     UI thread) via the local `rise()` helper so the screen assembles
- *     with intent on every visit. `entering` runs on mount only, so it
- *     never refires on progress-map updates.
- *   - Every tappable surface (path headers, lesson rows) now uses the
- *     shared spring-press primitive (`PressableScale`) for buttery 60fps
- *     tap feedback. Both tap handlers already fire their own haptic, so
- *     `PressableScale` is passed `haptic="none"` to avoid a double buzz;
- *     the old pressed-state style callbacks are dropped in its favor.
- *   - The stat counters (lessons / XP / gems) "pop" (`PopOnChange`) when
- *     they change, so finishing a lesson feels immediately rewarding.
- *   - Real safe-area insets replace the fixed top padding on the scroll
- *     content so the header clears the notch on every device.
- *
- *  All motion honors "Reduce Motion" via the shared primitives.
- */
+// Soft aurora green for a completed lesson (reads as "done" on the dark ground
+// without importing the light-theme semantic palette).
+const AURORA_SUCCESS = '#6FE6A8';
 
 /** Entrance transition: fade + rise with a soft spring, delayed by `d` ms. */
 function rise(d: number): ReturnType<typeof FadeInDown.duration> {
@@ -82,6 +61,7 @@ function rise(d: number): ReturnType<typeof FadeInDown.duration> {
 export default function LearnScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { palette } = useAurora();
   const mode = useUserStore(selectUserMode);
   const companionType = useUserStore(selectCompanionType);
   const xpTotal = useGamificationStore(selectXpTotal);
@@ -161,83 +141,94 @@ export default function LearnScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingTop: insets.top + Spacing.lg },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
-      <Animated.View entering={rise(0)} style={styles.header}>
-        <Text style={styles.title}>Learn & Grow {companion.emoji}</Text>
-        <Text style={styles.subtitle}>
-          Tiny lessons, big understanding.{'\n'}
-          Earn XP and gems as you learn.
-        </Text>
-      </Animated.View>
-
-      {/* Stats Row */}
-      <Animated.View entering={rise(70)} style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={styles.statEmoji}>📚</Text>
-          <PopOnChange value={`${completedLessons}/${totalLessons}`}>
-            <Text style={styles.statValue}>
-              {completedLessons}/{totalLessons}
-            </Text>
-          </PopOnChange>
-          <Text style={styles.statLabel}>Lessons</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statEmoji}>⭐</Text>
-          <PopOnChange value={xpTotal}>
-            <Text style={styles.statValue}>{xpTotal}</Text>
-          </PopOnChange>
-          <Text style={styles.statLabel}>XP</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statEmoji}>💎</Text>
-          <PopOnChange value={gemsBalance}>
-            <Text style={styles.statValue}>{gemsBalance}</Text>
-          </PopOnChange>
-          <Text style={styles.statLabel}>Gems</Text>
-        </View>
-      </Animated.View>
-
-      {/* Paths */}
-      <View style={styles.pathsSection}>
-        <Animated.View entering={rise(140)}>
-          <Text style={styles.sectionTitle}>Your Learning Paths</Text>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingTop: insets.top + Spacing.lg },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Animated.View entering={rise(0)} style={styles.header}>
+          <Text style={[styles.title, { color: palette.ink }]}>
+            Learn & Grow {companion.emoji}
+          </Text>
+          <Text style={[styles.subtitle, { color: palette.ink2 }]}>
+            Tiny lessons, big understanding.{'\n'}
+            Earn XP and gems as you learn.
+          </Text>
         </Animated.View>
 
-        {availablePaths.length === 0 && (
-          <Animated.View entering={rise(210)} style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🌱</Text>
-            <Text style={styles.emptyTitle}>More paths coming soon!</Text>
-            <Text style={styles.emptyBody}>
-              I'm cooking up more learning content for your mode. Check back soon!
+        {/* Stats Row */}
+        <Animated.View entering={rise(70)} style={styles.statsRow}>
+          <GlassCard style={styles.statBox} padding={Spacing.md}>
+            <Text style={styles.statEmoji}>📚</Text>
+            <PopOnChange value={`${completedLessons}/${totalLessons}`}>
+              <Text style={[styles.statValue, { color: palette.ink }]}>
+                {completedLessons}/{totalLessons}
+              </Text>
+            </PopOnChange>
+            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Lessons</Text>
+          </GlassCard>
+          <GlassCard style={styles.statBox} padding={Spacing.md}>
+            <Text style={styles.statEmoji}>⭐</Text>
+            <PopOnChange value={xpTotal}>
+              <Text style={[styles.statValue, { color: palette.ink }]}>{xpTotal}</Text>
+            </PopOnChange>
+            <Text style={[styles.statLabel, { color: palette.ink3 }]}>XP</Text>
+          </GlassCard>
+          <GlassCard style={styles.statBox} padding={Spacing.md}>
+            <Text style={styles.statEmoji}>💎</Text>
+            <PopOnChange value={gemsBalance}>
+              <Text style={[styles.statValue, { color: palette.ink }]}>{gemsBalance}</Text>
+            </PopOnChange>
+            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Gems</Text>
+          </GlassCard>
+        </Animated.View>
+
+        {/* Paths */}
+        <View style={styles.pathsSection}>
+          <Animated.View entering={rise(140)}>
+            <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+              Your Learning Paths
             </Text>
           </Animated.View>
-        )}
 
-        {availablePaths.map((path, index) => (
-          <Animated.View key={path.id} entering={rise(210 + Math.min(index, 8) * 80)}>
-            <PathCard
-              path={path}
-              stats={pathStats.get(path.id) ?? { total: 0, completed: 0, percent: 0 }}
-              expanded={expandedPathId === path.id}
-              onToggle={() => togglePath(path.id)}
-              lessons={getLessonsForPath(path.id)}
-              progressMap={progressMap}
-              onLessonTap={openLesson}
-            />
-          </Animated.View>
-        ))}
-      </View>
+          {availablePaths.length === 0 && (
+            <Animated.View entering={rise(210)}>
+              <GlassCard style={styles.emptyCard}>
+                <Text style={styles.emptyEmoji}>🌱</Text>
+                <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+                  More paths coming soon!
+                </Text>
+                <Text style={[styles.emptyBody, { color: palette.ink2 }]}>
+                  I'm cooking up more learning content for your mode. Check back soon!
+                </Text>
+              </GlassCard>
+            </Animated.View>
+          )}
 
-      <View style={{ height: Spacing.tabBarHeight }} />
-    </ScrollView>
+          {availablePaths.map((path, index) => (
+            <Animated.View key={path.id} entering={rise(210 + Math.min(index, 8) * 80)}>
+              <PathCard
+                path={path}
+                stats={pathStats.get(path.id) ?? { total: 0, completed: 0, percent: 0 }}
+                expanded={expandedPathId === path.id}
+                onToggle={() => togglePath(path.id)}
+                lessons={getLessonsForPath(path.id)}
+                progressMap={progressMap}
+                onLessonTap={openLesson}
+              />
+            </Animated.View>
+          ))}
+        </View>
+
+        <View style={{ height: Spacing.tabBarHeight }} />
+      </ScrollView>
+    </AuroraBackground>
   );
 }
 
@@ -260,10 +251,11 @@ function PathCard({
   progressMap: Map<string, LessonProgress>;
   onLessonTap: (lessonId: string) => void;
 }) {
+  const { palette } = useAurora();
   const accent = path.gradient[0];
 
   return (
-    <View style={styles.pathCard}>
+    <GlassCard style={styles.pathCard} padding={0}>
       <PressableScale
         style={styles.pathHeader}
         onPress={onToggle}
@@ -277,12 +269,14 @@ function PathCard({
         </View>
         <View style={styles.pathInfo}>
           <View style={styles.pathTitleRow}>
-            <Text style={styles.pathTitle}>{path.title}</Text>
+            <Text style={[styles.pathTitle, { color: palette.ink }]}>{path.title}</Text>
             {path.tier === 'premium' && <Text style={styles.pathBadge}>💎+</Text>}
           </View>
-          <Text style={styles.pathDescription}>{path.description}</Text>
+          <Text style={[styles.pathDescription, { color: palette.ink2 }]}>
+            {path.description}
+          </Text>
           <View style={styles.pathProgressRow}>
-            <View style={styles.pathProgressBarBg}>
+            <View style={[styles.pathProgressBarBg, { backgroundColor: palette.glass.edge }]}>
               <View
                 style={[
                   styles.pathProgressBarFill,
@@ -290,12 +284,20 @@ function PathCard({
                 ]}
               />
             </View>
-            <Text style={styles.pathProgressText}>
+            <Text style={[styles.pathProgressText, { color: palette.ink3 }]}>
               {stats.completed}/{stats.total}
             </Text>
           </View>
         </View>
-        <Text style={[styles.pathChevron, expanded && styles.pathChevronExpanded]}>›</Text>
+        <Text
+          style={[
+            styles.pathChevron,
+            { color: palette.ink3 },
+            expanded && styles.pathChevronExpanded,
+          ]}
+        >
+          ›
+        </Text>
       </PressableScale>
 
       {expanded && (
@@ -309,7 +311,11 @@ function PathCard({
             return (
               <PressableScale
                 key={lesson.id}
-                style={[styles.lessonRow, isLocked && styles.lessonRowLocked]}
+                style={[
+                  styles.lessonRow,
+                  { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+                  isLocked && styles.lessonRowLocked,
+                ]}
                 onPress={() => !isLocked && onLessonTap(lesson.id)}
                 disabled={isLocked}
                 haptic="none"
@@ -322,16 +328,16 @@ function PathCard({
                     styles.lessonStatus,
                     {
                       backgroundColor: isComplete
-                        ? Colors.semantic.success
+                        ? AURORA_SUCCESS
                         : isInProgress
                           ? accent
                           : isLocked
-                            ? Colors.surface.background
+                            ? palette.glass.bg
                             : `${accent}33`,
                     },
                   ]}
                 >
-                  <Text style={styles.lessonStatusEmoji}>
+                  <Text style={[styles.lessonStatusEmoji, { color: palette.ground }]}>
                     {isComplete ? '✓' : isLocked ? '🔒' : lesson.emoji}
                   </Text>
                 </View>
@@ -339,23 +345,25 @@ function PathCard({
                   <Text
                     style={[
                       styles.lessonTitle,
-                      isLocked && { color: Colors.text.tertiary },
+                      { color: isLocked ? palette.ink3 : palette.ink },
                     ]}
                   >
                     {lesson.title}
                   </Text>
-                  <Text style={styles.lessonMeta}>
+                  <Text style={[styles.lessonMeta, { color: palette.ink3 }]}>
                     {lesson.estimatedMinutes} min · {lesson.xpReward} XP
                     {lesson.quizId ? ' · Quiz' : ''}
                   </Text>
                 </View>
-                {!isLocked && <Text style={styles.lessonChevron}>›</Text>}
+                {!isLocked && (
+                  <Text style={[styles.lessonChevron, { color: palette.ink3 }]}>›</Text>
+                )}
               </PressableScale>
             );
           })}
         </View>
       )}
-    </View>
+    </GlassCard>
   );
 }
 
@@ -379,12 +387,11 @@ function isLessonLocked(
 // imported in dev — the canonical list lives in learning-paths.ts.
 void LEARNING_PATHS;
 
-// ─── STYLES ──────────────────────────────────────────────────────────
+// ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -395,12 +402,10 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     lineHeight: 24,
   },
   statsRow: {
@@ -410,11 +415,7 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.md,
-    borderRadius: Spacing.radius.xl,
     alignItems: 'center',
-    ...Shadows.sm,
   },
   statEmoji: {
     fontSize: 20,
@@ -423,28 +424,19 @@ const styles = StyleSheet.create({
   statValue: {
     ...Typography.preset.number,
     fontSize: 18,
-    color: Colors.text.primary,
   },
   statLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   pathsSection: {
     gap: Spacing.base,
   },
   sectionTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
   pathCard: {
-    backgroundColor: Colors.surface.card,
-    borderRadius: Spacing.radius['2xl'],
-    // No `overflow: 'hidden'` here: on iOS it would clip the warm drop
-    // shadow. The card's own rounded background provides the corners, and
-    // all children (header + expanded lesson list) sit inside padding, so
-    // nothing needs clipping to the corner radius.
-    ...Shadows.card,
+    // Glass surface; padding handled per-section (header + lesson list).
   },
   pathHeader: {
     flexDirection: 'row',
@@ -472,16 +464,14 @@ const styles = StyleSheet.create({
   },
   pathTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     flexShrink: 1,
   },
   pathBadge: {
     ...Typography.preset.captionBold,
-    color: Colors.gamification.gems,
+    color: '#FFC24D',
   },
   pathDescription: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
     marginVertical: Spacing.xs,
   },
   pathProgressRow: {
@@ -493,7 +483,6 @@ const styles = StyleSheet.create({
   pathProgressBarBg: {
     flex: 1,
     height: 6,
-    backgroundColor: Colors.surface.background,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -503,13 +492,11 @@ const styles = StyleSheet.create({
   },
   pathProgressText: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
     minWidth: 40,
     textAlign: 'right',
   },
   pathChevron: {
     fontSize: 24,
-    color: Colors.text.tertiary,
     marginLeft: Spacing.sm,
   },
   pathChevronExpanded: {
@@ -523,7 +510,7 @@ const styles = StyleSheet.create({
   lessonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.background,
+    borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
   },
@@ -540,30 +527,22 @@ const styles = StyleSheet.create({
   },
   lessonStatusEmoji: {
     fontSize: 18,
-    color: Colors.text.inverse,
   },
   lessonContent: {
     flex: 1,
   },
   lessonTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
   },
   lessonMeta: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     marginTop: 2,
   },
   lessonChevron: {
     fontSize: 24,
-    color: Colors.text.tertiary,
   },
   emptyCard: {
-    backgroundColor: Colors.surface.card,
-    padding: Spacing.cardPaddingLarge,
-    borderRadius: Spacing.radius['2xl'],
     alignItems: 'center',
-    ...Shadows.sm,
   },
   emptyEmoji: {
     fontSize: 36,
@@ -571,12 +550,10 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   emptyBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     textAlign: 'center',
   },
 });
