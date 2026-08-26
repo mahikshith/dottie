@@ -105,11 +105,17 @@ current palette):
     (Reanimated + runOnJS). No origin / Reduce-Motion = instant swap.
   - `app/_layout.tsx` now wraps the app in `<AuroraProvider>` (safe — only provides context;
     non-aurora screens unaffected). So the palette + reveal are live app-wide once screens read it.
-  - **NEXT screen-theming step:** convert `app/(tabs)/home.tsx` to aurora (AuroraBackground +
-    GlassCard + ClayButton mood keys wired to `applyMood(score, {x:e.nativeEvent.pageX, y:pageY})`
-    + GlowRing), and its child cards (`PhaseWeatherCard`, `DottiePredictsCard`) — those are
-    cream-styled and must be themed together or a mood reveal flashes into a cream screen. Then
-    the other 4 screens. On mount, drive the palette from `todayCheckIn?.moodScore`.
+  - **✅ DONE — Home screen themed:** `app/(tabs)/home.tsx` (AuroraBackground + GlowRing +
+    GlassCards + ClayButton mood keys wired to the ORIGIN reveal `applyMood(score,{x,y})` alongside
+    the unchanged save/streak/celebration logic; palette from `todayCheckIn?.moodScore` on mount) +
+    its child cards `DottiePredictsCard.tsx` + `PhaseWeatherCard.tsx` (palette glass; also removed
+    stale `Colors.primary.sunshine/rose`/`surface.warmIvory` refs). `ClayButton` now forwards the
+    press event. ⚠️ UNVERIFIED.
+  - **NEXT theming (needs Node to verify):** (a) other 4 tab screens + deep screens to aurora;
+    (b) wire `AuroraTabBar` into `(tabs)/_layout.tsx`; (c) flip `StatusBar` to light on aurora
+    screens (currently `style="dark"` — invisible on dark ground); (d) render the report's
+    `patternsToDiscuss` section in `ReportPreview.tsx`; (e) `expo install expo-blur` for real frost;
+    (f) `tsc` + device feel-check; then merge design-v2 → main.
 
 ## 0.6 Research — predictor + feature gaps (2026-08, for the roadmap)
 
