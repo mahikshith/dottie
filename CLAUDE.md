@@ -126,12 +126,14 @@ read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for o
   `<AuroraBackground>`, `const { palette } = useAurora()`, `<StatusBar style="light"/>`, colours
   inline (`palette.ink/ink2/ink3`, `palette.glass.*`, `PHASE_AURORA[phase]`), StyleSheet = layout
   only, logic/handlers/copy untouched.
-- **Deep-screen theming (aurora):** ✅ celebration flow done (CelebrationSheet + RewardChip/
-  StreakFlame/MilestoneBanner + checkin-recap/level-up → themes all 4 celebration modals);
-  profile sub-screens Reminders/Privacy/Medications are aurora-native. **Still to do:** the
-  **daily-checkin FORM** (shared `MoodScale`/`ScalePicker`/`SymptomPicker` — also used by Sisterhood
-  shadow-log, so a joint pass; wire its mood pick to `applyMood(score, origin)` so a full check-in
-  recolours the app like Home); the **lesson/quiz readers** (~550/740 lines); community/sisterhood/
-  onboarding screens. Then `expo-blur` for real frost, `tsc` + device feel-check, merge → main.
+- **Deep-screen theming (aurora):** ✅ celebration flow (CelebrationSheet + RewardChip/StreakFlame/
+  MilestoneBanner + checkin-recap/level-up → all 4 celebration modals); ✅ profile sub-screens
+  (Reminders/Privacy/Medications); ✅ **daily-checkin cluster** — the shared `MoodScale`/`ScalePicker`/
+  `SymptomChip`/`SymptomPicker`/`SectionHeader` are now palette-aware, `(modals)/daily-checkin.tsx` is
+  aurora AND its mood pick calls `applyMood(v)` (a full check-in recolours the app), and the
+  Sisterhood `shadow-log/[id]/check-in.tsx` (shares MoodScale) is aurora too. **Still to do:** the
+  **lesson/quiz readers** (~550/740 lines); community (new-post, post detail); sisterhood (circle,
+  member, add-member, shadow-log period/transfer); onboarding; doctor-report; decoy-home; ghost-lock.
+  Then `expo-blur` for real frost, `tsc` + device feel-check, merge → main.
 
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.
