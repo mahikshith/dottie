@@ -131,9 +131,11 @@ read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for o
   (Reminders/Privacy/Medications); ✅ **daily-checkin cluster** — the shared `MoodScale`/`ScalePicker`/
   `SymptomChip`/`SymptomPicker`/`SectionHeader` are now palette-aware, `(modals)/daily-checkin.tsx` is
   aurora AND its mood pick calls `applyMood(v)` (a full check-in recolours the app), and the
-  Sisterhood `shadow-log/[id]/check-in.tsx` (shares MoodScale) is aurora too. **Still to do:** the
-  **lesson/quiz readers** (~550/740 lines); community (new-post, post detail); sisterhood (circle,
-  member, add-member, shadow-log period/transfer); onboarding; doctor-report; decoy-home; ghost-lock.
-  Then `expo-blur` for real frost, `tsc` + device feel-check, merge → main.
+  Sisterhood `shadow-log/[id]/check-in.tsx` (shares MoodScale) is aurora too; ✅ **lesson + quiz
+  readers** (`app/lesson/[id].tsx`, `app/quiz/[id].tsx`) themed (quiz uses fixed Nocturne `A.*` tokens
+  since it's a focused task screen; ground still from AuroraBackground). **Still to do:** community
+  (new-post, post detail); sisterhood (circle, member, add-member, shadow-log period/transfer);
+  onboarding; doctor-report; decoy-home; ghost-lock. Then `expo-blur` for real frost, `tsc` + device
+  feel-check, merge → main.
 
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.
