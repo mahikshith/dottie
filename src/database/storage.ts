@@ -108,6 +108,10 @@ const Keys = {
   // per-device planning scratch — no schema migration needed for an additive
   // feature (per project conventions).
   DAY_PLANS: 'calendar.day_plans',
+
+  // Learn placement / pace (design-v2 — the path-map). 'new' keeps the guided
+  // sequential locks; 'basics'/'deep' unlock the trail for self-directed learners.
+  LEARN_LEVEL: 'learn.level',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -368,6 +372,19 @@ export const Storage = {
     clear: (): void => mmkv.delete(Keys.DAY_PLANS),
   },
 
+  // ─── Learn placement / pace (design-v2 path-map) ────────────────
+  //
+  // The user's chosen learning pace. 'new' = guided (sequential locks stay on);
+  // 'basics'/'deep' = self-directed (the trail unlocks). null until they pick —
+  // the UI treats null as guided by default (safest for a first-timer).
+
+  learnLevel: {
+    get: (): LearnLevel | null =>
+      (mmkv.getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
+    set: (level: LearnLevel): void => mmkv.set(Keys.LEARN_LEVEL, level),
+    clear: (): void => mmkv.delete(Keys.LEARN_LEVEL),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -420,6 +437,9 @@ export const Storage = {
 // ─── TYPES ──────────────────────────────────────────────────────────
 
 export type ThemeOverride = 'light' | 'dark' | 'auto';
+
+/** The user's chosen Learn pace (see Storage.learnLevel). 'new' = guided. */
+export type LearnLevel = 'new' | 'basics' | 'deep';
 
 /** A per-day planning entry backing the calendar popover (see Storage.dayPlans). */
 export interface DayPlan {
