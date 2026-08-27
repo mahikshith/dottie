@@ -102,6 +102,12 @@ const Keys = {
 
   // Onboarding scratchpad (cleared after onboarding completes)
   ONBOARDING_DRAFT: 'onboarding.draft',
+
+  // Calendar day plans/notes (design-v2 — the planner popover). A JSON map of
+  // dateISO → DayPlan. Lives in MMKV (not SQLite) because it's small, local,
+  // per-device planning scratch — no schema migration needed for an additive
+  // feature (per project conventions).
+  DAY_PLANS: 'calendar.day_plans',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -330,6 +336,38 @@ export const Storage = {
     clear: (): void => mmkv.delete(Keys.COMPANION_TYPE),
   },
 
+  // ─── Calendar day plans / notes (design-v2 planner) ─────────────
+  //
+  // A per-day planning scratchpad backing the calendar popover: an optional
+  // note and a "planned" flag (which drives the little dot on the month grid).
+  // Stored as one JSON map so a month's worth of reads is a single MMKV hit.
+  // A day with neither a note nor planned=true is removed, so `hasPlan` stays
+  // honest and the map doesn't accumulate empty entries.
+
+  dayPlans: {
+    getAll: (): Record<string, DayPlan> => getJson<Record<string, DayPlan>>(Keys.DAY_PLANS) ?? {},
+    get: (dateISO: string): DayPlan | null => {
+      const all = getJson<Record<string, DayPlan>>(Keys.DAY_PLANS) ?? {};
+      return all[dateISO] ?? null;
+    },
+    set: (dateISO: string, plan: DayPlan): void => {
+      const all = getJson<Record<string, DayPlan>>(Keys.DAY_PLANS) ?? {};
+      const empty = !plan.note?.trim() && !plan.planned;
+      if (empty) {
+        delete all[dateISO];
+      } else {
+        all[dateISO] = { ...plan, updatedAt: new Date().toISOString() };
+      }
+      setJson(Keys.DAY_PLANS, all);
+    },
+    remove: (dateISO: string): void => {
+      const all = getJson<Record<string, DayPlan>>(Keys.DAY_PLANS) ?? {};
+      delete all[dateISO];
+      setJson(Keys.DAY_PLANS, all);
+    },
+    clear: (): void => mmkv.delete(Keys.DAY_PLANS),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -382,6 +420,16 @@ export const Storage = {
 // ─── TYPES ──────────────────────────────────────────────────────────
 
 export type ThemeOverride = 'light' | 'dark' | 'auto';
+
+/** A per-day planning entry backing the calendar popover (see Storage.dayPlans). */
+export interface DayPlan {
+  /** Free-text note the user jotted for the day. */
+  note?: string;
+  /** User flagged the day as planned → shows a dot on the month grid. */
+  planned?: boolean;
+  /** ISO timestamp of the last edit (set by Storage.dayPlans.set). */
+  updatedAt?: string;
+}
 
 export type CompanionType = 'fox' | 'bunny' | 'butterfly' | 'cat' | 'owl' | 'blossom';
 

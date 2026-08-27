@@ -34,7 +34,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, type GestureResponderEvent } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -50,10 +50,27 @@ import {
   selectDayInCycle,
   selectLastPeriodStart,
   selectPredictionMessage,
+  selectUserMode,
 } from '../../src/stores';
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
-import { Phase } from '../../src/types/cycle.types';
+import { Phase, type HealthCondition } from '../../src/types/cycle.types';
+import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
+import { Storage } from '../../src/database/storage';
+
+// Shared empty array so the conditions selector stays referentially stable
+// (returning a fresh `[]` from a selector thrashes re-renders / warns).
+const EMPTY_CONDITIONS: HealthCondition[] = [];
+
+/** A day the user tapped open in the detail sheet. */
+interface SelectedDay {
+  iso: string;
+  phase: Phase;
+  isPeriodDay: boolean;
+  isFuture: boolean;
+  daysUntilPredictedPeriod: number | null;
+  origin: { x: number; y: number };
+}
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
@@ -67,10 +84,28 @@ export default function CalendarScreen() {
   const latestPrediction = useCycleStore((s) => s.latestPrediction);
   const userHealth = useUserStore((s) => s.user?.healthProfile);
   const userId = useUserStore((s) => s.userId);
+  const mode = useUserStore(selectUserMode);
+  const conditions = useUserStore((s) => s.user?.healthProfile.conditions) ?? EMPTY_CONDITIONS;
 
   // ─── Month navigation state ─────────────────────────────────────
   const [viewedMonth, setViewedMonth] = useState<Date>(startOfMonth(new Date()));
   const [periodDays, setPeriodDays] = useState<Set<string>>(new Set());
+
+  // ─── Planner popover state ──────────────────────────────────────
+  const [selected, setSelected] = useState<SelectedDay | null>(null);
+  // Days with a saved plan/note (drives the planning dot). Reloaded when the
+  // sheet closes via the bump counter.
+  const [plannedDays, setPlannedDays] = useState<Set<string>>(new Set());
+  const [plansVersion, setPlansVersion] = useState(0);
+
+  useEffect(() => {
+    const all = Storage.dayPlans.getAll();
+    const set = new Set<string>();
+    for (const [iso, plan] of Object.entries(all)) {
+      if (plan.planned || plan.note?.trim()) set.add(iso);
+    }
+    setPlannedDays(set);
+  }, [plansVersion]);
 
   // ─── Load period days for the visible month range ───────────────
   useEffect(() => {
@@ -126,43 +161,57 @@ export default function CalendarScreen() {
     [viewedMonth]
   );
 
-  // ─── Day tap → quick log action ─────────────────────────────────
-  const onDayTap = (iso: string, cell: MonthCell) => {
-    if (!cell.inMonth) return;
-    if (cell.isFuture) return;
+  // ─── Reload the visible month's period days (after a log) ───────
+  const reloadPeriodDays = async () => {
+    if (!userId) return;
+    try {
+      const days = await cycleRepository.getPeriodDaysInRange(
+        userId,
+        formatISO(startOfMonth(viewedMonth)),
+        formatISO(endOfMonth(viewedMonth))
+      );
+      setPeriodDays(new Set(days));
+    } catch (err) {
+      if (__DEV__) console.warn('[Calendar] getPeriodDaysInRange failed:', err);
+    }
+  };
 
+  // ─── Day tap → open the planner popover ─────────────────────────
+  // Future days ARE tappable now (that's the point of a week-ahead planner);
+  // period-logging inside the sheet is still gated to past/today.
+  const onDayTap = (iso: string, cell: MonthCell, e: GestureResponderEvent) => {
+    if (!cell.inMonth) return;
     Haptics.selectionAsync().catch(() => {});
 
-    const already = periodDays.has(iso);
-    Alert.alert(
-      already ? 'Update this day' : 'Log this day',
-      formatFriendlyDate(iso),
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: already ? 'Period (logged)' : 'Mark as Period',
-          onPress: async () => {
-            try {
-              await useCycleStore.getState().logPeriodDay({
-                date: iso,
-                flowLevel: 3,
-              });
-              // Reload the visible month
-              if (userId) {
-                const days = await cycleRepository.getPeriodDaysInRange(
-                  userId,
-                  formatISO(startOfMonth(viewedMonth)),
-                  formatISO(endOfMonth(viewedMonth))
-                );
-                setPeriodDays(new Set(days));
-              }
-            } catch (err) {
-              if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);
-            }
-          },
-        },
-      ]
-    );
+    setSelected({
+      iso,
+      phase: phaseForDate(iso, lastPeriodStart, userHealth) ?? phase,
+      isPeriodDay: periodDays.has(iso),
+      isFuture: cell.isFuture,
+      daysUntilPredictedPeriod: daysUntil(iso, latestPrediction?.predictedNextPeriod ?? null),
+      origin: { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY },
+    });
+  };
+
+  // Log the currently-selected day as a period day (from inside the sheet).
+  const onLogSelectedPeriod = async () => {
+    if (!selected) return;
+    try {
+      await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel: 3 });
+      await reloadPeriodDays();
+    } catch (err) {
+      if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);
+    }
+  };
+
+  // Close the sheet — persist the note/planned flag, refresh dots + periods.
+  const onSheetClose = (result: DayDetailResult) => {
+    if (selected) {
+      Storage.dayPlans.set(selected.iso, { note: result.note, planned: result.planned });
+    }
+    setSelected(null);
+    setPlansVersion((v) => v + 1);
+    void reloadPeriodDays();
   };
 
   // ─── Month nav handlers ─────────────────────────────────────────
@@ -235,7 +284,12 @@ export default function CalendarScreen() {
 
           <View style={styles.grid}>
             {monthGrid.map((cell) => (
-              <DayCell key={cell.iso} cell={cell} onPress={() => onDayTap(cell.iso, cell)} />
+              <DayCell
+                key={cell.iso}
+                cell={cell}
+                planned={plannedDays.has(cell.iso)}
+                onPress={(e) => onDayTap(cell.iso, cell, e)}
+              />
             ))}
           </View>
         </Animated.View>
@@ -254,7 +308,7 @@ export default function CalendarScreen() {
                 </Text>
               ) : (
                 <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
-                  Tap any day to log a period. I'll learn your pattern over time.
+                  Tap any day to see gentle suggestions, plan ahead, or log a period.
                 </Text>
               )}
             </View>
@@ -273,6 +327,24 @@ export default function CalendarScreen() {
         {/* Bottom padding */}
         <View style={{ height: Spacing.tabBarHeight }} />
       </ScrollView>
+
+      {/* Day detail popover — magnifies from the tapped cell over a scrim */}
+      {selected && (
+        <DayDetailSheet
+          dateISO={selected.iso}
+          dateLabel={formatFriendlyDate(selected.iso)}
+          origin={selected.origin}
+          phase={selected.phase}
+          isPeriodDay={selected.isPeriodDay}
+          isFuture={selected.isFuture}
+          daysUntilPredictedPeriod={selected.daysUntilPredictedPeriod}
+          mode={mode}
+          conditions={conditions}
+          initialPlan={Storage.dayPlans.get(selected.iso)}
+          onLogPeriod={onLogSelectedPeriod}
+          onClose={onSheetClose}
+        />
+      )}
     </AuroraBackground>
   );
 }
@@ -284,7 +356,15 @@ function rise(delay: number) {
 
 // ─── SUBCOMPONENTS ───────────────────────────────────────────────────
 
-function DayCell({ cell, onPress }: { cell: MonthCell; onPress: () => void }) {
+function DayCell({
+  cell,
+  planned,
+  onPress,
+}: {
+  cell: MonthCell;
+  planned?: boolean;
+  onPress: (e: GestureResponderEvent) => void;
+}) {
   const { palette } = useAurora();
   const isToday = cell.iso === formatISO(new Date());
   const isPeriod = cell.isPeriodDay;
@@ -326,18 +406,24 @@ function DayCell({ cell, onPress }: { cell: MonthCell; onPress: () => void }) {
       scaleTo={0.9}
       haptic="none"
       onPress={onPress}
-      disabled={!cell.inMonth || cell.isFuture}
+      disabled={!cell.inMonth}
       accessibilityRole="button"
     >
       <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
       </Text>
-      {cell.inMonth && cell.isFuture && !isPredicted && (
+      {/* A planning dot takes precedence over the subtle future dot. */}
+      {cell.inMonth && planned ? (
+        <View style={[styles.dayCellPlanDot, { backgroundColor: PLAN_DOT }]} />
+      ) : cell.inMonth && cell.isFuture && !isPredicted ? (
         <View style={[styles.dayCellFutureDot, { backgroundColor: palette.ink3 }]} />
-      )}
+      ) : null}
     </PressableScale>
   );
 }
+
+/** Warm, high-contrast dot marking days the user has planned/noted. */
+const PLAN_DOT = '#FF7A8A';
 
 function LegendChip({
   color,
@@ -503,6 +589,41 @@ function formatFriendlyDate(iso: string): string {
   });
 }
 
+/**
+ * Project the cycle phase for any date (past OR future) from the last period
+ * start + averages, so the planner popover can suggest for days ahead too.
+ * Returns null when there's no cycle data yet.
+ */
+function phaseForDate(
+  iso: string,
+  lastPeriodStart: string | null,
+  health: { averageCycleLength: number; averagePeriodLength: number } | null | undefined
+): Phase | null {
+  if (!lastPeriodStart) return null;
+  const last = new Date(lastPeriodStart + 'T00:00:00');
+  const target = new Date(iso + 'T00:00:00');
+  return calculateCurrentPhase(
+    last,
+    target,
+    health?.averageCycleLength ?? 28,
+    health?.averagePeriodLength ?? 5
+  ).phase;
+}
+
+/**
+ * Whole days from `iso` until the predicted next period. Null when unknown or
+ * clearly outside the useful window (avoids a stale "due" far past the date).
+ */
+function daysUntil(iso: string, predictedNextPeriod: string | null): number | null {
+  if (!predictedNextPeriod) return null;
+  const DAY = 24 * 60 * 60 * 1000;
+  const target = new Date(iso + 'T00:00:00').getTime();
+  const predicted = new Date(predictedNextPeriod + 'T00:00:00').getTime();
+  const diff = Math.round((predicted - target) / DAY);
+  if (diff < -2 || diff > 30) return null;
+  return diff;
+}
+
 // ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
@@ -560,6 +681,13 @@ const styles = StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
+  },
+  dayCellPlanDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   phaseSummary: {
     flexDirection: 'row',
