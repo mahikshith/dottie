@@ -67,16 +67,27 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
   `computeExerciseReward`, `validateExercise`, `ExerciseProvider` iface. Exported from the barrel.
 - `src/content/exercises.ts` — 4 seed exercises on `lesson_cycle_basics_2` + `buildBundledExerciseProvider()`.
 
+**✅ DONE — interactive exercise UI + screen + lesson wiring (design-v2, ⚠️ UNVERIFIED):**
+- `src/components/learn/ExercisePlayer.tsx` — aurora-themed player + a renderer per type (pairs/
+  order/fill_blank/tap_diagram/tap_word); the Duolingo loop (build → Check → grade + companion
+  reaction + explanation → Continue); companion via `<CompanionLottie>`; progress + XP/gem tally.
+- `app/exercise/[lessonId].tsx` — aurora-native screen (like the quiz screen) that runs the player,
+  awards XP/gems (`quiz_complete` source, mirroring lesson/quiz), shows a result card, chains to quiz.
+- `app/lesson/[id].tsx` — after "Mark as Complete", routes to practice when the lesson has exercises
+  (then the exercise screen offers the quiz): **read → practice → quiz**. Cream reader otherwise untouched.
+- In-flight decisions: exercises get their own aurora screen (don't retheme the working cream reader
+  blind); `order` is **tap-to-sequence** (robust unverified), drag is a later upgrade.
+
 **NEXT here (needs Node to verify feel):**
-1. **Exercise UI renderers** — one interactive component per type (aurora-themed, `CompanionLottie`
-   for reactions; `order` uses gesture-handler drag). Follow `.claude/skills/animate-expo`.
-2. **Wire into the lesson flow** — after a lesson's sections, play its exercises (from the provider),
-   grade via `checkExerciseAnswer`, award XP/gems through the gamification store, persist. Mirror how
-   `app/quiz/[id].tsx` drives the quiz engine.
-3. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + the hybrid placement flow.
-4. **Calendar popover** (separate track) + suggestion engine.
-5. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`,
-   wire the manifest) — everything above already runs on the emoji fallback, so art is non-blocking.
+1. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + the hybrid placement flow —
+   this is the aurora migration of the Learn reader/list.
+2. **More exercise content** — author exercises for the other lessons (only `lesson_cycle_basics_2`
+   has them today) so every lesson has practice.
+3. **Calendar popover** (separate track) + phase/mode/condition suggestion engine (author `PhaseTip` data).
+4. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`,
+   wire the manifest) — everything runs on the emoji fallback, so art is non-blocking.
+5. First Node pass: `npm run type-check` + device feel-check the exercise loop (esp. pairs/fill-blank
+   tap flow, feedback timing, haptics), then continue.
 All UNVERIFIED until a Node/device pass.
 
 ## 0. Design phase (current) — where we are RIGHT NOW
