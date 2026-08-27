@@ -126,10 +126,12 @@ read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for o
   `<AuroraBackground>`, `const { palette } = useAurora()`, `<StatusBar style="light"/>`, colours
   inline (`palette.ink/ink2/ink3`, `palette.glass.*`, `PHASE_AURORA[phase]`), StyleSheet = layout
   only, logic/handlers/copy untouched.
-- **Still to do (needs a Node machine):** theme the **deep screens** — do `(modals)/daily-checkin.tsx`
-  FIRST and wire its mood pick to `applyMood(score, origin)` so a full check-in also recolours the
-  app (like Home); then the other modals, community/sisterhood/profile-sub/onboarding, lesson/quiz.
-  Then `expo-blur` for real frosted glass (GlassCard currently degrades to a translucent panel),
-  `tsc` + device feel-check, and merge design-v2 → main. All UNVERIFIED until run.
+- **Deep-screen theming (aurora):** ✅ celebration flow done (CelebrationSheet + RewardChip/
+  StreakFlame/MilestoneBanner + checkin-recap/level-up → themes all 4 celebration modals);
+  profile sub-screens Reminders/Privacy/Medications are aurora-native. **Still to do:** the
+  **daily-checkin FORM** (shared `MoodScale`/`ScalePicker`/`SymptomPicker` — also used by Sisterhood
+  shadow-log, so a joint pass; wire its mood pick to `applyMood(score, origin)` so a full check-in
+  recolours the app like Home); the **lesson/quiz readers** (~550/740 lines); community/sisterhood/
+  onboarding screens. Then `expo-blur` for real frost, `tsc` + device feel-check, merge → main.
 
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.

@@ -30,8 +30,9 @@ modes; then `tsc` + device verify + merge to `main`.
 Scan of competitor apps (Flo, Clue, Stardust, Natural Cycles, Oura, Drip, Wenly, Aavia, Life) +
 reviews/studies + privacy discourse. Full sources in the session; key takeaways + roadmap:
 - **Privacy is the #1 differentiator** — Meta found liable (2025) for Flo data; post-Roe fears are
-  huge. Dottie's **local-first + Ghost Mode** already wins here. ACTION (cheap, high-impact): a
-  visible "your data never leaves your phone" trust screen + easy full export/delete (export is a stub).
+  huge. Dottie's **local-first + Ghost Mode** already wins here. ✅ **DONE — Privacy trust screen**
+  (`app/(profile)/privacy.tsx`, wired from Profile): the local-first promises + controls (Ghost Mode,
+  Reminders, Doctor Report, and "Delete all my data" → existing `deleteAccount()`).
 - **Anti-pink / inclusive design** — top UX complaint is pink/gendered/hetero-assuming UI. Dottie's
   aurora + ungendered companions align; ACTION: a copy **inclusivity audit** (avoid assuming she/female/
   male-partner; trans/non-binary friendly).
@@ -44,9 +45,10 @@ reviews/studies + privacy discourse. Full sources in the session; key takeaways 
   (aurora settings: toggles, time presets, discreet-mode preview) wired from Profile. `hydration_nudge`
   copy added. ⚠️ needs `npm install` + dev build to deliver; logic verifiable by reading.
 - **Gaps vs competitors (net-new, prioritized):**
-  1. **Birth-control / medication reminders** (pill/ring/patch/IUD…) — universally requested; we have a
-     "Medications" STUB. NOW UNBLOCKED — build on the notification scheduler above (data model +
-     screen + new `medication_reminder`/`birth_control_reminder` kinds; re-sync on launch/after check-in).
+  1. ✅ **DONE — Birth-control / medication reminders** (`app/(profile)/medications.tsx` +
+     `Storage.medications` + `scheduler.syncAllReminders` + `medication_reminder` copy). Add a
+     reminder (name/kind/time preset), toggle/remove, discreet lock-screen copy. Follow-ups: precise
+     time picker, pack/placebo tracking + restart nudge, re-sync on launch/after check-in.
   2. **Wearable / Apple Health + Google Fit** (skin temp, HRV, sleep) — the accuracy frontier (Oura 96%
      ovulation detection). Native, bigger lift.
   3. **Perimenopause/menopause mode** (wider windows, hot-flash/sleep) — endocrine mode only today.
