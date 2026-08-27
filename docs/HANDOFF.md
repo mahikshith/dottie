@@ -97,8 +97,10 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
    migration of the Learn reader/list.
 2. **More content** — exercises for the other lessons (only `lesson_cycle_basics_2` has them);
    deepen phase-tip suggestion coverage.
-3. **Calendar: week-ahead strip** (next 7 days w/ phase + one-line suggestion + dots); (later)
-   `expo-notifications` reminders + **Google Calendar** sync (OAuth, opt-in, privacy-gated).
+3. ✅ DONE — **Calendar week-ahead strip** (`src/components/calendar/WeekAheadStrip.tsx` + wired in
+   `calendar.tsx`): next 7 days w/ phase + one-line suggestion + window/planning dots; taps open the
+   same popover (shared `buildSelected`). Calendar remaining is later-only: `expo-notifications`
+   reminders + **Google Calendar** sync (OAuth, opt-in, privacy-gated).
 4. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`, wire
    the manifest) — everything runs on the emoji fallback, so art is non-blocking.
 5. First Node pass: `npm run type-check` + device feel-check the exercise loop AND the calendar
