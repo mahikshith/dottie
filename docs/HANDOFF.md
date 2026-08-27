@@ -99,9 +99,10 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
    reward node per path. (Replaced the earlier plain grey connector.) **Hybrid placement is a real switch**: `Storage.learnLevel` — 'new' keeps
    sequential locks (guided), 'basics'/'deep' unlock the trail (self-directed); null → guided.
    All logic (progress/mode-filter/lock rule/XP/nav) preserved. Difficulty-tiered CONTENT is future.
-2. **More content** — exercises for the other lessons (only `lesson_cycle_basics_2` has them);
-   deepen phase-tip suggestion coverage; author beginner→advanced tracks so the pace switch also
-   changes WHAT is shown, not just locking.
+2. ✅ DONE — **exercises for every lesson** (`src/content/exercises.ts`, 19 total): all 7 lessons
+   across both paths now have 2-4 interactive exercises, so every lesson routes into practice.
+   Still to author: deeper phase-tip suggestion coverage in `day-suggestions.ts`; beginner→advanced
+   tracks so the pace switch changes WHAT is shown, not just locking; more paths/lessons overall.
 3. ✅ DONE — **Calendar week-ahead strip** (`src/components/calendar/WeekAheadStrip.tsx` + wired in
    `calendar.tsx`): next 7 days w/ phase + one-line suggestion + window/planning dots; taps open the
    same popover (shared `buildSelected`). Calendar remaining is later-only: `expo-notifications`
