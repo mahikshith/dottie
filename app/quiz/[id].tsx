@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
 import {
   useUserStore,
   useGamificationStore,
@@ -23,6 +23,22 @@ import type {
   SubmitAnswerResult,
   QuizResult,
 } from '../../src/engine/content';
+
+// Fixed aurora (Nocturne) tokens for this focused task screen. The live-palette
+// ground still comes from <AuroraBackground>; the cards are glass (which reads
+// the same on any aurora ground), so fixed literals keep this big screen simple.
+const A = {
+  ground: '#0C0A16',
+  ink: '#F3EEFF',
+  ink2: '#B8AED6',
+  ink3: '#8B82A8',
+  glass: 'rgba(255,255,255,0.06)',
+  edge: 'rgba(255,255,255,0.14)',
+  accent: '#54E6C8',
+  success: '#6FE6A8',
+  error: '#FF7A8A',
+  gold: '#FFC24D',
+} as const;
 
 /**
  * Quiz Screen — End-to-end quiz experience.
@@ -211,26 +227,32 @@ export default function QuizScreen() {
 
   if (phase === 'starting' || phase === 'finishing') {
     return (
-      <View style={styles.loadingContainer}>
-        <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color={Colors.primary.coral} />
-        <Text style={styles.loadingText}>
-          {phase === 'starting' ? 'Loading quiz...' : 'Tallying your score...'}
-        </Text>
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <ActivityIndicator size="large" color={A.accent} />
+          <Text style={styles.loadingText}>
+            {phase === 'starting' ? 'Loading quiz...' : 'Tallying your score...'}
+          </Text>
+        </View>
+      </AuroraBackground>
     );
   }
 
   if (phase === 'error') {
     return (
-      <View style={styles.notFoundContainer}>
-        <Stack.Screen options={{ title: '' }} />
-        <Text style={styles.notFoundEmoji}>🤔</Text>
-        <Text style={styles.notFoundTitle}>{errorMessage}</Text>
-        <Pressable style={styles.notFoundButton} onPress={() => router.back()}>
-          <Text style={styles.notFoundButtonText}>Go back</Text>
-        </Pressable>
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.notFoundContainer}>
+          <Stack.Screen options={{ title: '' }} />
+          <Text style={styles.notFoundEmoji}>🤔</Text>
+          <Text style={styles.notFoundTitle}>{errorMessage}</Text>
+          <Pressable style={styles.notFoundButton} onPress={() => router.back()}>
+            <Text style={styles.notFoundButtonText}>Go back</Text>
+          </Pressable>
+        </View>
+      </AuroraBackground>
     );
   }
 
@@ -243,17 +265,18 @@ export default function QuizScreen() {
   const progress = totalQuestions === 0 ? 0 : (questionIndex + 1) / totalQuestions;
 
   return (
-    <>
+    <AuroraBackground>
+      <StatusBar style="light" />
       <Stack.Screen
         options={{
           headerShown: true,
           title: session?.quizTitle ?? 'Quiz',
-          headerStyle: { backgroundColor: Colors.surface.background },
-          headerTintColor: Colors.text.primary,
+          headerStyle: { backgroundColor: A.ground },
+          headerTintColor: A.ink,
           headerBackTitle: 'Exit',
           headerLeft: () => (
             <Pressable onPress={handleAbandon} hitSlop={12} style={{ paddingHorizontal: 4 }}>
-              <Text style={{ color: Colors.primary.coral, fontSize: 16 }}>Close</Text>
+              <Text style={{ color: A.accent, fontSize: 16 }}>Close</Text>
             </Pressable>
           ),
         }}
@@ -371,7 +394,7 @@ export default function QuizScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-    </>
+    </AuroraBackground>
   );
 }
 
@@ -387,10 +410,11 @@ function QuizResultScreen({
   onDone: () => void;
 }) {
   const pct = Math.round(result.score * 100);
-  const accent = result.passed ? Colors.semantic.success : Colors.primary.coral;
+  const accent = result.passed ? A.success : A.accent;
 
   return (
-    <>
+    <AuroraBackground>
+      <StatusBar style="light" />
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.container}
@@ -442,7 +466,7 @@ function QuizResultScreen({
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-    </>
+    </AuroraBackground>
   );
 }
 
@@ -451,7 +475,7 @@ function QuizResultScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -461,11 +485,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   loadingText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     marginTop: Spacing.md,
   },
   progressContainer: {
@@ -477,33 +501,37 @@ const styles = StyleSheet.create({
   progressBarBg: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     borderRadius: 4,
   },
   progressText: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
     minWidth: 40,
     textAlign: 'right',
   },
   companionEncouragement: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.base,
-    ...Shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   companionEncouragementText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     marginLeft: Spacing.md,
     fontStyle: 'italic',
@@ -513,15 +541,19 @@ const styles = StyleSheet.create({
     fontSize: 32,
   },
   questionCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     marginBottom: Spacing.base,
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 22,
+    elevation: 6,
   },
   questionText: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.lg,
     lineHeight: 28,
   },
@@ -531,11 +563,11 @@ const styles = StyleSheet.create({
   optionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.background,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: A.edge,
   },
   optionPressed: {
     opacity: 0.85,
@@ -543,32 +575,32 @@ const styles = StyleSheet.create({
   },
   optionCorrect: {
     backgroundColor: '#E8F5E9',
-    borderColor: Colors.semantic.success,
+    borderColor: A.success,
   },
   optionWrong: {
     backgroundColor: '#FFEBEE',
-    borderColor: Colors.semantic.error,
+    borderColor: A.error,
   },
   optionText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
   },
   optionTextCorrect: {
     ...Typography.preset.bodySemibold,
-    color: Colors.semantic.success,
+    color: A.success,
   },
   optionTextWrong: {
-    color: Colors.semantic.error,
+    color: A.error,
   },
   optionCheckmark: {
     ...Typography.preset.h4,
-    color: Colors.semantic.success,
+    color: A.success,
     marginLeft: Spacing.md,
   },
   optionWrongmark: {
     ...Typography.preset.h4,
-    color: Colors.semantic.error,
+    color: A.error,
     marginLeft: Spacing.md,
   },
   explanationCard: {
@@ -579,11 +611,11 @@ const styles = StyleSheet.create({
   },
   explanationCorrect: {
     backgroundColor: '#F1F8F4',
-    borderLeftColor: Colors.semantic.success,
+    borderLeftColor: A.success,
   },
   explanationWrong: {
     backgroundColor: '#FFF5F5',
-    borderLeftColor: Colors.semantic.error,
+    borderLeftColor: A.error,
   },
   explanationEmoji: {
     fontSize: 32,
@@ -591,7 +623,7 @@ const styles = StyleSheet.create({
   },
   explanationText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     lineHeight: 24,
     marginBottom: Spacing.md,
   },
@@ -600,7 +632,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   companionReactionEmoji: {
     fontSize: 20,
@@ -608,17 +640,21 @@ const styles = StyleSheet.create({
   },
   companionReactionText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     fontStyle: 'italic',
   },
   nextButton: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   nextButtonPressed: {
     opacity: 0.9,
@@ -626,7 +662,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   // ─── Result screen styles ──────────────────────────────────────
   resultContent: {
@@ -649,26 +685,30 @@ const styles = StyleSheet.create({
   },
   resultScoreText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     marginTop: Spacing.sm,
   },
   resultNewBest: {
     ...Typography.preset.bodySemibold,
-    color: Colors.gamification.badge,
+    color: A.gold,
     marginTop: Spacing.md,
   },
   companionCelebrationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.base,
-    ...Shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   companionCelebrationText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
     marginLeft: Spacing.md,
     lineHeight: 24,
@@ -676,11 +716,15 @@ const styles = StyleSheet.create({
   rewardsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sectionGap,
-    ...Shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   rewardItem: {
     flex: 1,
@@ -692,29 +736,33 @@ const styles = StyleSheet.create({
   },
   rewardValue: {
     ...Typography.preset.number,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   rewardLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   rewardDivider: {
     width: 1,
     height: 60,
-    backgroundColor: Colors.border.light,
+    backgroundColor: A.edge,
   },
   doneButton: {
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   notFoundContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     padding: Spacing.xl,
   },
   notFoundEmoji: {
@@ -723,12 +771,12 @@ const styles = StyleSheet.create({
   },
   notFoundTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
   notFoundButton: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     paddingHorizontal: Spacing['3xl'],
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
@@ -736,6 +784,6 @@ const styles = StyleSheet.create({
   },
   notFoundButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
 });

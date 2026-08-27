@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { useAurora, PHASE_AURORA } from '../../src/theme';
+
+const AURORA_SUCCESS = '#6FE6A8';
 import {
   useUserStore,
   useGamificationStore,
@@ -57,6 +60,7 @@ export default function LessonDetailScreen() {
   const userId = useUserStore((s) => s.userId);
   const companionType = useUserStore(selectCompanionType);
   const companion = getCompanion(companionType);
+  const { palette } = useAurora();
 
   // ─── Resolve lesson + path ──────────────────────────────────────
   const lesson = useMemo(() => (id ? getLesson(id) : null), [id]);
@@ -202,14 +206,17 @@ export default function LessonDetailScreen() {
 
   if (!lesson || !path) {
     return (
-      <View style={styles.notFoundContainer}>
-        <Stack.Screen options={{ title: '' }} />
-        <Text style={styles.notFoundEmoji}>🤔</Text>
-        <Text style={styles.notFoundTitle}>Lesson not found</Text>
-        <Pressable style={styles.notFoundButton} onPress={() => router.back()}>
-          <Text style={styles.notFoundButtonText}>Go back</Text>
-        </Pressable>
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.notFoundContainer}>
+          <Stack.Screen options={{ title: '' }} />
+          <Text style={styles.notFoundEmoji}>🤔</Text>
+          <Text style={[styles.notFoundTitle, { color: palette.ink }]}>Lesson not found</Text>
+          <Pressable style={[styles.notFoundButton, { backgroundColor: palette.accent }]} onPress={() => router.back()}>
+            <Text style={[styles.notFoundButtonText, { color: palette.ground }]}>Go back</Text>
+          </Pressable>
+        </View>
+      </AuroraBackground>
     );
   }
 
@@ -217,13 +224,14 @@ export default function LessonDetailScreen() {
   const isComplete = progress?.status === 'complete';
 
   return (
-    <>
+    <AuroraBackground>
+      <StatusBar style="light" />
       <Stack.Screen
         options={{
           headerShown: true,
           title: path.title,
-          headerStyle: { backgroundColor: Colors.surface.background },
-          headerTintColor: Colors.text.primary,
+          headerStyle: { backgroundColor: palette.ground },
+          headerTintColor: palette.ink,
           headerBackTitle: 'Back',
         }}
       />
@@ -233,18 +241,18 @@ export default function LessonDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Lesson header */}
-        <View style={[styles.lessonHeader, { backgroundColor: `${accent}11` }]}>
+        <View style={[styles.lessonHeader, { backgroundColor: `${accent}22`, borderColor: `${accent}55` }]}>
           <Text style={styles.lessonEmoji}>{lesson.emoji}</Text>
-          <Text style={styles.lessonTitle}>{lesson.title}</Text>
-          <Text style={styles.lessonMeta}>
+          <Text style={[styles.lessonTitle, { color: palette.ink }]}>{lesson.title}</Text>
+          <Text style={[styles.lessonMeta, { color: palette.ink3 }]}>
             {lesson.estimatedMinutes} min · {lesson.xpReward} XP · {lesson.gemReward}💎
           </Text>
         </View>
 
         {/* Companion intro */}
-        <View style={styles.companionIntro}>
+        <View style={[styles.companionIntro, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
           <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-          <Text style={styles.companionIntroText}>
+          <Text style={[styles.companionIntroText, { color: palette.ink2 }]}>
             {isComplete
               ? `${companion.name} is proud — you've already learned this! Reviewing is wisdom.`
               : `${companion.name} is here to walk you through this with you.`}
@@ -262,13 +270,13 @@ export default function LessonDetailScreen() {
         <Pressable
           style={({ pressed }) => [
             styles.completeButton,
-            { backgroundColor: isComplete ? Colors.semantic.success : Colors.primary.coral },
+            { backgroundColor: isComplete ? AURORA_SUCCESS : palette.accent },
             (pressed || isCompleting) && styles.completeButtonPressed,
           ]}
           onPress={handleComplete}
           disabled={isCompleting}
         >
-          <Text style={styles.completeButtonText}>
+          <Text style={[styles.completeButtonText, { color: palette.ground }]}>
             {isComplete
               ? '✓ Already Complete'
               : isCompleting
@@ -279,14 +287,14 @@ export default function LessonDetailScreen() {
 
         {/* Quiz hint */}
         {lesson.quizId && !isComplete && (
-          <Text style={styles.quizHint}>
+          <Text style={[styles.quizHint, { color: palette.ink3 }]}>
             A short quiz will be offered after completing.
           </Text>
         )}
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-    </>
+    </AuroraBackground>
   );
 }
 
@@ -299,49 +307,42 @@ function SectionRenderer({
   section: LessonSectionType;
   pathAccent: string;
 }) {
+  const { palette } = useAurora();
   switch (section.type) {
     case 'heading':
-      return <Text style={styles.sectionHeading}>{section.content}</Text>;
+      return <Text style={[styles.sectionHeading, { color: palette.ink }]}>{section.content}</Text>;
 
     case 'paragraph':
-      return <Text style={styles.sectionParagraph}>{section.content}</Text>;
+      return <Text style={[styles.sectionParagraph, { color: palette.ink }]}>{section.content}</Text>;
 
     case 'divider':
-      return <View style={styles.sectionDivider} />;
+      return <View style={[styles.sectionDivider, { backgroundColor: palette.glass.edge }]} />;
 
     case 'callout': {
-      const bg = resolveHighlightColor(section.highlight, pathAccent);
-      const bgLight = resolveHighlightLight(section.highlight);
+      const hue = resolveHighlightColor(section.highlight, pathAccent);
       return (
-        <View
-          style={[
-            styles.calloutCard,
-            { backgroundColor: bgLight, borderLeftColor: bg },
-          ]}
-        >
+        <View style={[styles.calloutCard, { backgroundColor: `${hue}1F`, borderLeftColor: hue }]}>
           {section.emoji && <Text style={styles.calloutEmoji}>{section.emoji}</Text>}
-          <Text style={[styles.calloutText, { color: Colors.text.primary }]}>
-            {section.content}
-          </Text>
+          <Text style={[styles.calloutText, { color: palette.ink }]}>{section.content}</Text>
         </View>
       );
     }
 
     case 'fact': {
-      const accent = resolveHighlightColor(section.highlight, pathAccent);
+      const hue = resolveHighlightColor(section.highlight, pathAccent);
       return (
-        <View style={[styles.factCard, { borderColor: `${accent}55` }]}>
+        <View style={[styles.factCard, { backgroundColor: palette.glass.bg, borderColor: `${hue}66` }]}>
           {section.emoji && <Text style={styles.factEmoji}>{section.emoji}</Text>}
-          <Text style={styles.factText}>{section.content}</Text>
+          <Text style={[styles.factText, { color: palette.ink2 }]}>{section.content}</Text>
         </View>
       );
     }
 
     case 'tip':
       return (
-        <View style={styles.tipCard}>
+        <View style={[styles.tipCard, { backgroundColor: palette.glass.bg, borderLeftColor: palette.accent }]}>
           {section.emoji && <Text style={styles.tipEmoji}>{section.emoji}</Text>}
-          <Text style={styles.tipText}>{section.content}</Text>
+          <Text style={[styles.tipText, { color: palette.ink }]}>{section.content}</Text>
         </View>
       );
 
@@ -353,24 +354,16 @@ function SectionRenderer({
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
 
+// Map a section highlight to a constant aurora hue (phase identity stays
+// consistent across moods; warm→gold, cool→teal, else the path accent).
 function resolveHighlightColor(
   highlight: LessonSectionType['highlight'] | undefined,
   fallback: string
 ): string {
   if (!highlight) return fallback;
-  if (highlight === 'warm') return Colors.primary.coral;
-  if (highlight === 'cool') return Colors.primary.calm;
-  // Phase
-  return Colors.phase[highlight as Phase].primary;
-}
-
-function resolveHighlightLight(
-  highlight: LessonSectionType['highlight'] | undefined
-): string {
-  if (!highlight) return Colors.surface.cardElevated;
-  if (highlight === 'warm') return '#FFF1E8';
-  if (highlight === 'cool') return '#EFF6FF';
-  return Colors.phase[highlight as Phase].light;
+  if (highlight === 'warm') return PHASE_AURORA.ovulatory;
+  if (highlight === 'cool') return PHASE_AURORA.follicular;
+  return PHASE_AURORA[highlight as Phase];
 }
 
 // Touch import so unused-import warnings don't trigger in dev
@@ -381,7 +374,6 @@ void LessonSection;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
@@ -390,6 +382,7 @@ const styles = StyleSheet.create({
   lessonHeader: {
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
+    borderWidth: 1,
     alignItems: 'center',
     marginBottom: Spacing.base,
   },
@@ -399,22 +392,19 @@ const styles = StyleSheet.create({
   },
   lessonTitle: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   lessonMeta: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
   companionIntro: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sectionGap,
-    ...Shadows.sm,
   },
   companionEmoji: {
     fontSize: 28,
@@ -422,7 +412,6 @@ const styles = StyleSheet.create({
   },
   companionIntroText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     flex: 1,
     fontStyle: 'italic',
     lineHeight: 22,
@@ -433,17 +422,14 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     marginTop: Spacing.md,
   },
   sectionParagraph: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
     lineHeight: 26,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: Colors.border.light,
     marginVertical: Spacing.md,
   },
   calloutCard: {
@@ -465,7 +451,6 @@ const styles = StyleSheet.create({
   factCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.surface.card,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     borderWidth: 1.5,
@@ -476,7 +461,6 @@ const styles = StyleSheet.create({
   },
   factText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
     flex: 1,
     fontStyle: 'italic',
     lineHeight: 22,
@@ -484,11 +468,9 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF1E8',
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.primary.coral,
   },
   tipEmoji: {
     fontSize: 24,
@@ -496,7 +478,6 @@ const styles = StyleSheet.create({
   },
   tipText: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
     flex: 1,
     lineHeight: 22,
   },
@@ -505,7 +486,11 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   completeButtonPressed: {
     opacity: 0.9,
@@ -513,11 +498,9 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
   },
   quizHint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
     marginTop: Spacing.md,
   },
@@ -525,7 +508,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface.background,
     padding: Spacing.xl,
   },
   notFoundEmoji: {
@@ -534,11 +516,9 @@ const styles = StyleSheet.create({
   },
   notFoundTitle: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
     marginBottom: Spacing.xl,
   },
   notFoundButton: {
-    backgroundColor: Colors.primary.coral,
     paddingHorizontal: Spacing['3xl'],
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
@@ -546,6 +526,5 @@ const styles = StyleSheet.create({
   },
   notFoundButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
   },
 });
