@@ -102,6 +102,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/reminders');
   };
 
+  const handlePrivacyTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/privacy');
+  };
+
   const handleComingSoon = (title: string) => {
     Haptics.selectionAsync().catch(() => {});
     // For now, a no-op. Wired in future chunks.
@@ -213,6 +218,16 @@ export default function ProfileScreen() {
                   : 'Set up a PIN to keep Dottie private'
               }
               onPress={handleGhostModeTap}
+            />
+          </Animated.View>
+
+          {/* ✅ Shipped — Privacy & data (the trust screen) */}
+          <Animated.View entering={rise(535)}>
+            <SettingsItem
+              emoji="🔒"
+              title="Privacy & your data"
+              subtitle="Local-first — your data never leaves this phone"
+              onPress={handlePrivacyTap}
             />
           </Animated.View>
 
