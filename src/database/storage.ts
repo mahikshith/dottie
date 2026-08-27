@@ -112,6 +112,12 @@ const Keys = {
   // Learn placement / pace (design-v2 — the path-map). 'new' keeps the guided
   // sequential locks; 'basics'/'deep' unlock the trail for self-directed learners.
   LEARN_LEVEL: 'learn.level',
+
+  // Over-the-air content bundle (design-v2 — updatable lessons). The last
+  // validated ContentBundle downloaded from the network, cached so new lessons
+  // survive restarts and work offline. Bundled content is always the baseline;
+  // this is merged ON TOP. See docs/CONTENT-UPDATES.md.
+  REMOTE_CONTENT_BUNDLE: 'content.remote_bundle',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -383,6 +389,20 @@ export const Storage = {
       (mmkv.getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
     set: (level: LearnLevel): void => mmkv.set(Keys.LEARN_LEVEL, level),
     clear: (): void => mmkv.delete(Keys.LEARN_LEVEL),
+  },
+
+  // ─── OTA content bundle (design-v2 — updatable lessons) ─────────
+  //
+  // The last validated content bundle pulled from the network (paths, lessons,
+  // quizzes, exercises). Stored as JSON; typed via <T> so this module doesn't
+  // depend on the content types (kept in src/content/remote). Merged ON TOP of
+  // the always-present bundled content — the app is fully usable offline with
+  // zero network. See docs/CONTENT-UPDATES.md.
+
+  remoteContentBundle: {
+    get: <T>(): T | null => getJson<T>(Keys.REMOTE_CONTENT_BUNDLE),
+    set: <T>(bundle: T): void => setJson(Keys.REMOTE_CONTENT_BUNDLE, bundle),
+    clear: (): void => mmkv.delete(Keys.REMOTE_CONTENT_BUNDLE),
   },
 
   // ─── Bulk operations ────────────────────────────────────────────

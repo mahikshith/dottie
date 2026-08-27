@@ -18,6 +18,7 @@
 
 import { Exercise } from '../types/content.types';
 import type { ExerciseProvider } from '../engine/content/exercise-engine';
+import { remoteContentStore } from './remote/remote-content-store';
 
 // ─── EXERCISES ───────────────────────────────────────────────────────
 
@@ -293,12 +294,21 @@ export const EXERCISES: Exercise[] = [
 
 // ─── LOOKUPS ─────────────────────────────────────────────────────────
 
+// OTA-aware lookups: cached downloaded exercises are preferred over bundled
+// (cached wins by id), so new practice can ship without an app update. With no
+// bundle cached these return exactly the bundled EXERCISES.
 export function getExercise(exerciseId: string): Exercise | null {
-  return EXERCISES.find((e) => e.id === exerciseId) ?? null;
+  const cached = remoteContentStore.get()?.exercises.find((e) => e.id === exerciseId);
+  return cached ?? EXERCISES.find((e) => e.id === exerciseId) ?? null;
 }
 
 export function getExercisesForLesson(lessonId: string): Exercise[] {
-  return EXERCISES.filter((e) => e.lessonId === lessonId);
+  const cached = (remoteContentStore.get()?.exercises ?? []).filter((e) => e.lessonId === lessonId);
+  if (cached.length === 0) return EXERCISES.filter((e) => e.lessonId === lessonId);
+  const byId = new Map<string, Exercise>();
+  for (const e of EXERCISES) if (e.lessonId === lessonId) byId.set(e.id, e);
+  for (const e of cached) byId.set(e.id, e); // cached wins
+  return Array.from(byId.values());
 }
 
 /**

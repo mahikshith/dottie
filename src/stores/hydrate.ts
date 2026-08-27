@@ -81,6 +81,7 @@ import {
   buildBundledLessonProvider,
   buildBundledQuizProvider,
 } from '../engine/content';
+import { buildMergedLessonProvider, buildMergedQuizProvider } from '../content/remote/merged-providers';
 import { useUserStore } from './useUserStore';
 import { useCycleStore } from './useCycleStore';
 import { useGamificationStore } from './useGamificationStore';
@@ -165,8 +166,10 @@ async function doHydrate(): Promise<HydrationResult> {
   const contentResolver = new ContentResolver(cohortProvider);
   const dailyDecodeEngine = new DailyDecodeEngine(contentResolver);
   const questionEngine = new QuestionEngine(contentResolver);
-  const bundledLessonProvider = buildBundledLessonProvider();
-  const bundledQuizProvider = buildBundledQuizProvider();
+  // Wrap bundled providers so any downloaded OTA content is preferred (merges on
+  // top). With no bundle cached these are identical to the bundled providers.
+  const bundledLessonProvider = buildMergedLessonProvider(buildBundledLessonProvider());
+  const bundledQuizProvider = buildMergedQuizProvider(buildBundledQuizProvider());
 
   // ─── 3. Load user (or signal "needs onboarding") ────────────────
   const userId = Storage.currentUserId.get();
