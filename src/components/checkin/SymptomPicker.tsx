@@ -1,8 +1,8 @@
 import { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAurora } from '../../theme';
 import { SymptomChip, SymptomSeverity } from './SymptomChip';
 
 /**
@@ -140,12 +140,14 @@ export function SymptomPicker({
     [selections, onChange]
   );
 
+  const { palette } = useAurora();
+
   return (
     <View style={styles.container}>
       {(Object.keys(grouped) as Array<keyof typeof CATEGORY_LABELS>).map(
         (cat) => (
           <View key={cat} style={styles.categoryBlock}>
-            <Text style={styles.categoryLabel}>{CATEGORY_LABELS[cat]}</Text>
+            <Text style={[styles.categoryLabel, { color: palette.ink3 }]}>{CATEGORY_LABELS[cat]}</Text>
             <View style={styles.chipsRow}>
               {grouped[cat]!.map((item) => {
                 const key = symptomKey(item);
@@ -165,7 +167,7 @@ export function SymptomPicker({
           </View>
         )
       )}
-      <Text style={styles.hint}>
+      <Text style={[styles.hint, { color: palette.ink3 }]}>
         Tap once to add. Tap again to change intensity. Tap again to remove.
       </Text>
     </View>
@@ -181,7 +183,6 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     ...Typography.preset.overline,
-    color: Colors.text.tertiary,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -190,7 +191,6 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     fontStyle: 'italic',
   },
 });

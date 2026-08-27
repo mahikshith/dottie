@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAurora } from '../../theme';
 
 /**
  * ScalePicker
@@ -35,7 +35,8 @@ export function ScalePicker({
   /** Optional phase color override for the active fill */
   accentColor?: string;
 }) {
-  const active = accentColor ?? Colors.primary.coral;
+  const { palette } = useAurora();
+  const active = accentColor ?? palette.accent;
 
   return (
     <View style={styles.container}>
@@ -48,10 +49,8 @@ export function ScalePicker({
               onPress={() => onChange(n)}
               style={({ pressed }) => [
                 styles.cell,
-                isActive && {
-                  backgroundColor: active,
-                  borderColor: active,
-                },
+                { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+                isActive && { backgroundColor: active, borderColor: active },
                 pressed && { transform: [{ scale: 0.95 }] },
               ]}
               accessibilityRole="button"
@@ -60,7 +59,7 @@ export function ScalePicker({
               <Text
                 style={[
                   styles.cellText,
-                  isActive && styles.cellTextActive,
+                  { color: isActive ? palette.ground : palette.ink2 },
                 ]}
               >
                 {n}
@@ -70,8 +69,8 @@ export function ScalePicker({
         })}
       </View>
       <View style={styles.labelRow}>
-        <Text style={styles.endLabel}>{lowLabel}</Text>
-        <Text style={styles.endLabel}>{highLabel}</Text>
+        <Text style={[styles.endLabel, { color: palette.ink3 }]}>{lowLabel}</Text>
+        <Text style={[styles.endLabel, { color: palette.ink3 }]}>{highLabel}</Text>
       </View>
     </View>
   );
@@ -89,19 +88,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     borderRadius: Spacing.radius.lg,
-    backgroundColor: Colors.surface.cardElevated,
     borderWidth: 1.5,
-    borderColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   cellText: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.secondary,
     fontSize: 16,
-  },
-  cellTextActive: {
-    color: Colors.text.inverse,
   },
   labelRow: {
     flexDirection: 'row',
@@ -110,6 +103,5 @@ const styles = StyleSheet.create({
   },
   endLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
   },
 });

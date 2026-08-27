@@ -8,12 +8,13 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { useAurora, PHASE_AURORA } from '../../src/theme';
 import {
   useCycleStore,
   useGamificationStore,
@@ -83,8 +84,9 @@ export default function DailyCheckInScreen() {
   const phase = useCycleStore(selectCurrentPhase);
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
 
+  const { palette, applyMood } = useAurora();
   const companion = getCompanion(companionType);
-  const phaseColors = Colors.phase[phase];
+  const phaseHue = PHASE_AURORA[phase];
 
   // ─── Form state (initialized from any existing check-in) ───────
   const [mood, setMood] = useState<number>(todayCheckIn?.moodScore ?? 3);
@@ -216,25 +218,28 @@ export default function DailyCheckInScreen() {
 
   // ─── FORM STATE ────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Sheet header */}
       <View style={styles.header}>
         <Pressable
           onPress={onDismiss}
           style={({ pressed }) => [
             styles.closeButton,
+            { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
             pressed && { opacity: 0.7 },
           ]}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="Close check-in"
         >
-          <Text style={styles.closeText}>✕</Text>
+          <Text style={[styles.closeText, { color: palette.ink2 }]}>✕</Text>
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Today's check-in</Text>
+          <Text style={[styles.headerTitle, { color: palette.ink }]}>Today's check-in</Text>
           <Text
-            style={[styles.headerSubtitle, { color: phaseColors.primary }]}
+            style={[styles.headerSubtitle, { color: phaseHue }]}
           >
             {greeting}
           </Text>
@@ -249,17 +254,25 @@ export default function DailyCheckInScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* MOOD */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
           <SectionHeader
             emoji="💛"
             title="How's your heart today?"
             hint="Pick whatever feels closest. No wrong answer."
           />
-          <MoodScale kind="mood" value={mood} onChange={setMood} />
+          <MoodScale
+            kind="mood"
+            value={mood}
+            onChange={(v) => {
+              setMood(v);
+              // Logging the mood recolours the whole app (the signature idea).
+              applyMood(v);
+            }}
+          />
         </View>
 
         {/* ENERGY */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
           <SectionHeader
             emoji="✨"
             title="And your energy?"
@@ -269,36 +282,36 @@ export default function DailyCheckInScreen() {
         </View>
 
         {/* STRESS + SLEEP */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
           <SectionHeader
             emoji="🌿"
             title="How was today?"
             hint="Optional — but it helps Dottie's predictions get smarter."
           />
           <View style={styles.scaleGroup}>
-            <Text style={styles.scaleLabel}>Stress today</Text>
+            <Text style={[styles.scaleLabel, { color: palette.ink }]}>Stress today</Text>
             <ScalePicker
               value={stress}
               onChange={setStress}
               lowLabel="Chill"
               highLabel="Overwhelmed"
-              accentColor={phaseColors.primary}
+              accentColor={phaseHue}
             />
           </View>
           <View style={styles.scaleGroup}>
-            <Text style={styles.scaleLabel}>Sleep last night</Text>
+            <Text style={[styles.scaleLabel, { color: palette.ink }]}>Sleep last night</Text>
             <ScalePicker
               value={sleep}
               onChange={setSleep}
               lowLabel="Restless"
               highLabel="Restful"
-              accentColor={phaseColors.primary}
+              accentColor={phaseHue}
             />
           </View>
         </View>
 
         {/* SYMPTOMS */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
           <SectionHeader
             emoji="🌸"
             title="Anything your body is feeling?"
@@ -312,9 +325,9 @@ export default function DailyCheckInScreen() {
       </ScrollView>
 
       {/* Sticky footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: palette.ground, borderTopColor: palette.glass.edge }]}>
         {symptomCount > 0 && (
-          <Text style={styles.footerSummary}>
+          <Text style={[styles.footerSummary, { color: palette.ink3 }]}>
             {symptomCount} symptom{symptomCount === 1 ? '' : 's'} selected
           </Text>
         )}
@@ -323,25 +336,25 @@ export default function DailyCheckInScreen() {
           disabled={submitting}
           style={({ pressed }) => [
             styles.submitButton,
-            { backgroundColor: phaseColors.primary },
+            { backgroundColor: phaseHue },
             (pressed || submitting) && { opacity: 0.85 },
           ]}
           accessibilityRole="button"
           accessibilityLabel="Save today's check-in"
         >
-          <Text style={styles.submitText}>
+          <Text style={[styles.submitText, { color: palette.ground }]}>
             {submitting ? 'Saving…' : 'Save check-in'}
           </Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
   },
   header: {
     flexDirection: 'row',
@@ -354,13 +367,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface.cardElevated,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeText: {
     fontSize: 16,
-    color: Colors.text.secondary,
     fontWeight: '600',
   },
   headerCenter: {
@@ -369,7 +381,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
   },
   headerSubtitle: {
     ...Typography.preset.caption,
@@ -387,11 +398,15 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   section: {
-    backgroundColor: Colors.surface.card,
     borderRadius: Spacing.radius['2xl'],
+    borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     marginBottom: Spacing.base,
-    ...Shadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    elevation: 4,
   },
   scaleGroup: {
     marginTop: Spacing.md,
@@ -399,7 +414,6 @@ const styles = StyleSheet.create({
   },
   scaleLabel: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
   },
   footer: {
     position: 'absolute',
@@ -409,14 +423,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
-    backgroundColor: Colors.surface.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
     gap: Spacing.sm,
   },
   footerSummary: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
   },
   submitButton: {
@@ -424,11 +435,14 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   submitText: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.inverse,
     fontSize: 16,
   },
 });

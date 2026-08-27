@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAurora } from '../../theme';
 
 /**
  * SectionHeader
@@ -24,13 +24,14 @@ export function SectionHeader({
   title: string;
   hint?: string;
 }) {
+  const { palette } = useAurora();
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
         {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
-        <Text style={styles.title}>{title}</Text>
+        <Text style={[styles.title, { color: palette.ink }]}>{title}</Text>
       </View>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {hint ? <Text style={[styles.hint, { color: palette.ink2 }]}>{hint}</Text> : null}
     </View>
   );
 }
@@ -50,11 +51,9 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
   },
   hint: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     lineHeight: 20,
   },
 });

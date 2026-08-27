@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAurora } from '../../theme';
 
 /**
  * MoodScale
@@ -39,6 +39,7 @@ export function MoodScale({
   value: number; // 1-5
   onChange: (v: number) => void;
 }) {
+  const { palette } = useAurora();
   const emojis = kind === 'mood' ? MOOD_EMOJIS : ENERGY_EMOJIS;
 
   return (
@@ -52,7 +53,8 @@ export function MoodScale({
             onPress={() => onChange(score)}
             style={({ pressed }) => [
               styles.cell,
-              isActive && styles.cellActive,
+              { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+              isActive && { borderColor: palette.accent, backgroundColor: `${palette.accent}26` },
               pressed && { opacity: 0.85, transform: [{ scale: 0.95 }] },
             ]}
           >
@@ -60,10 +62,7 @@ export function MoodScale({
               {emoji}
             </Text>
             <View
-              style={[
-                styles.dot,
-                isActive ? styles.dotActive : styles.dotInactive,
-              ]}
+              style={[styles.dot, { backgroundColor: isActive ? palette.accent : 'transparent' }]}
             />
           </Pressable>
         );
@@ -94,16 +93,10 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     maxWidth: 60,
     borderRadius: Spacing.radius.xl,
-    backgroundColor: Colors.surface.cardElevated,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'transparent',
     gap: 4,
-  },
-  cellActive: {
-    borderColor: Colors.primary.coral,
-    backgroundColor: Colors.phase.menstrual.light,
   },
   emoji: {
     fontSize: 30,
@@ -116,11 +109,5 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-  },
-  dotInactive: {
-    backgroundColor: 'transparent',
-  },
-  dotActive: {
-    backgroundColor: Colors.primary.coral,
   },
 });
