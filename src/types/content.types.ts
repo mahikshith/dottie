@@ -237,6 +237,104 @@ export interface QuizResultSummary {
   completedAt: string;
 }
 
+// ─── INTERACTIVE EXERCISES (Learn Quest — design-v2) ─────────────────
+
+/**
+ * The playful exercise types that widen the Learn experience beyond
+ * multiple-choice quizzes (Duolingo-style). Each keeps the SAME loop the quiz
+ * engine already ships — answer → instant grade → companion reaction → next —
+ * but the interaction is richer. This is ADDITIVE: quizzes are untouched;
+ * exercises are a parallel content kind rendered inside a lesson.
+ *
+ *   - pairs        → match each left item to its right item (tap-the-pairs)
+ *   - order        → drag the items into the correct sequence
+ *   - fill_blank   → choose the word(s) that complete a sentence
+ *   - tap_diagram  → tap the correct option in a small diagram/emoji row
+ *   - tap_word     → tap the right word(s) inside a sentence
+ *
+ * ─── ANTI-LEAK / GRADING NOTE ───────────────────────────────────────
+ *
+ *  Grading is by VALUE (the chosen strings / indexes), never by a hidden
+ *  "correct" flag on a rendered option — so the display model can shuffle
+ *  freely without exposing the answer, exactly like `RenderedQuizQuestion`
+ *  drops `correctIndex`. See `src/engine/content/exercise-engine.ts`.
+ */
+export type ExerciseType = 'pairs' | 'order' | 'fill_blank' | 'tap_diagram' | 'tap_word';
+
+/** Fields shared by every exercise. */
+export interface ExerciseBase {
+  id: string;
+  /** The lesson this exercise belongs to. */
+  lessonId: string;
+  type: ExerciseType;
+  /** Instruction / question shown at the top. */
+  prompt: string;
+  /** Friendly explanation revealed after answering. */
+  explanation: string;
+  /** Optional emoji shown with the explanation. */
+  explanationEmoji?: string;
+  /** Optional XP override (else the engine's per-exercise default is used). */
+  xpReward?: number;
+}
+
+/** Match each left item to its correct right item. */
+export interface PairsExercise extends ExerciseBase {
+  type: 'pairs';
+  /** Canonical aligned pairs — `left[i]` matches `right[i]`. UI shuffles the right column. */
+  pairs: { left: string; right: string }[];
+}
+
+/** Arrange the items into the correct order. */
+export interface OrderExercise extends ExerciseBase {
+  type: 'order';
+  /** Items in the CORRECT order; the UI shuffles them for display. */
+  items: string[];
+}
+
+/** Choose the word(s) that fill the blank(s) in a sentence. */
+export interface FillBlankExercise extends ExerciseBase {
+  type: 'fill_blank';
+  /** Sentence with `{{0}}`, `{{1}}` … placeholders, one per blank. */
+  sentence: string;
+  /** Per blank: the correct answer plus distractors (UI merges + shuffles the pool). */
+  blanks: { answer: string; distractors: string[] }[];
+}
+
+/** Tap the correct option in a compact diagram / emoji row. */
+export interface TapDiagramExercise extends ExerciseBase {
+  type: 'tap_diagram';
+  options: { label: string; emoji?: string }[];
+  /** Index into `options` of the correct choice. */
+  correctIndex: number;
+}
+
+/** Tap the correct word(s) inside a sentence. */
+export interface TapWordExercise extends ExerciseBase {
+  type: 'tap_word';
+  /** The sentence split into tappable tokens. */
+  tokens: string[];
+  /** Indexes into `tokens` that are correct to tap. */
+  correctTokenIndexes: number[];
+}
+
+export type Exercise =
+  | PairsExercise
+  | OrderExercise
+  | FillBlankExercise
+  | TapDiagramExercise
+  | TapWordExercise;
+
+/**
+ * What the UI submits to be graded. Discriminated by `type`, expressed in
+ * VALUES (chosen strings / indexes) so grading never needs a hidden key.
+ */
+export type ExerciseAnswer =
+  | { type: 'pairs'; /** the right-string the user matched to each left[i] */ matched: string[] }
+  | { type: 'order'; /** the item strings in the user's order */ order: string[] }
+  | { type: 'fill_blank'; /** the chosen string per blank */ choices: string[] }
+  | { type: 'tap_diagram'; index: number }
+  | { type: 'tap_word'; tokenIndexes: number[] };
+
 // ─── COMPANION TYPES (used across content) ───────────────────────────
 
 /** Available spirit companion types */

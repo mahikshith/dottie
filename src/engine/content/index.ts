@@ -80,6 +80,21 @@ export type {
   QuizResult,
 } from './quiz-engine';
 
+// ─── INTERACTIVE EXERCISES (Learn Quest) ─────────────────────────────
+export {
+  renderExercise,
+  gradeExercise,
+  checkExerciseAnswer,
+  computeExerciseReward,
+  validateExercise,
+} from './exercise-engine';
+export type {
+  ExerciseProvider,
+  RenderedExercise,
+  ExerciseGrade,
+  ExerciseFeedback,
+} from './exercise-engine';
+
 // ─── COMPANION DIALOGUE ──────────────────────────────────────────────
 export {
   wrapInsight,
@@ -109,6 +124,10 @@ import {
   getQuiz as bundledGetQuiz,
   getQuizForLesson as bundledGetQuizForLesson,
 } from '../../content/quizzes';
+
+// Exercise provider factory lives with the bundled exercise content; re-export
+// it here so callers get all three provider factories from one barrel.
+export { buildBundledExerciseProvider } from '../../content/exercises';
 
 /**
  * Build a LessonProvider backed by the bundled learning-paths.ts content.
