@@ -97,6 +97,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/ghost-mode');
   };
 
+  const handleRemindersTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/reminders');
+  };
+
   const handleComingSoon = (title: string) => {
     Haptics.selectionAsync().catch(() => {});
     // For now, a no-op. Wired in future chunks.
@@ -223,9 +228,9 @@ export default function ProfileScreen() {
           <Animated.View entering={rise(640)}>
             <SettingsItem
               emoji="🔔"
-              title="Notifications"
-              subtitle="Discrete reminders · coming soon"
-              onPress={() => handleComingSoon('Notifications')}
+              title="Reminders"
+              subtitle="Gentle local nudges, your way"
+              onPress={handleRemindersTap}
             />
           </Animated.View>
           <Animated.View entering={rise(710)}>

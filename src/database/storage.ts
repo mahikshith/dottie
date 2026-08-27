@@ -118,6 +118,10 @@ const Keys = {
   // survive restarts and work offline. Bundled content is always the baseline;
   // this is merged ON TOP. See docs/CONTENT-UPDATES.md.
   REMOTE_CONTENT_BUNDLE: 'content.remote_bundle',
+
+  // Reminder preferences (design-v2 — the notification scheduler). Which local
+  // reminders are on + when. Drives NotificationScheduler; all opt-in, on-device.
+  REMINDER_PREFS: 'notifications.reminder_prefs',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -405,6 +409,18 @@ export const Storage = {
     clear: (): void => mmkv.delete(Keys.REMOTE_CONTENT_BUNDLE),
   },
 
+  // ─── Reminder preferences (design-v2 notification scheduler) ────
+  //
+  // All local, all opt-in. Defaults to everything OFF so we never schedule a
+  // notification the user didn't ask for (and never prompt for permission
+  // unprompted). The Reminders settings screen reads/writes this.
+
+  reminderPrefs: {
+    get: (): ReminderPrefs => ({ ...DEFAULT_REMINDER_PREFS, ...(getJson<Partial<ReminderPrefs>>(Keys.REMINDER_PREFS) ?? {}) }),
+    set: (prefs: ReminderPrefs): void => setJson(Keys.REMINDER_PREFS, prefs),
+    clear: (): void => mmkv.delete(Keys.REMINDER_PREFS),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -460,6 +476,28 @@ export type ThemeOverride = 'light' | 'dark' | 'auto';
 
 /** The user's chosen Learn pace (see Storage.learnLevel). 'new' = guided. */
 export type LearnLevel = 'new' | 'basics' | 'deep';
+
+/** Preset times of day for the daily check-in reminder. */
+export type ReminderTime = 'morning' | 'midday' | 'evening';
+
+/** Local reminder preferences (see Storage.reminderPrefs). All opt-in. */
+export interface ReminderPrefs {
+  /** Daily nudge to check in. */
+  checkIn: boolean;
+  /** When the daily check-in reminder fires. */
+  checkInTime: ReminderTime;
+  /** A gentle heads-up a few days before the predicted period. */
+  periodHeadsUp: boolean;
+  /** A midday "sip some water" nudge. */
+  hydration: boolean;
+}
+
+export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
+  checkIn: false,
+  checkInTime: 'evening',
+  periodHeadsUp: false,
+  hydration: false,
+};
 
 /** A per-day planning entry backing the calendar popover (see Storage.dayPlans). */
 export interface DayPlan {

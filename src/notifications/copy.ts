@@ -55,6 +55,7 @@ import { Storage } from '../database/storage';
 export type NotificationKind =
   | 'check_in_reminder'             // daily nudge to log
   | 'check_in_streak_at_risk'       // 24h since last log, streak in danger
+  | 'hydration_nudge'               // gentle "sip some water" reminder
   | 'period_window_approaching'     // 2-3 days before predicted period
   | 'period_arrived_check'          // gentle ask: "did it start?"
   | 'phase_transition'              // entered new cycle phase
@@ -145,6 +146,17 @@ const NOTIFICATION_COPY: Record<NotificationKind, NotificationCopyPair> = {
     explicit: {
       title: 'Your streak is calling 🔥',
       body: 'One tiny tap protects your streak. We\'ll keep it warm.',
+    },
+  },
+
+  hydration_nudge: {
+    discrete: {
+      title: 'A little reminder 💧',
+      body: 'A glass of water sounds nice about now. Small kindnesses count.',
+    },
+    explicit: {
+      title: 'Sip some water 💧',
+      body: 'A gentle hydration nudge from Dottie — your body will thank you.',
     },
   },
 
