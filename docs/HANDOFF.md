@@ -93,10 +93,14 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
   AuroraTabBar (tab bar stays tappable) — a portal/Modal could cover it later.
 
 **NEXT here (needs Node to verify feel):**
-1. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + hybrid placement — the aurora
-   migration of the Learn reader/list.
+1. ✅ DONE — **Learn path-map** (`app/(tabs)/learn.tsx`): each path is a trail of lesson nodes
+   (done/current/locked) down a centred connector, companion (`CompanionLottie`) on the current node,
+   reward node per path. **Hybrid placement is a real switch**: `Storage.learnLevel` — 'new' keeps
+   sequential locks (guided), 'basics'/'deep' unlock the trail (self-directed); null → guided.
+   All logic (progress/mode-filter/lock rule/XP/nav) preserved. Difficulty-tiered CONTENT is future.
 2. **More content** — exercises for the other lessons (only `lesson_cycle_basics_2` has them);
-   deepen phase-tip suggestion coverage.
+   deepen phase-tip suggestion coverage; author beginner→advanced tracks so the pace switch also
+   changes WHAT is shown, not just locking.
 3. ✅ DONE — **Calendar week-ahead strip** (`src/components/calendar/WeekAheadStrip.tsx` + wired in
    `calendar.tsx`): next 7 days w/ phase + one-line suggestion + window/planning dots; taps open the
    same popover (shared `buildSelected`). Calendar remaining is later-only: `expo-notifications`

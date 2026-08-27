@@ -31,7 +31,9 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   ExercisePlayer.tsx` (a renderer per type, aurora-themed, `CompanionLottie` reactions) played by
   `app/exercise/[lessonId].tsx`; the lesson reader routes there after completion (read → practice →
   quiz). `order` is tap-to-sequence for now (drag later). Additive to the MCQ quiz engine.
-  NEXT: path-map UI (aurora Learn migration) + author exercises for the other lessons.
+  Learn tab is now a **path-map trail** (`app/(tabs)/learn.tsx`): lesson nodes (done/current/locked)
+  + companion on the current node. **Hybrid pace** via `Storage.learnLevel` ('new'=guided locks;
+  'basics'/'deep'=unlocked/self-directed). NEXT: author exercises for the other lessons + tiered content.
 - **Calendar planner DONE** (design-v2): tap a day → `src/components/calendar/DayDetailSheet.tsx`
   (aurora glass popover, origin-magnify) driven by the NON-diagnostic `src/engine/calendar/
   day-suggestions.ts` (phase × period-proximity × PCOS/endo/thyroid). Day notes/plans persist via
