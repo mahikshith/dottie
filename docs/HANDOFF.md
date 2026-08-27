@@ -93,9 +93,10 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
   AuroraTabBar (tab bar stays tappable) — a portal/Modal could cover it later.
 
 **NEXT here (needs Node to verify feel):**
-1. ✅ DONE — **Learn path-map** (`app/(tabs)/learn.tsx`): each path is a trail of lesson nodes
-   (done/current/locked) down a centred connector, companion (`CompanionLottie`) on the current node,
-   reward node per path. **Hybrid placement is a real switch**: `Storage.learnLevel` — 'new' keeps
+1. ✅ DONE — **Learn path-map** (`app/(tabs)/learn.tsx`): each path is a winding **aurora stream**
+   (react-native-svg) of lesson nodes (done/current/locked) — the ribbon is lit (accent→accent2 +
+   glow) up to the current node and dim beyond; companion (`CompanionLottie`) on the current node,
+   reward node per path. (Replaced the earlier plain grey connector.) **Hybrid placement is a real switch**: `Storage.learnLevel` — 'new' keeps
    sequential locks (guided), 'basics'/'deep' unlock the trail (self-directed); null → guided.
    All logic (progress/mode-filter/lock rule/XP/nav) preserved. Difficulty-tiered CONTENT is future.
 2. **More content** — exercises for the other lessons (only `lesson_cycle_basics_2` has them);
