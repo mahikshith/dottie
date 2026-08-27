@@ -57,8 +57,27 @@ G-Cal sync + OS reminders = LATER (needs expo-notifications/OAuth). All suggesti
   sources (LottieFiles animal/mascot/confetti categories), attribution ledger, wiring checklist.
 - **Art recommendation:** commission/adopt ONE matched-style set for the 6 heroes (consistency >
   free grab-bag); free singles OK for shared moments.
-**NEXT here:** source/commission the art (fill the ledger, drop into `assets/lottie/`, wire the
-manifest) — then build the exercise-type engine + path-map, then the calendar popover. All UNVERIFIED.
+**✅ DONE — interactive exercise-type ENGINE (design-v2, ⚠️ UNVERIFIED):** the pure grading brain
+for the 5 Duolingo-style types, additive (quizzes untouched):
+- types in `content.types.ts` — `Exercise` union (pairs/order/fill_blank/tap_diagram/tap_word) +
+  `ExerciseAnswer` (value-based, so grading needs no hidden key).
+- `src/engine/content/exercise-engine.ts` — PURE/stateless: `renderExercise()` (answer-free
+  shuffled display model, anti-leak), `gradeExercise()` (value-based, partial-credit aware),
+  `checkExerciseAnswer()` (grade + `wrapInsight` companion reaction + explanation + rewards),
+  `computeExerciseReward`, `validateExercise`, `ExerciseProvider` iface. Exported from the barrel.
+- `src/content/exercises.ts` — 4 seed exercises on `lesson_cycle_basics_2` + `buildBundledExerciseProvider()`.
+
+**NEXT here (needs Node to verify feel):**
+1. **Exercise UI renderers** — one interactive component per type (aurora-themed, `CompanionLottie`
+   for reactions; `order` uses gesture-handler drag). Follow `.claude/skills/animate-expo`.
+2. **Wire into the lesson flow** — after a lesson's sections, play its exercises (from the provider),
+   grade via `checkExerciseAnswer`, award XP/gems through the gamification store, persist. Mirror how
+   `app/quiz/[id].tsx` drives the quiz engine.
+3. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + the hybrid placement flow.
+4. **Calendar popover** (separate track) + suggestion engine.
+5. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`,
+   wire the manifest) — everything above already runs on the emoji fallback, so art is non-blocking.
+All UNVERIFIED until a Node/device pass.
 
 ## 0. Design phase (current) — where we are RIGHT NOW
 Phase-2 premium polish is code-complete across all 13 screens (see §4.5). The user has

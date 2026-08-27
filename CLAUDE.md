@@ -25,6 +25,10 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   one `require()` into `assets/lottie/`. Full brief + license + inventory: **`docs/LOTTIE-SOURCING.md`**.
 - Render ANY companion via `<CompanionLottie type="fox" state="celebrate" />` — never hardcode emoji.
 - All learn/calendar suggestions stay NON-diagnostic (doctor-report-signals discipline).
+- **Exercise engine DONE** (pure/stateless): `Exercise` types in `content.types.ts` + grading in
+  `src/engine/content/exercise-engine.ts` (`renderExercise`/`gradeExercise`/`checkExerciseAnswer`),
+  seed in `src/content/exercises.ts`. Additive to the MCQ quiz engine. Grade by VALUE, never a hidden
+  flag (anti-leak). Next: exercise UI renderers + wire into the lesson flow like `app/quiz/[id].tsx`.
 
 ## What Dottie is
 A warm, local-first women's-health / cycle-tracking companion. React Native + Expo
