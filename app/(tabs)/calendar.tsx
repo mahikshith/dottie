@@ -56,6 +56,8 @@ import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
+import { WeekAheadStrip, type WeekAheadItem } from '../../src/components/calendar/WeekAheadStrip';
+import { buildDaySuggestions } from '../../src/engine/calendar/day-suggestions';
 import { Storage } from '../../src/database/storage';
 
 // Shared empty array so the conditions selector stays referentially stable
@@ -176,22 +178,75 @@ export default function CalendarScreen() {
     }
   };
 
-  // ─── Day tap → open the planner popover ─────────────────────────
-  // Future days ARE tappable now (that's the point of a week-ahead planner);
-  // period-logging inside the sheet is still gated to past/today.
+  // ─── Open the planner popover for a date (shared by grid + week strip) ──
+  const todayIso = formatISO(new Date());
+  const buildSelected = (iso: string, isFuture: boolean, e: GestureResponderEvent): SelectedDay => ({
+    iso,
+    phase: phaseForDate(iso, lastPeriodStart, userHealth) ?? phase,
+    isPeriodDay: periodDays.has(iso),
+    isFuture,
+    daysUntilPredictedPeriod: daysUntil(iso, latestPrediction?.predictedNextPeriod ?? null),
+    origin: { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY },
+  });
+
+  // Day tap on the month grid → open the popover. Future days ARE tappable now
+  // (the point of a planner); period-logging inside the sheet stays past/today.
   const onDayTap = (iso: string, cell: MonthCell, e: GestureResponderEvent) => {
     if (!cell.inMonth) return;
     Haptics.selectionAsync().catch(() => {});
-
-    setSelected({
-      iso,
-      phase: phaseForDate(iso, lastPeriodStart, userHealth) ?? phase,
-      isPeriodDay: periodDays.has(iso),
-      isFuture: cell.isFuture,
-      daysUntilPredictedPeriod: daysUntil(iso, latestPrediction?.predictedNextPeriod ?? null),
-      origin: { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY },
-    });
+    setSelected(buildSelected(iso, cell.isFuture, e));
   };
+
+  const onWeekDayPress = (iso: string, e: GestureResponderEvent) => {
+    setSelected(buildSelected(iso, iso > todayIso, e));
+  };
+
+  // ─── Week-ahead model: next 7 days from today ───────────────────
+  const weekAhead = useMemo<WeekAheadItem[]>(() => {
+    const predicted = latestPrediction?.predictedNextPeriod ?? null;
+    const windowDays = latestPrediction?.windowDays ?? 3;
+    const avgPeriodLength = userHealth?.averagePeriodLength ?? 5;
+    const base = new Date(`${todayIso}T00:00:00`);
+    const items: WeekAheadItem[] = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      const iso = formatISO(d);
+      const p = phaseForDate(iso, lastPeriodStart, userHealth) ?? phase;
+      const isPeriodDay = periodDays.has(iso);
+      const du = daysUntil(iso, predicted);
+      const set = buildDaySuggestions({
+        phase: p,
+        daysUntilPredictedPeriod: du,
+        isPeriodDay,
+        mode,
+        conditions,
+      });
+      items.push({
+        iso,
+        dayLabel: d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase(),
+        dayNum: d.getDate(),
+        phase: p,
+        mini: miniLabel(set.headline, du),
+        isWindow: inPredictedWindow(iso, predicted, windowDays, avgPeriodLength),
+        isPeriodDay,
+        planned: plannedDays.has(iso),
+        isToday: iso === todayIso,
+      });
+    }
+    return items;
+  }, [
+    todayIso,
+    lastPeriodStart,
+    userHealth,
+    phase,
+    periodDays,
+    latestPrediction?.predictedNextPeriod,
+    latestPrediction?.windowDays,
+    mode,
+    conditions,
+    plannedDays,
+  ]);
 
   // Log the currently-selected day as a period day (from inside the sheet).
   const onLogSelectedPeriod = async () => {
@@ -315,8 +370,15 @@ export default function CalendarScreen() {
           </GlassCard>
         </Animated.View>
 
+        {/* Week-ahead strip */}
+        {weekAhead.length > 0 && (
+          <Animated.View entering={rise(230)} style={styles.weekAhead}>
+            <WeekAheadStrip items={weekAhead} onDayPress={onWeekDayPress} />
+          </Animated.View>
+        )}
+
         {/* Legend */}
-        <Animated.View entering={rise(265)} style={styles.legend}>
+        <Animated.View entering={rise(300)} style={styles.legend}>
           <LegendChip color={PHASE_AURORA.menstrual} label="Period" />
           <LegendChip color={PHASE_AURORA.follicular} label="Follicular" />
           <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
@@ -624,6 +686,30 @@ function daysUntil(iso: string, predictedNextPeriod: string | null): number | nu
   return diff;
 }
 
+/** One-line label for a week-strip day, derived from proximity + phase headline. */
+function miniLabel(headline: string, daysUntilPeriod: number | null): string {
+  if (daysUntilPeriod !== null) {
+    if (daysUntilPeriod <= 0) return 'Likely start';
+    if (daysUntilPeriod <= 3) return 'Restock supplies';
+    if (daysUntilPeriod <= 6) return 'Window soon';
+  }
+  return headline;
+}
+
+/** Whether a date falls in the predicted period band (same rule as the grid). */
+function inPredictedWindow(
+  iso: string,
+  predictedNextPeriod: string | null,
+  windowDays: number,
+  avgPeriodLength: number
+): boolean {
+  if (!predictedNextPeriod) return false;
+  const DAY = 24 * 60 * 60 * 1000;
+  const t = new Date(iso + 'T00:00:00').getTime();
+  const p = new Date(predictedNextPeriod + 'T00:00:00').getTime();
+  return t >= p - windowDays * DAY && t <= p + avgPeriodLength * DAY;
+}
+
 // ─── STYLES (layout only — colours are inline, palette-driven) ───────
 
 const styles = StyleSheet.create({
@@ -688,6 +774,9 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
+  },
+  weekAhead: {
+    marginBottom: Spacing.base,
   },
   phaseSummary: {
     flexDirection: 'row',
