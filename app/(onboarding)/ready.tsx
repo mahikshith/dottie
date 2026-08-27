@@ -4,13 +4,13 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
 import { useUserStore, useCycleStore } from '../../src/stores';
 import { awardBetaPioneerIfNew } from '../../src/services/beta-onboarding';
-import { GradientButton, BreathingView } from '../../src/components/ui';
+import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 
 /**
  * Ready Screen — Onboarding complete celebration!
@@ -94,15 +94,17 @@ export default function ReadyScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top + Spacing['2xl'],
-          paddingBottom: insets.bottom + Spacing.xl,
-        },
-      ]}
-    >
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: insets.top + Spacing['2xl'],
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
+        ]}
+      >
       <View style={styles.content}>
         <BreathingView maxScale={1.06}>
           <Animated.Text entering={rise(80)} style={styles.celebration}>
@@ -136,7 +138,8 @@ export default function ReadyScreen() {
           accessibilityHint="Finishes setup and opens your home screen"
         />
       </Animated.View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
@@ -157,7 +160,7 @@ function FeatureItem({ emoji, text }: { emoji: string; text: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: Spacing.screenPadding,
     justifyContent: 'space-between',
   },
@@ -172,13 +175,13 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h1,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   subtitle: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 28,
     marginBottom: Spacing['2xl'],
@@ -186,10 +189,10 @@ const styles = StyleSheet.create({
   features: {
     alignSelf: 'stretch',
     gap: Spacing.md,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   featureItem: {
     flexDirection: 'row',
@@ -201,7 +204,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   footer: {
     alignItems: 'center',

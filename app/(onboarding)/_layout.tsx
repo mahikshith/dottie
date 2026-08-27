@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { Colors } from '../../src/constants/colors';
+import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 
 /**
@@ -37,7 +37,7 @@ export default function OnboardingLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.surface.background },
+        contentStyle: { backgroundColor: A.ground },
         animation: 'slide_from_right',
         // Disable back gesture on welcome (no going back from first screen)
         gestureEnabled: true,

@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { getAllCompanions } from '../../src/content/companions';
 import { CompanionType } from '../../src/types/companion.types';
@@ -43,7 +44,9 @@ export default function CompanionSelectScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Choose your companion! 🤝</Text>
         <Text style={styles.subtitle}>
@@ -83,14 +86,15 @@ export default function CompanionSelectScreen() {
           </Pressable>
         ))}
       </ScrollView>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     paddingTop: Spacing['5xl'],
   },
   header: {
@@ -99,12 +103,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 24,
   },
   scrollView: {
@@ -119,12 +123,12 @@ const styles = StyleSheet.create({
   },
   companionCard: {
     width: '47%',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius['2xl'],
     alignItems: 'center',
     borderWidth: 2,
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   companionCardPressed: {
     opacity: 0.9,
@@ -136,7 +140,7 @@ const styles = StyleSheet.create({
   },
   companionName: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.xs,
   },
   companionPersonality: {
@@ -146,7 +150,7 @@ const styles = StyleSheet.create({
   },
   companionGreeting: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     fontStyle: 'italic',
   },

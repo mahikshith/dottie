@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { CycleLengthCategory } from '../../src/types/cycle.types';
 
@@ -85,7 +86,9 @@ export default function CycleSetupScreen() {
   const canContinue = selectedLength !== null;
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Let's set things up 📅</Text>
         <Text style={styles.subtitle}>
@@ -103,7 +106,7 @@ export default function CycleSetupScreen() {
           <TextInput
             style={styles.input}
             placeholder="e.g. 10"
-            placeholderTextColor={Colors.text.tertiary}
+            placeholderTextColor={A.ink3}
             keyboardType="number-pad"
             value={lastPeriodDays}
             onChangeText={setLastPeriodDays}
@@ -164,14 +167,15 @@ export default function CycleSetupScreen() {
           <Text style={styles.buttonText}>Continue</Text>
         </Pressable>
       </View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing['5xl'],
     paddingBottom: Spacing['3xl'],
@@ -181,12 +185,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 24,
   },
   section: {
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.md,
   },
   inputRow: {
@@ -203,23 +207,23 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   input: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.xl,
     paddingHorizontal: Spacing.xl,
     height: Spacing.buttonHeight.md,
     width: 100,
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   inputLabel: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   skipText: {
     ...Typography.preset.caption,
-    color: Colors.primary.coral,
+    color: A.accent,
     marginTop: Spacing.sm,
   },
   lengthOptions: {
@@ -228,14 +232,14 @@ const styles = StyleSheet.create({
   lengthChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
     borderRadius: Spacing.radius.xl,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   lengthChipSelected: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
   },
   lengthEmoji: {
     fontSize: 20,
@@ -243,36 +247,36 @@ const styles = StyleSheet.create({
   },
   lengthLabel: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
   },
   lengthLabelSelected: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   lengthDays: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   lengthDaysSelected: {
-    color: Colors.text.inverse,
+    color: A.ground,
     opacity: 0.85,
   },
   footer: {
     marginTop: 'auto',
   },
   button: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
 });

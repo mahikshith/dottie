@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { UserMode } from '../../src/types/cycle.types';
 
@@ -66,7 +67,9 @@ export default function ModeSelectScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Tell me about you! 💛</Text>
         <Text style={styles.subtitle}>
@@ -100,14 +103,15 @@ export default function ModeSelectScreen() {
       <Text style={styles.footer}>
         No account needed. Everything stays on your device. 🔒
       </Text>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing['5xl'],
     paddingBottom: Spacing['3xl'],
@@ -117,12 +121,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 24,
   },
   options: {
@@ -131,10 +135,10 @@ const styles = StyleSheet.create({
   modeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   modeCardPressed: {
     opacity: 0.9,
@@ -155,19 +159,19 @@ const styles = StyleSheet.create({
   },
   modeTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   modeAge: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   modeDescription: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   footer: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     textAlign: 'center',
     marginTop: 'auto',
     paddingTop: Spacing.xl,

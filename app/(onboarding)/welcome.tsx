@@ -3,11 +3,12 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { Storage } from '../../src/database/storage';
-import { GradientButton, BreathingView } from '../../src/components/ui';
+import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 
 /**
  * Welcome Screen — First thing users see.
@@ -59,15 +60,17 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: insets.top + Spacing['3xl'],
-          paddingBottom: insets.bottom + Spacing.xl,
-        },
-      ]}
-    >
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: insets.top + Spacing['3xl'],
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
+        ]}
+      >
       <View style={styles.content}>
         <BreathingView>
           <Animated.Text entering={RISE(100)} style={styles.companionEmoji}>
@@ -102,14 +105,15 @@ export default function WelcomeScreen() {
           100% private. Your data stays on your device. 🔒
         </Animated.Text>
       </Animated.View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     paddingHorizontal: Spacing.screenPadding,
     justifyContent: 'space-between',
   },
@@ -124,20 +128,20 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h1,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
     marginBottom: Spacing.base,
   },
   subtitle: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 28,
     marginBottom: Spacing.xl,
   },
   tagline: {
     ...Typography.preset.bodySemibold,
-    color: Colors.primary.coral,
+    color: A.accent,
     textAlign: 'center',
   },
   footer: {
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   },
   privacy: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     textAlign: 'center',
     marginTop: Spacing.base,
   },
