@@ -32,6 +32,11 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   `app/exercise/[lessonId].tsx`; the lesson reader routes there after completion (read → practice →
   quiz). `order` is tap-to-sequence for now (drag later). Additive to the MCQ quiz engine.
   NEXT: path-map UI (aurora Learn migration) + author exercises for the other lessons.
+- **Calendar planner DONE** (design-v2): tap a day → `src/components/calendar/DayDetailSheet.tsx`
+  (aurora glass popover, origin-magnify) driven by the NON-diagnostic `src/engine/calendar/
+  day-suggestions.ts` (phase × period-proximity × PCOS/endo/thyroid). Day notes/plans persist via
+  `Storage.dayPlans` (MMKV, no migration); planning dots on the grid; period-logging preserved inside
+  the sheet; future days are plannable. NEXT: week-ahead strip; expo-notifications + G-Cal (later).
 
 ## What Dottie is
 A warm, local-first women's-health / cycle-tracking companion. React Native + Expo

@@ -78,16 +78,31 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
 - In-flight decisions: exercises get their own aurora screen (don't retheme the working cream reader
   blind); `order` is **tap-to-sequence** (robust unverified), drag is a later upgrade.
 
+**✅ DONE — interactive Calendar day-detail popover + suggestion engine (design-v2, ⚠️ UNVERIFIED):**
+- `src/engine/calendar/day-suggestions.ts` — PURE, NON-diagnostic suggestion engine: phase base ×
+  period-proximity (supplies/comfort) × condition modifiers (PCOS/endo/thyroid); carries a disclaimer.
+- `src/components/calendar/DayDetailSheet.tsx` — aurora glass popover, origin-magnify + scrim
+  (Reanimated, Reduce-Motion aware): suggestions, "Mark as period" (preserves old tap-to-log,
+  past/today only), "Plan this day" toggle, note field, Google-Calendar row marked LATER.
+- `src/database/storage.ts` — additive `dayPlans` MMKV accessor (date→{note,planned}) + `DayPlan` type
+  (no SQLite migration).
+- `app/(tabs)/calendar.tsx` — tap opens the sheet (was an Alert); FUTURE days now tappable (planning);
+  planning dots on noted/flagged days; `phaseForDate` projects phase for any date.
+- Decisions: period-logging preserved inside the sheet; in-screen overlay (calendar shows through
+  dimmed — true frost awaits expo-blur); non-diagnostic throughout. Limitation: overlay sits under the
+  AuroraTabBar (tab bar stays tappable) — a portal/Modal could cover it later.
+
 **NEXT here (needs Node to verify feel):**
-1. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + the hybrid placement flow —
-   this is the aurora migration of the Learn reader/list.
-2. **More exercise content** — author exercises for the other lessons (only `lesson_cycle_basics_2`
-   has them today) so every lesson has practice.
-3. **Calendar popover** (separate track) + phase/mode/condition suggestion engine (author `PhaseTip` data).
-4. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`,
-   wire the manifest) — everything runs on the emoji fallback, so art is non-blocking.
-5. First Node pass: `npm run type-check` + device feel-check the exercise loop (esp. pairs/fill-blank
-   tap flow, feedback timing, haptics), then continue.
+1. **Path-map UI** for the Learn tab (winding trail of lesson nodes) + hybrid placement — the aurora
+   migration of the Learn reader/list.
+2. **More content** — exercises for the other lessons (only `lesson_cycle_basics_2` has them);
+   deepen phase-tip suggestion coverage.
+3. **Calendar: week-ahead strip** (next 7 days w/ phase + one-line suggestion + dots); (later)
+   `expo-notifications` reminders + **Google Calendar** sync (OAuth, opt-in, privacy-gated).
+4. Parallel/independent: **source the Lottie art** (fill the ledger, drop into `assets/lottie/`, wire
+   the manifest) — everything runs on the emoji fallback, so art is non-blocking.
+5. First Node pass: `npm run type-check` + device feel-check the exercise loop AND the calendar
+   popover (origin-magnify, scrim, note keyboard, planning dots).
 All UNVERIFIED until a Node/device pass.
 
 ## 0. Design phase (current) — where we are RIGHT NOW
