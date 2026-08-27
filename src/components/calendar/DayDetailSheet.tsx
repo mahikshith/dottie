@@ -91,8 +91,10 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
         isPeriodDay: props.isPeriodDay,
         mode: props.mode,
         conditions: props.conditions,
+        // day-of-month seed → suggestions rotate day to day, deterministically.
+        daySeed: parseInt(props.dateISO.slice(8, 10), 10) || 0,
       }),
-    [props.phase, props.daysUntilPredictedPeriod, props.isPeriodDay, props.mode, props.conditions]
+    [props.dateISO, props.phase, props.daysUntilPredictedPeriod, props.isPeriodDay, props.mode, props.conditions]
   );
 
   // ── Enter / exit animation ──────────────────────────────────────

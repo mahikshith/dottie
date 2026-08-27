@@ -26,6 +26,30 @@ FIRST — it's the mood-logging hook; then community/sisterhood/profile-sub/onbo
 modals + lesson/quiz); `expo install expo-blur` (real frost); perimenopause / birth-control-pill
 modes; then `tsc` + device verify + merge to `main`.
 
+## 0.9 Competitive research — features to consider (2026-08-27)
+Scan of competitor apps (Flo, Clue, Stardust, Natural Cycles, Oura, Drip, Wenly, Aavia, Life) +
+reviews/studies + privacy discourse. Full sources in the session; key takeaways + roadmap:
+- **Privacy is the #1 differentiator** — Meta found liable (2025) for Flo data; post-Roe fears are
+  huge. Dottie's **local-first + Ghost Mode** already wins here. ACTION (cheap, high-impact): a
+  visible "your data never leaves your phone" trust screen + easy full export/delete (export is a stub).
+- **Anti-pink / inclusive design** — top UX complaint is pink/gendered/hetero-assuming UI. Dottie's
+  aurora + ungendered companions align; ACTION: a copy **inclusivity audit** (avoid assuming she/female/
+  male-partner; trans/non-binary friendly).
+- **Cycle-syncing** (phase food/movement) = 294M TikTok views but science is INCONCLUSIVE and rarely
+  disclosed. Dottie already offers it in the calendar with a non-diagnostic disclaimer — a trust win.
+  KEEP the honest framing.
+- **Gaps vs competitors (net-new, prioritized):**
+  1. **Birth-control / medication reminders** (pill/ring/patch/IUD…) — universally requested; we have a
+     "Medications" STUB. Needs the notification scheduler.
+  2. **Wearable / Apple Health + Google Fit** (skin temp, HRV, sleep) — the accuracy frontier (Oura 96%
+     ovulation detection). Native, bigger lift.
+  3. **Perimenopause/menopause mode** (wider windows, hot-flash/sleep) — endocrine mode only today.
+  4. **Partner sharing** (dedicated partner view) — Sisterhood is friend-based; partner is adjacent.
+  5. **Notifications scheduler** (`expo-notifications`) — FOUNDATIONAL; unblocks #1, period heads-ups,
+     hydration nudges (copy already exists in `src/notifications/copy.ts`).
+- Dottie's existing strengths to keep leaning on: **Learn** (few competitors teach), **community +
+  sisterhood**, **companions/gamification**, **on-device Bayesian predictor**, **doctor report**.
+
 ## 0.8 Learn + Calendar REIMAGINING (approved direction, 2026-08-27)
 User wants a striking, Duolingo-grade Learn experience + an intuitive interactive Calendar.
 **Two concept mockups built + approved (published artifacts, faithful to real aurora tokens/content):**

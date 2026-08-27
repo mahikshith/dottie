@@ -64,6 +64,12 @@ export interface DaySuggestionInput {
   isPeriodDay: boolean;
   mode: UserMode;
   conditions: HealthCondition[];
+  /**
+   * A small per-day seed (e.g. day-of-month) so suggestions ROTATE day to day
+   * instead of showing the same tips every day of a phase. Deterministic, so the
+   * same date always shows the same set. Defaults to 0.
+   */
+  daySeed?: number;
 }
 
 const DISCLAIMER = 'Gentle ideas, not medical advice — take what helps, skip the rest. 💛';
@@ -91,11 +97,12 @@ export function buildDaySuggestions(input: DaySuggestionInput): DaySuggestionSet
   const hasThyroid = conditions.includes('thyroid');
 
   const prediction = buildPrediction(input, hasPcos);
+  const seed = input.daySeed ?? 0;
 
   // Compose: proximity supplies first (most actionable), then phase base.
   const suggestions: DaySuggestion[] = [
     ...proximitySuggestions(input, prediction),
-    ...phaseSuggestions(phase, { hasPcos, hasEndo, hasThyroid }),
+    ...phaseSuggestions(phase, { hasPcos, hasEndo, hasThyroid }, seed),
   ];
 
   return {
@@ -161,50 +168,133 @@ function proximitySuggestions(input: DaySuggestionInput, prediction: DayPredicti
 
 interface Cond { hasPcos: boolean; hasEndo: boolean; hasThyroid: boolean }
 
-function phaseSuggestions(phase: Phase, c: Cond): DaySuggestion[] {
-  switch (phase) {
-    case 'menstrual':
-      return [
-        food('Iron & magnesium', c.hasEndo
-          ? 'Anti-inflammatory + iron: leafy greens, lentils, omega-3s. Go easy on processed foods.'
-          : 'Iron-rich foods (greens, beans) + magnesium (dark chocolate, nuts) can ease cramps.'),
-        comfort('Warmth helps', c.hasEndo
-          ? 'Heat early and rest without guilt — honor a heavier day.'
-          : 'A heat pad and soft, loose clothing tend to feel best today.'),
-        movement('Gentle only', 'Walks, stretching, restorative yoga. Skip the PRs.'),
-        mind('Rest is productive', 'Lower the bar today. Recovery is doing something, not nothing.'),
-      ];
-    case 'follicular':
-      return [
-        food('Fresh & building', c.hasPcos
-          ? 'Protein + fiber with steady carbs (lower-GI) to keep energy even.'
-          : 'Fresh produce and protein support the energy that\'s climbing now.'),
-        movement('Try something new', c.hasThyroid
-          ? 'Energy may be returning — build gently, no need to overdo it.'
-          : 'A good window for higher-intensity movement or a new class.'),
-        mind('Great day to plan', 'Focus and motivation tend to rise — start that thing.'),
-      ];
-    case 'ovulatory':
-      return [
-        food('Light & bright', c.hasPcos
-          ? 'Fiber + protein to steady blood sugar around the peak.'
-          : 'Lighter meals with fiber sit well around your peak.'),
-        movement('Peak strength', 'Often the strongest days — lean into it if it feels good.'),
-        comfort('Breathable layers', 'You may run warm; breathable fabrics feel best.'),
-        mind('Social energy high', 'A natural day for conversations and big asks.'),
-      ];
-    case 'luteal':
-      return [
-        food('Steady the mood', c.hasPcos
-          ? 'Complex carbs paired with protein; lower-GI choices help avoid the crash.'
-          : 'Complex carbs + magnesium steady mood; easing salt can help bloating.'),
-        comfort('Comfy over fitted', 'Softer waistbands and flowy layers as bloating tends to peak.'),
-        movement('Moderate & kind', c.hasEndo
-          ? 'Gentle strength or pilates; rest when pain says so.'
-          : 'Moderate strength or pilates — meet your energy where it is.'),
-        mind('Be gentle with you', 'If you feel more sensitive, that\'s biology — not a flaw.'),
-      ];
-  }
+interface PhasePool {
+  food: DaySuggestion[];
+  comfort: DaySuggestion[];
+  movement: DaySuggestion[];
+  mind: DaySuggestion[];
+}
+
+/**
+ * Compose one suggestion per category, ROTATED by the day seed for variety, with
+ * condition-specific tips taking precedence when they apply. Ideas are framed as
+ * general wellness tendencies ("many find", "tends to") — the phase→lifestyle
+ * link is popular but not settled science, so we keep it gentle + non-diagnostic.
+ */
+function phaseSuggestions(phase: Phase, c: Cond, seed: number): DaySuggestion[] {
+  const pool = PHASE_POOLS[phase];
+  const pick = <T,>(arr: T[]): T => arr[Math.abs(seed) % arr.length]!;
+  return [
+    conditionFood(phase, c) ?? pick(pool.food),
+    conditionComfort(phase, c) ?? pick(pool.comfort),
+    conditionMovement(phase, c) ?? pick(pool.movement),
+    pick(pool.mind),
+  ];
+}
+
+// ─── ROTATING PHASE POOLS (general wellness ideas) ───────────────────
+
+const PHASE_POOLS: Record<Phase, PhasePool> = {
+  menstrual: {
+    food: [
+      food('Iron & magnesium', 'Iron-rich foods (greens, beans) + magnesium (dark chocolate, nuts) may ease cramps.'),
+      food('Warm & simple', 'Soups, stews and warm teas feel kind on a tender day.'),
+      food('Hydrate & soothe', 'Water plus ginger or peppermint tea can settle cramps and bloating for some.'),
+    ],
+    comfort: [
+      comfort('Warmth helps', 'A heat pad and soft, loose clothing tend to feel best today.'),
+      comfort('Cosy + covered', 'Darker, comfy clothes and a spare in your bag = one less worry.'),
+    ],
+    movement: [
+      movement('Gentle only', 'Walks, stretching, restorative yoga. Skip the PRs.'),
+      movement('Rest counts', 'A slow stroll — or nothing at all. Recovery is training too.'),
+    ],
+    mind: [
+      mind('Rest is productive', 'Lower the bar today. Recovery is doing something, not nothing.'),
+      mind('A quiet check-in', 'A few lines on how you feel — future-you will thank you.'),
+    ],
+  },
+  follicular: {
+    food: [
+      food('Fresh & building', 'Fresh produce and protein support the energy that\'s climbing now.'),
+      food('Colourful plates', 'Lighter, varied meals tend to match rising energy.'),
+    ],
+    comfort: [
+      comfort('Easy layers', 'You may run a little cooler than last week — layers work well.'),
+    ],
+    movement: [
+      movement('Try something new', 'A good window for higher-intensity movement or a new class.'),
+      movement('Build a little', 'Progressive strength often feels great as energy rises.'),
+    ],
+    mind: [
+      mind('Great day to plan', 'Focus and motivation tend to rise — start that thing.'),
+      mind('Feed your curiosity', 'A curious day — a lesson or a book lands well.'),
+    ],
+  },
+  ovulatory: {
+    food: [
+      food('Light & bright', 'Lighter meals with fibre sit well around your peak.'),
+      food('Antioxidant-rich', 'Berries, leafy greens and plenty of water around ovulation.'),
+    ],
+    comfort: [
+      comfort('Breathable layers', 'You may run warm; breathable fabrics feel best.'),
+    ],
+    movement: [
+      movement('Peak strength', 'Often the strongest days — lean in if it feels good.'),
+      movement('Group energy', 'Social workouts or classes can feel extra fun now.'),
+    ],
+    mind: [
+      mind('Social energy high', 'A natural day for conversations and big asks.'),
+      mind('Say the thing', 'Confidence tends to peak — a good day for a bold conversation.'),
+    ],
+  },
+  luteal: {
+    food: [
+      food('Steady the mood', 'Complex carbs + magnesium may steady mood; easing salt can help bloating.'),
+      food('Craving-friendly', 'Pair carbs with protein + fat so treats don\'t spike the crash.'),
+      food('Warm & balanced', 'Satisfying meals with fibre help keep energy even.'),
+    ],
+    comfort: [
+      comfort('Comfy over fitted', 'Softer waistbands and flowy layers as bloating tends to peak.'),
+      comfort('Sleep-friendly', 'An earlier, cooler, darker wind-down helps luteal sleep.'),
+    ],
+    movement: [
+      movement('Moderate & kind', 'Moderate strength or pilates — meet your energy where it is.'),
+      movement('Walk it out', 'Long, gentle walks suit the wind-down phase.'),
+    ],
+    mind: [
+      mind('Be gentle with you', 'If you feel more sensitive, that\'s biology — not a flaw.'),
+      mind('Boundaries are okay', 'Fewer plans, more rest — it\'s fine to protect your energy.'),
+    ],
+  },
+};
+
+// ─── CONDITION-SPECIFIC OVERRIDES (non-diagnostic) ───────────────────
+
+function conditionFood(phase: Phase, c: Cond): DaySuggestion | null {
+  if (c.hasEndo && phase === 'menstrual')
+    return food('Anti-inflammatory', 'Leafy greens, omega-3s and iron; go easy on processed foods on heavy days.');
+  if (c.hasPcos && (phase === 'follicular' || phase === 'ovulatory'))
+    return food('Steady blood sugar', 'Protein + fibre with lower-GI carbs to keep energy even (a PCOS-friendly idea).');
+  if (c.hasPcos && phase === 'luteal')
+    return food('Lower-GI choices', 'Complex carbs paired with protein help avoid the crash (a PCOS-friendly idea).');
+  return null;
+}
+
+function conditionComfort(phase: Phase, c: Cond): DaySuggestion | null {
+  if (c.hasEndo && phase === 'menstrual')
+    return comfort('Heat early', 'Heat and rest without guilt — honor a heavier day.');
+  return null;
+}
+
+function conditionMovement(phase: Phase, c: Cond): DaySuggestion | null {
+  if (c.hasEndo && phase === 'luteal')
+    return movement('Gentle & kind', 'Gentle strength or pilates; rest when pain says so.');
+  if (c.hasThyroid && phase === 'follicular')
+    return movement('Ease in', 'Energy may be returning — build gently, no need to overdo it.');
+  if (c.hasPcos && (phase === 'follicular' || phase === 'ovulatory'))
+    return movement('Strength + walking', 'Strength training and walking may support insulin sensitivity (PCOS-friendly).');
+  return null;
 }
 
 // ─── SUGGESTION BUILDERS ─────────────────────────────────────────────
