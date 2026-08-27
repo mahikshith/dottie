@@ -32,8 +32,14 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   `app/exercise/[lessonId].tsx`; the lesson reader routes there after completion (read → practice →
   quiz). `order` is tap-to-sequence for now (drag later). Additive to the MCQ quiz engine.
   Learn tab is now a **path-map trail** (`app/(tabs)/learn.tsx`): lesson nodes (done/current/locked)
-  + companion on the current node. **Hybrid pace** via `Storage.learnLevel` ('new'=guided locks;
-  'basics'/'deep'=unlocked/self-directed). NEXT: author exercises for the other lessons + tiered content.
+  + companion on the current node, connected by a glowing SVG **aurora stream** (lit up to the
+  current node). **Hybrid pace** via `Storage.learnLevel` ('new'=guided locks; 'basics'/'deep'=
+  unlocked/self-directed). All 7 lessons have exercises (`src/content/exercises.ts`).
+- **OTA content updates** (updatable lessons, offline-first): `src/content/remote/` — bundled content
+  is the baseline; a downloaded, validated `ContentBundle` is merged ON TOP (cached wins by id) via
+  merged providers (wired in `hydrate.ts`) + OTA-aware `getExercisesForLesson`. `ContentUpdater` takes
+  an injectable `BundleFetcher` (default no-op; fetch sends ONLY a version number — no user data).
+  Dormant until a backend is wired. Full guide: `docs/CONTENT-UPDATES.md`.
 - **Calendar planner DONE** (design-v2): tap a day → `src/components/calendar/DayDetailSheet.tsx`
   (aurora glass popover, origin-magnify) driven by the NON-diagnostic `src/engine/calendar/
   day-suggestions.ts` (phase × period-proximity × PCOS/endo/thyroid). Day notes/plans persist via

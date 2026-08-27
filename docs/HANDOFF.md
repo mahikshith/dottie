@@ -103,6 +103,15 @@ for the 5 Duolingo-style types, additive (quizzes untouched):
    across both paths now have 2-4 interactive exercises, so every lesson routes into practice.
    Still to author: deeper phase-tip suggestion coverage in `day-suggestions.ts`; beginner→advanced
    tracks so the pace switch changes WHAT is shown, not just locking; more paths/lessons overall.
+
+**✅ DONE — OTA content-update seam** (updatable lessons after launch, offline-first · ⚠️ UNVERIFIED,
+no backend wired): `src/content/remote/` — `content-bundle.ts` (versioned `ContentBundle` +
+`validateContentBundle`), `remote-content-store.ts` (MMKV cache via `Storage.remoteContentBundle`),
+`content-updater.ts` (`ContentUpdater` + injectable `BundleFetcher`, default no-op; applies only
+valid+newer; privacy: fetcher gets ONLY a version number), `merged-providers.ts` (cached-over-bundled
+Lesson/Quiz providers, wired into `hydrate.ts`). `exercises.ts` merges cached exercises too. Full
+design + hosting options (CDN JSON / EAS Update / CMS) + go-live wiring in **`docs/CONTENT-UPDATES.md`**.
+Dormant + no-op until a real fetcher + backend are chosen — that's the remaining decision.
 3. ✅ DONE — **Calendar week-ahead strip** (`src/components/calendar/WeekAheadStrip.tsx` + wired in
    `calendar.tsx`): next 7 days w/ phase + one-line suggestion + window/planning dots; taps open the
    same popover (shared `buildSelected`). Calendar remaining is later-only: `expo-notifications`
