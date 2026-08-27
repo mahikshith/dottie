@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { useAurora } from '../../theme';
 
 /**
  * StreakFlame — Hero streak number with a flame emoji + soft halo.
@@ -47,6 +48,7 @@ export function StreakFlame({
   accentColor = Colors.gamification.streak,
   size = 'standard',
 }: StreakFlameProps) {
+  const { palette } = useAurora();
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const flamePulse = useRef(new Animated.Value(1)).current;
@@ -135,7 +137,7 @@ export function StreakFlame({
       </Text>
 
       {/* Caption */}
-      <Text style={styles.caption}>
+      <Text style={[styles.caption, { color: palette.ink3 }]}>
         {count === 1 ? 'day streak' : 'day streak'}
       </Text>
     </Animated.View>
@@ -190,7 +192,6 @@ const styles = StyleSheet.create({
   },
   caption: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
     marginTop: Spacing.xs,
     letterSpacing: 1.2,
     textTransform: 'uppercase',

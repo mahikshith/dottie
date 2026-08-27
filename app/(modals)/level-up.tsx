@@ -15,7 +15,7 @@ import {
   selectLevelProgress,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
-import { Colors } from '../../src/constants/colors';
+import { useAurora } from '../../src/theme';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { Shadows } from '../../src/constants/shadows';
@@ -61,6 +61,7 @@ export default function LevelUpScreen() {
   const phase = useCycleStore(selectCurrentPhase);
   const levelProgress = useGamificationStore(selectLevelProgress);
   const companion = getCompanion(companionType);
+  const { palette } = useAurora();
 
   const newLevelNumber = paramToInt(params.newLevel, 1);
   const xpAwarded = paramToInt(params.xp, 0);
@@ -117,16 +118,16 @@ export default function LevelUpScreen() {
         <Text style={[styles.levelLabel, { color: companion.accentColor }]}>
           Level {reachedLevel.level}
         </Text>
-        <Text style={styles.levelName}>{reachedLevel.name}</Text>
+        <Text style={[styles.levelName, { color: palette.ink }]}>{reachedLevel.name}</Text>
       </View>
 
       {/* Next-level teaser — gentle, never pushy */}
       {nextLevel ? (
-        <Text style={styles.nextTeaser}>
+        <Text style={[styles.nextTeaser, { color: palette.ink3 }]}>
           Next: {nextLevel.emoji} {nextLevel.name} · {nextLevel.xpRequired} XP
         </Text>
       ) : (
-        <Text style={styles.nextTeaser}>
+        <Text style={[styles.nextTeaser, { color: palette.ink3 }]}>
           You've reached the top of the path. Endless gratitude 🩷
         </Text>
       )}
@@ -134,7 +135,7 @@ export default function LevelUpScreen() {
       {/* Defensive fallback so test data displaying the wrong level
           number doesn't silently swallow the moment */}
       {newLevelNumber > 0 && newLevelNumber !== reachedLevel.level ? (
-        <Text style={styles.devNote}>
+        <Text style={[styles.devNote, { color: palette.ink3 }]}>
           (was awarded for reaching level {newLevelNumber})
         </Text>
       ) : null}
@@ -185,17 +186,14 @@ const styles = StyleSheet.create({
   },
   levelName: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
   },
   nextTeaser: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
     fontStyle: 'italic',
   },
   devNote: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
     marginTop: Spacing.xs,
     opacity: 0.5,

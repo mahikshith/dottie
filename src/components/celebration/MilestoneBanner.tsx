@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { Shadows } from '../../constants/shadows';
+import { useAurora } from '../../theme';
 
 /**
  * MilestoneBanner — A small "you hit a milestone" headline pill.
@@ -103,13 +103,14 @@ export function MilestoneBanner({
   milestone,
   accentColor = Colors.gamification.badge,
 }: MilestoneBannerProps) {
+  const { palette } = useAurora();
   const copy = MILESTONE_COPY[milestone] ?? FALLBACK_COPY;
 
   return (
     <View
       style={[
         styles.container,
-        { borderColor: hexToRgba(accentColor, 0.3) },
+        { backgroundColor: palette.glass.bg, borderColor: hexToRgba(accentColor, 0.5) },
       ]}
       accessibilityRole="header"
       accessibilityLabel={`Milestone: ${copy.name}, ${milestone} day streak`}
@@ -121,8 +122,8 @@ export function MilestoneBanner({
         </Text>
         <Text style={styles.sparkle}>✨</Text>
       </View>
-      <Text style={styles.name}>{copy.name}</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.name, { color: palette.ink }]}>{copy.name}</Text>
+      <Text style={[styles.subtitle, { color: palette.ink3 }]}>
         {copy.subtitle} · {milestone} days
       </Text>
     </View>
@@ -147,10 +148,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
     borderWidth: 1.5,
     gap: Spacing.xs,
-    ...Shadows.sm,
   },
   headerRow: {
     flexDirection: 'row',
@@ -166,12 +165,10 @@ const styles = StyleSheet.create({
   },
   name: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   subtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
     textAlign: 'center',
   },
 });

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { Shadows } from '../../constants/shadows';
+import { useAurora } from '../../theme';
 
 /**
  * RewardChip — A warm pill showing a gamification reward.
@@ -79,6 +79,7 @@ export function RewardChip({
   label,
   compact = false,
 }: RewardChipProps) {
+  const { palette } = useAurora();
   const config = KIND_CONFIG[kind];
   const displayLabel = label ?? config.defaultLabel;
 
@@ -87,7 +88,7 @@ export function RewardChip({
       style={[
         styles.chip,
         compact && styles.chipCompact,
-        { borderColor: hexToRgba(config.color, 0.25) },
+        { backgroundColor: palette.glass.bg, borderColor: hexToRgba(config.color, 0.45) },
       ]}
       accessibilityRole="text"
       accessibilityLabel={`Plus ${amount} ${displayLabel || config.emoji}`}
@@ -125,13 +126,11 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
     borderWidth: 1.5,
     gap: 6,
-    ...Shadows.sm,
   },
   chipCompact: {
     paddingHorizontal: Spacing.sm,

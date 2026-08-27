@@ -8,11 +8,12 @@ import {
   Easing,
   ScrollView,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { Shadows } from '../../constants/shadows';
+import { AuroraBackground } from '../ui';
+import { useAurora, PHASE_AURORA } from '../../theme';
 import type { PhaseKey } from '../../constants/colors';
 
 /**
@@ -105,6 +106,7 @@ export function CelebrationSheet({
   onDismiss,
   secondaryAction,
 }: CelebrationSheetProps) {
+  const { palette } = useAurora();
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
 
@@ -125,94 +127,84 @@ export function CelebrationSheet({
     ]).start();
   }, [opacity, translateY]);
 
-  const phaseColors = Colors.phase[phase];
-  const accent = ctaColor ?? phaseColors.primary;
+  // Phase identity comes from the constant aurora phase hues; a passed ctaColor
+  // still wins (callers can pass a palette hue). Cast keeps us tolerant if
+  // PhaseKey ever carries keys beyond the four cycle phases.
+  const phaseHue = (PHASE_AURORA as Record<string, string>)[phase] ?? palette.accent;
+  const accent = ctaColor ?? phaseHue;
 
   const defaultCompanionLine = `${companionName} is celebrating with you ${companionEmoji}`;
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: phaseColors.light }]}
-      edges={['top', 'bottom']}
-    >
-      {/* Close affordance */}
-      <View style={styles.header}>
-        <Pressable
-          onPress={onDismiss}
-          style={({ pressed }) => [
-            styles.closeButton,
-            pressed && { opacity: 0.7 },
-          ]}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-        >
-          <Text style={styles.closeText}>✕</Text>
-        </Pressable>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View
-          style={{
-            opacity,
-            transform: [{ translateY }],
-          }}
-        >
-          {/* Companion line */}
-          <Text style={styles.companionLine}>
-            {companionLine ?? defaultCompanionLine}
-          </Text>
-
-          {/* Hero slot — owned by the caller */}
-          <View style={styles.heroSlot}>{children}</View>
-
-          {/* Optional message */}
-          {message ? (
-            <Text style={styles.message}>{message}</Text>
-          ) : null}
-
-          {/* Optional reward chip row */}
-          {rewards ? (
-            <View style={styles.rewardRow}>{rewards}</View>
-          ) : null}
-        </Animated.View>
-      </ScrollView>
-
-      {/* Sticky footer with CTA */}
-      <View style={styles.footer}>
-        <Pressable
-          onPress={onCtaPress}
-          style={({ pressed }) => [
-            styles.cta,
-            { backgroundColor: accent },
-            pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={ctaLabel}
-        >
-          <Text style={styles.ctaText}>{ctaLabel}</Text>
-        </Pressable>
-
-        {secondaryAction ? (
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        {/* Close affordance */}
+        <View style={styles.header}>
           <Pressable
-            onPress={secondaryAction.onPress}
+            onPress={onDismiss}
             style={({ pressed }) => [
-              styles.secondaryAction,
-              pressed && { opacity: 0.6 },
+              styles.closeButton,
+              { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+              pressed && { opacity: 0.7 },
+            ]}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <Text style={[styles.closeText, { color: palette.ink2 }]}>✕</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity, transform: [{ translateY }] }}>
+            {/* Companion line */}
+            <Text style={[styles.companionLine, { color: palette.ink2 }]}>
+              {companionLine ?? defaultCompanionLine}
+            </Text>
+
+            {/* Hero slot — owned by the caller */}
+            <View style={styles.heroSlot}>{children}</View>
+
+            {/* Optional message */}
+            {message ? <Text style={[styles.message, { color: palette.ink }]}>{message}</Text> : null}
+
+            {/* Optional reward chip row */}
+            {rewards ? <View style={styles.rewardRow}>{rewards}</View> : null}
+          </Animated.View>
+        </ScrollView>
+
+        {/* Sticky footer with CTA */}
+        <View style={styles.footer}>
+          <Pressable
+            onPress={onCtaPress}
+            style={({ pressed }) => [
+              styles.cta,
+              { backgroundColor: accent },
+              pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] },
             ]}
             accessibilityRole="button"
-            accessibilityLabel={secondaryAction.label}
+            accessibilityLabel={ctaLabel}
           >
-            <Text style={[styles.secondaryText, { color: accent }]}>
-              {secondaryAction.label}
-            </Text>
+            <Text style={[styles.ctaText, { color: palette.ground }]}>{ctaLabel}</Text>
           </Pressable>
-        ) : null}
-      </View>
-    </SafeAreaView>
+
+          {secondaryAction ? (
+            <Pressable
+              onPress={secondaryAction.onPress}
+              style={({ pressed }) => [styles.secondaryAction, pressed && { opacity: 0.6 }]}
+              accessibilityRole="button"
+              accessibilityLabel={secondaryAction.label}
+            >
+              <Text style={[styles.secondaryText, { color: accent }]}>{secondaryAction.label}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      </SafeAreaView>
+    </AuroraBackground>
   );
 }
 
@@ -232,14 +224,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface.card,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.sm,
   },
   closeText: {
     fontSize: 16,
-    color: Colors.text.secondary,
     fontWeight: '600',
   },
   scrollContent: {
@@ -250,7 +240,6 @@ const styles = StyleSheet.create({
   },
   companionLine: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.secondary,
     textAlign: 'center',
     marginBottom: Spacing.xl,
     paddingHorizontal: Spacing.md,
@@ -262,7 +251,6 @@ const styles = StyleSheet.create({
   },
   message: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.primary,
     textAlign: 'center',
     lineHeight: 26,
     marginBottom: Spacing.lg,
@@ -286,11 +274,14 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.md ?? Shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 6,
   },
   ctaText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
   },
   secondaryAction: {
     paddingVertical: Spacing.sm,

@@ -15,7 +15,7 @@ import {
   selectStreak,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
-import { Colors } from '../../src/constants/colors';
+import { useAurora } from '../../src/theme';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 
@@ -77,6 +77,7 @@ export default function CheckInRecapScreen() {
   const recentSymptoms = useCycleStore((s) => s.recentSymptoms);
   const streak = useGamificationStore(selectStreak);
   const companion = getCompanion(companionType);
+  const { palette } = useAurora();
 
   const xpAwarded = paramToInt(params.xp, 0);
   const gemsAwarded = paramToInt(params.gems, 0);
@@ -155,8 +156,8 @@ export default function CheckInRecapScreen() {
           We deliberately do NOT show a giant streak number on this screen.
           That moment belongs to streak-celebration. This screen is the
           warm "thank you for showing up" version. */}
-      <View style={styles.recapCard}>
-        <Text style={styles.recapHeader}>Today's check-in</Text>
+      <View style={[styles.recapCard, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
+        <Text style={[styles.recapHeader, { color: palette.ink3 }]}>Today's check-in</Text>
 
         {todayCheckIn?.moodScore !== undefined &&
           todayCheckIn?.moodScore !== null && (
@@ -198,7 +199,7 @@ export default function CheckInRecapScreen() {
         {!todayCheckIn?.moodScore &&
           !todayCheckIn?.energyLevel &&
           symptomsToday === 0 && (
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { color: palette.ink2 }]}>
               You opened the door today — that counts.
             </Text>
           )}
@@ -218,11 +219,12 @@ function RecapRow({
   label: string;
   value: string;
 }) {
+  const { palette } = useAurora();
   return (
     <View style={styles.recapRow}>
       <Text style={styles.recapEmoji}>{emoji}</Text>
-      <Text style={styles.recapLabel}>{label}</Text>
-      <Text style={styles.recapValue}>{value}</Text>
+      <Text style={[styles.recapLabel, { color: palette.ink2 }]}>{label}</Text>
+      <Text style={[styles.recapValue, { color: palette.ink }]}>{value}</Text>
     </View>
   );
 }
@@ -268,8 +270,8 @@ function moodLabel(score: number): string {
 
 const styles = StyleSheet.create({
   recapCard: {
-    backgroundColor: Colors.surface.card,
     borderRadius: Spacing.radius['2xl'],
+    borderWidth: 1,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
     width: '100%',
@@ -278,7 +280,6 @@ const styles = StyleSheet.create({
   },
   recapHeader: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     textAlign: 'center',
@@ -296,16 +297,13 @@ const styles = StyleSheet.create({
   },
   recapLabel: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     flex: 1,
   },
   recapValue: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
   },
   emptyText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     textAlign: 'center',
     fontStyle: 'italic',
   },
