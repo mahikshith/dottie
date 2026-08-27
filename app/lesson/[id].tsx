@@ -17,6 +17,7 @@ import {
   getLearningPath,
   getLessonsForPath,
 } from '../../src/content/learning-paths';
+import { getExercisesForLesson } from '../../src/content/exercises';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
 import { LessonSection, Phase } from '../../src/types/cycle.types';
 import type { LessonSection as LessonSectionType } from '../../src/types/content.types';
@@ -172,22 +173,25 @@ export default function LessonDetailScreen() {
         return;
       }
 
-      // Otherwise just celebrate the lesson
-      Alert.alert(
-        'Lesson complete! ✨',
-        `+${xpResult.xpAwarded} XP · +${gemResult.gemsAwarded}💎${
-          lesson.quizId ? '\n\nWant to take the quiz?' : ''
-        }`,
-        lesson.quizId
-          ? [
-              { text: 'Later', style: 'cancel', onPress: () => router.back() },
-              {
-                text: 'Take Quiz',
-                onPress: () => router.replace(`/quiz/${lesson.quizId}`),
-              },
-            ]
-          : [{ text: 'Nice!', onPress: () => router.back() }]
-      );
+      // Otherwise just celebrate the lesson. Prefer the interactive practice
+      // (exercises) when the lesson has any — the exercise screen chains to the
+      // quiz at the end, so the flow is: read → practice → quiz.
+      const hasExercises = getExercisesForLesson(lesson.id).length > 0;
+      const rewardLine = `+${xpResult.xpAwarded} XP · +${gemResult.gemsAwarded}💎`;
+
+      if (hasExercises) {
+        Alert.alert('Lesson complete! ✨', `${rewardLine}\n\nReady to practice what you learned?`, [
+          { text: 'Later', style: 'cancel', onPress: () => router.back() },
+          { text: 'Practice ✨', onPress: () => router.replace(`/exercise/${lesson.id}`) },
+        ]);
+      } else if (lesson.quizId) {
+        Alert.alert('Lesson complete! ✨', `${rewardLine}\n\nWant to take the quiz?`, [
+          { text: 'Later', style: 'cancel', onPress: () => router.back() },
+          { text: 'Take Quiz', onPress: () => router.replace(`/quiz/${lesson.quizId}`) },
+        ]);
+      } else {
+        Alert.alert('Lesson complete! ✨', rewardLine, [{ text: 'Nice!', onPress: () => router.back() }]);
+      }
     } catch (err) {
       if (__DEV__) console.warn('[Lesson] complete failed:', err);
       Alert.alert('Oops', "I couldn't save your progress. Try again?");
