@@ -122,6 +122,10 @@ const Keys = {
   // Reminder preferences (design-v2 — the notification scheduler). Which local
   // reminders are on + when. Drives NotificationScheduler; all opt-in, on-device.
   REMINDER_PREFS: 'notifications.reminder_prefs',
+
+  // Medication / birth-control plans (design-v2). A JSON array of MedicationPlan.
+  // Local-only; drives daily medication reminders via the scheduler.
+  MEDICATIONS: 'meds.plans',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -421,6 +425,17 @@ export const Storage = {
     clear: (): void => mmkv.delete(Keys.REMINDER_PREFS),
   },
 
+  // ─── Medication / birth-control plans (design-v2) ───────────────
+  //
+  // A local list of things the user wants a daily reminder for (the pill, a
+  // ring change, etc). All on-device; scheduled via the notification scheduler.
+
+  medications: {
+    get: (): MedicationPlan[] => getJson<MedicationPlan[]>(Keys.MEDICATIONS) ?? [],
+    set: (plans: MedicationPlan[]): void => setJson(Keys.MEDICATIONS, plans),
+    clear: (): void => mmkv.delete(Keys.MEDICATIONS),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -498,6 +513,21 @@ export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   periodHeadsUp: false,
   hydration: false,
 };
+
+/** Kinds of medication / birth control a plan can be for. */
+export type MedicationKind = 'pill' | 'ring' | 'patch' | 'injection' | 'iud' | 'implant' | 'other';
+
+/** A single medication/BC daily reminder plan (see Storage.medications). */
+export interface MedicationPlan {
+  id: string;
+  /** User-facing name, e.g. "The pill" or a brand. */
+  name: string;
+  kind: MedicationKind;
+  /** Preset time of day the daily reminder fires. */
+  time: ReminderTime;
+  /** Whether this reminder is currently on. */
+  active: boolean;
+}
 
 /** A per-day planning entry backing the calendar popover (see Storage.dayPlans). */
 export interface DayPlan {

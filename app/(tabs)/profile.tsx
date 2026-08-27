@@ -107,6 +107,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/privacy');
   };
 
+  const handleMedicationsTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/medications');
+  };
+
   const handleComingSoon = (title: string) => {
     Haptics.selectionAsync().catch(() => {});
     // For now, a no-op. Wired in future chunks.
@@ -231,13 +236,13 @@ export default function ProfileScreen() {
             />
           </Animated.View>
 
-          {/* 🌱 Coming soon */}
+          {/* ✅ Shipped — Medications & birth control reminders */}
           <Animated.View entering={rise(570)}>
             <SettingsItem
               emoji="💊"
-              title="Medications"
-              subtitle="Track birth control & meds · coming soon"
-              onPress={() => handleComingSoon('Medications')}
+              title="Medications & birth control"
+              subtitle="Discreet daily reminders — pill, ring & more"
+              onPress={handleMedicationsTap}
             />
           </Animated.View>
           <Animated.View entering={rise(640)}>

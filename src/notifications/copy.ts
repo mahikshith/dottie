@@ -56,6 +56,7 @@ export type NotificationKind =
   | 'check_in_reminder'             // daily nudge to log
   | 'check_in_streak_at_risk'       // 24h since last log, streak in danger
   | 'hydration_nudge'               // gentle "sip some water" reminder
+  | 'medication_reminder'           // daily med / birth-control reminder
   | 'period_window_approaching'     // 2-3 days before predicted period
   | 'period_arrived_check'          // gentle ask: "did it start?"
   | 'phase_transition'              // entered new cycle phase
@@ -157,6 +158,17 @@ const NOTIFICATION_COPY: Record<NotificationKind, NotificationCopyPair> = {
     explicit: {
       title: 'Sip some water 💧',
       body: 'A gentle hydration nudge from Dottie — your body will thank you.',
+    },
+  },
+
+  medication_reminder: {
+    discrete: {
+      title: 'A small daily reminder',
+      body: 'Time for your daily item — a quick tap and you\'re set.',
+    },
+    explicit: {
+      title: 'Time for your {name} 💊',
+      body: 'Your daily reminder from Dottie. Tap when you\'ve taken it.',
     },
   },
 

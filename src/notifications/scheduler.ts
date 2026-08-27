@@ -28,7 +28,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { getNotificationCopy, type NotificationKind } from './copy';
-import type { ReminderPrefs, ReminderTime } from '../database/storage';
+import { Storage, type ReminderPrefs, type ReminderTime, type MedicationPlan } from '../database/storage';
 
 // Foreground behaviour: show the reminder even if the app is open (gentle).
 Notifications.setNotificationHandler({
@@ -80,15 +80,17 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Apply the user's reminder preferences: cancels our existing schedule and
- * re-adds whatever is enabled. Call this whenever prefs OR the prediction change
- * (e.g. from the Reminders screen, and after a check-in re-runs prediction).
+ * Reschedule EVERYTHING (reminders + medications) from what's persisted in
+ * Storage. This is the single source of truth: because we cancel-all then
+ * re-add, any screen that changes prefs/meds should persist first, then call
+ * this. Also re-run it after a check-in updates the prediction.
  */
-export async function applyReminderPrefs(
-  prefs: ReminderPrefs,
-  ctx: ScheduleContext
-): Promise<ScheduleResult> {
-  const anyOn = prefs.checkIn || prefs.hydration || prefs.periodHeadsUp;
+export async function syncAllReminders(ctx: ScheduleContext): Promise<ScheduleResult> {
+  const prefs = Storage.reminderPrefs.get();
+  const meds = Storage.medications.get();
+  const activeMeds = meds.filter((m) => m.active);
+
+  const anyOn = prefs.checkIn || prefs.hydration || prefs.periodHeadsUp || activeMeds.length > 0;
 
   // Nothing on → make sure we've torn down any prior schedule and stop.
   if (!anyOn) {
@@ -117,8 +119,24 @@ export async function applyReminderPrefs(
       scheduled++;
     }
   }
+  for (const med of activeMeds) {
+    await scheduleMedication(med, ctx.discrete);
+    scheduled++;
+  }
 
   return { granted: true, scheduled };
+}
+
+/**
+ * Persist the given reminder prefs, then reschedule everything. Kept for the
+ * Reminders screen's call site; medications are picked up from Storage.
+ */
+export async function applyReminderPrefs(
+  prefs: ReminderPrefs,
+  ctx: ScheduleContext
+): Promise<ScheduleResult> {
+  Storage.reminderPrefs.set(prefs);
+  return syncAllReminders(ctx);
 }
 
 /** Cancel every reminder Dottie scheduled (we're the app's only scheduler). */
@@ -153,6 +171,21 @@ async function scheduleAt(kind: NotificationKind, date: Date, discrete: boolean)
     });
   } catch (err) {
     if (__DEV__) console.warn(`[Notifications] schedule ${kind} failed:`, err);
+  }
+}
+
+async function scheduleMedication(plan: MedicationPlan, discrete: boolean): Promise<void> {
+  const copy = getNotificationCopy('medication_reminder', discrete ? 'discrete' : 'explicit');
+  // The med NAME only appears in the explicit copy — the discrete title stays
+  // generic so a lock-screen glance never reveals it's birth control.
+  const title = discrete ? copy.title : copy.title.replace('{name}', plan.name);
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body: copy.body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: TIME_HOUR[plan.time], minute: 0 },
+    });
+  } catch (err) {
+    if (__DEV__) console.warn('[Notifications] schedule medication failed:', err);
   }
 }
 
