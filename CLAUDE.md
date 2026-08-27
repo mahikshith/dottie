@@ -35,6 +35,10 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   + companion on the current node, connected by a glowing SVG **aurora stream** (lit up to the
   current node). **Hybrid pace** via `Storage.learnLevel` ('new'=guided locks; 'basics'/'deep'=
   unlocked/self-directed). All 7 lessons have exercises (`src/content/exercises.ts`).
+- **Notifications v1** (local, opt-in): `src/notifications/scheduler.ts` (`applyReminderPrefs`) +
+  `Storage.reminderPrefs` + `app/(profile)/reminders.tsx` (wired from Profile). Uses the existing
+  discrete/explicit copy. `expo-notifications` added to package.json (needs `npm install` + dev build).
+  Next: BC/medication reminders build on this; re-sync on launch/after check-in.
 - **OTA content updates** (updatable lessons, offline-first): `src/content/remote/` — bundled content
   is the baseline; a downloaded, validated `ContentBundle` is merged ON TOP (cached wins by id) via
   merged providers (wired in `hydrate.ts`) + OTA-aware `getExercisesForLesson`. `ContentUpdater` takes

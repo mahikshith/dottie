@@ -6,8 +6,9 @@
 
 ## 0. Recommended build order (each unlocks the next)
 
-1. **Notification scheduler service** (foundational) — wraps the copy that ALREADY exists
-   in `src/notifications/copy.ts`. Unlocks period heads-ups, hydration nudges, streak-at-risk.
+1. ✅ **DONE — Notification scheduler service** (`src/notifications/scheduler.ts` +
+   `Storage.reminderPrefs` + `app/(profile)/reminders.tsx`). Local + opt-in; daily check-in,
+   hydration, period heads-up. Remaining: re-sync on launch/after check-in; per-kind settings polish.
 2. **Birth-control / medication reminders** — the universally-requested feature; sits on #1.
 3. **HealthKit / Health Connect read** — the accuracy frontier; native, bigger lift, dev build.
 

@@ -38,9 +38,15 @@ reviews/studies + privacy discourse. Full sources in the session; key takeaways 
 - **Cycle-syncing** (phase food/movement) = 294M TikTok views but science is INCONCLUSIVE and rarely
   disclosed. Dottie already offers it in the calendar with a non-diagnostic disclaimer — a trust win.
   KEEP the honest framing.
+- **✅ DONE — Notifications v1** (the foundational unlock): `src/notifications/scheduler.ts`
+  (`applyReminderPrefs` — daily check-in / hydration / period heads-up via expo-notifications, local +
+  opt-in, permission asked only on enable) + `Storage.reminderPrefs` + `app/(profile)/reminders.tsx`
+  (aurora settings: toggles, time presets, discreet-mode preview) wired from Profile. `hydration_nudge`
+  copy added. ⚠️ needs `npm install` + dev build to deliver; logic verifiable by reading.
 - **Gaps vs competitors (net-new, prioritized):**
   1. **Birth-control / medication reminders** (pill/ring/patch/IUD…) — universally requested; we have a
-     "Medications" STUB. Needs the notification scheduler.
+     "Medications" STUB. NOW UNBLOCKED — build on the notification scheduler above (data model +
+     screen + new `medication_reminder`/`birth_control_reminder` kinds; re-sync on launch/after check-in).
   2. **Wearable / Apple Health + Google Fit** (skin temp, HRV, sleep) — the accuracy frontier (Oura 96%
      ovulation detection). Native, bigger lift.
   3. **Perimenopause/menopause mode** (wider windows, hot-flash/sleep) — endocrine mode only today.
