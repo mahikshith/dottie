@@ -14,14 +14,15 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../../src/constants/typography';
 import { Spacing } from '../../../src/constants/spacing';
-import { Shadows } from '../../../src/constants/shadows';
+import { A } from '../../../src/theme';
 import {
   GradientButton,
   PressableScale,
   PopOnChange,
+  AuroraBackground,
 } from '../../../src/components/ui';
 import {
   useCommunityStore,
@@ -220,28 +221,34 @@ export default function PostDetailScreen() {
 
   if (loadingPost) {
     return (
-      <View style={styles.centerScreen}>
-        <Stack.Screen options={{ title: 'Post' }} />
-        <ActivityIndicator color={Colors.primary.coral} />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.centerScreen}>
+          <Stack.Screen options={{ title: 'Post' }} />
+          <ActivityIndicator color={A.accent} />
+        </View>
+      </AuroraBackground>
     );
   }
 
   if (!post) {
     return (
-      <View style={styles.centerScreen}>
-        <Stack.Screen options={{ title: 'Post' }} />
-        <Text style={styles.notFoundEmoji}>🌸</Text>
-        <Text style={styles.notFoundTitle}>This post isn't here</Text>
-        <Text style={styles.notFoundBody}>
-          It may have been removed or hidden for review.
-        </Text>
-        <GradientButton
-          label="Back to The Circle"
-          onPress={() => router.back()}
-          style={{ marginTop: Spacing.md }}
-        />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.centerScreen}>
+          <Stack.Screen options={{ title: 'Post' }} />
+          <Text style={styles.notFoundEmoji}>🌸</Text>
+          <Text style={styles.notFoundTitle}>This post isn't here</Text>
+          <Text style={styles.notFoundBody}>
+            It may have been removed or hidden for review.
+          </Text>
+          <GradientButton
+            label="Back to The Circle"
+            onPress={() => router.back()}
+            style={{ marginTop: Spacing.md }}
+          />
+        </View>
+      </AuroraBackground>
     );
   }
 
@@ -251,7 +258,9 @@ export default function PostDetailScreen() {
   const isOwnPost = userId === post.authorUserId;
 
   return (
-    <KeyboardAvoidingView
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
       style={styles.kav}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -421,7 +430,7 @@ export default function PostDetailScreen() {
           value={replyText}
           onChangeText={setReplyText}
           placeholder="Share a kind word..."
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={A.ink3}
           style={styles.composerInput}
           maxLength={REPLY_BODY_MAX + 100}
           multiline
@@ -437,7 +446,8 @@ export default function PostDetailScreen() {
           }
         />
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </AuroraBackground>
   );
 }
 
@@ -608,7 +618,7 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   content: {
     paddingHorizontal: Spacing.screenPadding,
@@ -616,7 +626,7 @@ const styles = StyleSheet.create({
   },
   centerScreen: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
@@ -625,20 +635,20 @@ const styles = StyleSheet.create({
   notFoundEmoji: { fontSize: 64 },
   notFoundTitle: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   notFoundBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
   },
   // Post card
   postCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     marginBottom: Spacing.lg,
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   authorRow: {
     flexDirection: 'row',
@@ -651,11 +661,11 @@ const styles = StyleSheet.create({
   },
   authorName: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   postMeta: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   credStrip: {
@@ -667,7 +677,7 @@ const styles = StyleSheet.create({
   credPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: Spacing.radius.full,
@@ -679,11 +689,11 @@ const styles = StyleSheet.create({
   credPillValue: {
     ...Typography.preset.caption,
     fontSize: 11,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   postBody: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.primary,
+    color: A.ink,
     lineHeight: 26,
     marginTop: Spacing.sm,
     marginBottom: Spacing.lg,
@@ -698,13 +708,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: A.glass,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
   },
   actionButtonActive: {
-    backgroundColor: '#FFF1E8',
-    borderColor: Colors.primary.coral,
+    backgroundColor: `${A.accent}22`,
+    borderColor: A.accent,
   },
   actionButtonReported: {
     opacity: 0.5,
@@ -715,10 +725,10 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   actionLabelActive: {
-    color: Colors.primary.coral,
+    color: A.accent,
   },
   // Replies
   repliesHeader: {
@@ -727,20 +737,20 @@ const styles = StyleSheet.create({
   },
   repliesTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   repliesSubtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: Spacing.xs,
     fontStyle: 'italic',
   },
   replyCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   replyAuthorRow: {
     flexDirection: 'row',
@@ -753,16 +763,16 @@ const styles = StyleSheet.create({
   },
   replyAuthorName: {
     ...Typography.preset.captionBold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   replyTimestamp: {
     ...Typography.preset.caption,
     fontSize: 11,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   replyBody: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     lineHeight: 22,
     marginBottom: Spacing.sm,
   },
@@ -782,10 +792,10 @@ const styles = StyleSheet.create({
   replyActionEmoji: { fontSize: 14 },
   replyActionText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   replyActionTextActive: {
-    color: Colors.primary.coral,
+    color: A.accent,
   },
   // Composer (sticky bottom)
   composer: {
@@ -794,34 +804,34 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingHorizontal: Spacing.screenPadding,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   composerModeChip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.full,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     height: 40,
     justifyContent: 'center',
   },
   composerModeChipAnon: {
-    backgroundColor: '#F5F0FF',
-    borderColor: Colors.companion.butterfly,
+    backgroundColor: `${A.accent2}22`,
+    borderColor: A.accent2,
   },
   composerModeChipText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     fontWeight: '600',
   },
   composerInput: {
     flex: 1,
     ...Typography.preset.body,
-    color: Colors.text.primary,
-    backgroundColor: Colors.surface.background,
+    color: A.ink,
+    backgroundColor: A.glass,
     borderRadius: Spacing.radius.xl,
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
@@ -829,6 +839,6 @@ const styles = StyleSheet.create({
     minHeight: 40,
     maxHeight: 120,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
   },
 });

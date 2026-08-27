@@ -13,11 +13,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { GradientButton, PressableScale } from '../../src/components/ui';
+import { GradientButton, PressableScale, AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 import {
   useCommunityStore,
   useUserStore,
@@ -206,7 +206,9 @@ export default function NewPostScreen() {
   // ─── Render ─────────────────────────────────────────────────────
 
   return (
-    <KeyboardAvoidingView
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
       style={styles.kav}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
@@ -263,7 +265,7 @@ export default function NewPostScreen() {
             value={body}
             onChangeText={setBody}
             placeholder="Share a thought, a question, or just a feeling..."
-            placeholderTextColor={Colors.text.tertiary}
+            placeholderTextColor={A.ink3}
             multiline
             style={styles.input}
             maxLength={POST_BODY_MAX + 200}
@@ -273,7 +275,7 @@ export default function NewPostScreen() {
             <Text
               style={[
                 styles.counter,
-                tooLong && { color: Colors.semantic.error },
+                tooLong && { color: A.error },
               ]}
             >
               {trimmed.length} / {POST_BODY_MAX}
@@ -289,7 +291,7 @@ export default function NewPostScreen() {
           </Text>
         )}
         {tooLong && (
-          <Text style={[styles.helperText, { color: Colors.semantic.error }]}>
+          <Text style={[styles.helperText, { color: A.error }]}>
             That's a lot to share — could you trim to {POST_BODY_MAX} characters?
           </Text>
         )}
@@ -368,7 +370,8 @@ export default function NewPostScreen() {
 
         <View style={{ height: Spacing['4xl'] }} />
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </AuroraBackground>
   );
 }
 
@@ -413,7 +416,7 @@ const styles = StyleSheet.create({
   kav: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   content: {
     paddingHorizontal: Spacing.screenPadding,
@@ -422,11 +425,11 @@ const styles = StyleSheet.create({
   companionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.lg,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   companionEmoji: {
     fontSize: 28,
@@ -434,13 +437,13 @@ const styles = StyleSheet.create({
   },
   companionText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     lineHeight: 22,
   },
   label: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: Spacing.sm,
@@ -455,16 +458,16 @@ const styles = StyleSheet.create({
   spaceChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
   },
   spaceChipActive: {
-    backgroundColor: Colors.primary.coral,
-    borderColor: Colors.primary.coral,
+    backgroundColor: A.accent,
+    borderColor: A.accent,
   },
   spaceChipEmoji: {
     fontSize: 14,
@@ -472,15 +475,15 @@ const styles = StyleSheet.create({
   },
   spaceChipLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   spaceChipLabelActive: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   hintCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     marginBottom: Spacing.lg,
@@ -491,22 +494,22 @@ const styles = StyleSheet.create({
   },
   hintText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     fontStyle: 'italic',
   },
   inputCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.xl,
     padding: Spacing.md,
     minHeight: 180,
     borderWidth: 1,
-    borderColor: Colors.border.light,
-    ...Shadows.sm,
+    borderColor: A.edge,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   input: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     minHeight: 140,
     lineHeight: 22,
   },
@@ -517,11 +520,11 @@ const styles = StyleSheet.create({
   },
   counter: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   helperText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     marginTop: Spacing.sm,
   },
   moderationCard: {
@@ -531,7 +534,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary.coral,
+    borderLeftColor: A.accent,
     marginTop: Spacing.md,
   },
   moderationEmoji: {
@@ -540,18 +543,18 @@ const styles = StyleSheet.create({
   },
   moderationText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
     lineHeight: 20,
   },
   anonymousRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     marginTop: Spacing.lg,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   anonymousTextWrap: {
     flex: 1,
@@ -559,30 +562,30 @@ const styles = StyleSheet.create({
   },
   anonymousTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: 2,
   },
   anonymousHint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     lineHeight: 16,
   },
   toggleTrack: {
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: Colors.border.medium,
+    backgroundColor: A.edge,
     padding: 2,
     justifyContent: 'center',
   },
   toggleTrackActive: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
   },
   toggleThumb: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
   },
   toggleThumbActive: {
     transform: [{ translateX: 18 }],
@@ -598,13 +601,13 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
   },
   cancelButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   // GradientButton owns its own height/background/shadow — we only feed
   // it the flex ratio so it keeps the original 2:1 split with Cancel.
