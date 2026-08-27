@@ -30,6 +30,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
@@ -274,6 +275,22 @@ function PaceChooser({
 
 // ─── PATH TRAIL ──────────────────────────────────────────────────────
 
+// Trail geometry (px).
+const NODE = 62;
+const ROW_H = 104;
+const TOP = 48;
+const BOTTOM = 64;
+
+interface TrailNode {
+  key: string;
+  kind: 'lesson' | 'reward';
+  lesson: Lesson | null;
+  glyph: string;
+  title: string;
+  meta: string;
+  state: 'done' | 'current' | 'locked' | 'available' | 'reward-on' | 'reward-off';
+}
+
 function PathTrail({
   path,
   lessons,
@@ -293,13 +310,59 @@ function PathTrail({
 }): JSX.Element {
   const { palette } = useAurora();
   const accent = path.gradient[0];
+  const [width, setWidth] = useState(0);
 
-  // First incomplete lesson = where the companion stands ("current").
   const currentId = useMemo(
     () => lessons.find((l) => progressMap.get(l.id)?.status !== 'complete')?.id ?? null,
     [lessons, progressMap]
   );
   const allComplete = stats.total > 0 && stats.completed === stats.total;
+
+  // Build the ordered node model (lessons + a final reward node).
+  const nodes: TrailNode[] = lessons.map((lesson) => {
+    const isComplete = progressMap.get(lesson.id)?.status === 'complete';
+    const isCurrent = lesson.id === currentId;
+    const locked = guided && isLessonLocked(lesson, lessons, progressMap);
+    const state: TrailNode['state'] = isComplete
+      ? 'done'
+      : locked
+        ? 'locked'
+        : isCurrent
+          ? 'current'
+          : 'available';
+    return {
+      key: lesson.id,
+      kind: 'lesson',
+      lesson,
+      glyph: isComplete ? '✓' : locked ? '🔒' : lesson.emoji,
+      title: lesson.title,
+      meta: `${lesson.estimatedMinutes} min · ${lesson.xpReward} XP${lesson.quizId ? ' · Quiz' : ''}`,
+      state,
+    };
+  });
+  nodes.push({
+    key: `${path.id}_reward`,
+    kind: 'reward',
+    lesson: null,
+    glyph: allComplete ? '🏆' : '🎁',
+    title: allComplete ? `${path.title} complete!` : 'Path reward',
+    meta: `+${path.completionXP} XP · +${path.completionGems}💎`,
+    state: allComplete ? 'reward-on' : 'reward-off',
+  });
+
+  // The "you are here" index = current lesson (or the reward when all done).
+  const currentIndex = allComplete
+    ? nodes.length - 1
+    : Math.max(0, nodes.findIndex((n) => n.state === 'current'));
+
+  // Geometry: gentle meander so the path reads as a journey, not a list.
+  const amp = width > 0 ? Math.min(72, Math.max(28, width * 0.2)) : 0;
+  const cx = width / 2;
+  const points = nodes.map((_, i) => ({
+    x: cx + amp * Math.sin(i * 0.9),
+    y: TOP + i * ROW_H + NODE / 2,
+  }));
+  const height = TOP + (nodes.length - 1) * ROW_H + NODE + BOTTOM;
 
   return (
     <View style={styles.trailWrap}>
@@ -324,127 +387,101 @@ function PathTrail({
         </View>
       </GlassCard>
 
-      {/* The trail */}
-      <View style={styles.trail}>
-        {/* connector line down the centre, behind the nodes */}
-        <View style={[styles.connector, { backgroundColor: palette.glass.edge }]} />
+      {/* The trail — measured, then drawn as a glowing aurora stream */}
+      <View style={{ height: width > 0 ? height : ROW_H }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        {width > 0 && (
+          <>
+            {/* aurora stream behind the nodes */}
+            <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+              <Defs>
+                <SvgLinearGradient id={`stream_${path.id}`} x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={palette.accent} />
+                  <Stop offset="1" stopColor={palette.accent2} />
+                </SvgLinearGradient>
+              </Defs>
+              {/* dim base ribbon (the whole journey) */}
+              <Path d={buildTrailPath(points)} stroke={palette.glass.edge} strokeWidth={6} fill="none" strokeLinecap="round" />
+              {/* lit portion up to where you are — a soft glow + a bright core */}
+              {currentIndex > 0 && (
+                <>
+                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={palette.accent} strokeOpacity={0.22} strokeWidth={16} fill="none" strokeLinecap="round" />
+                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={`url(#stream_${path.id})`} strokeWidth={6} fill="none" strokeLinecap="round" />
+                </>
+              )}
+            </Svg>
 
-        {lessons.map((lesson, i) => {
-          const status = progressMap.get(lesson.id)?.status;
-          const isComplete = status === 'complete';
-          const isCurrent = lesson.id === currentId;
-          const locked = guided && isLessonLocked(lesson, lessons, progressMap);
-          const labelLeft = i % 2 === 0;
+            {/* nodes + titles on top */}
+            {nodes.map((n, i) => {
+              const p = points[i]!;
+              const locked = n.state === 'locked';
+              const isCurrent = n.state === 'current';
+              const tappable = n.kind === 'lesson' && !locked;
+              return (
+                <View key={n.key}>
+                  {isCurrent && (
+                    <View style={[styles.companionPerch, { left: p.x - 24, top: p.y - NODE / 2 - 40 }]} pointerEvents="none">
+                      <CompanionLottie type={companionType} state="idle" size={48} />
+                    </View>
+                  )}
+                  <PressableScale
+                    onPress={() => tappable && n.lesson && onLessonTap(n.lesson.id)}
+                    disabled={!tappable}
+                    haptic={tappable ? 'light' : 'none'}
+                    scaleTo={0.9}
+                    style={[
+                      styles.node,
+                      { left: p.x - NODE / 2, top: p.y - NODE / 2, borderColor: palette.glass.edge, backgroundColor: palette.glass.bg },
+                      n.state === 'done' && { backgroundColor: `${AURORA_SUCCESS}22`, borderColor: AURORA_SUCCESS },
+                      (isCurrent || n.state === 'reward-on') && {
+                        borderColor: accent,
+                        backgroundColor: `${accent}22`,
+                        shadowColor: accent,
+                        shadowOpacity: 0.6,
+                        shadowRadius: 16,
+                        shadowOffset: { width: 0, height: 0 },
+                        elevation: 8,
+                      },
+                      (locked || n.state === 'reward-off') && { opacity: 0.5 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${n.title}${locked ? ' (locked)' : n.state === 'done' ? ' (complete)' : ''}`}
+                    accessibilityState={{ disabled: !tappable }}
+                  >
+                    <Text style={styles.nodeGlyph}>{n.glyph}</Text>
+                  </PressableScale>
 
-          return (
-            <View key={lesson.id} style={styles.nodeRow}>
-              {/* left label slot */}
-              <View style={styles.labelSlot}>
-                {labelLeft && (
-                  <NodeLabel lesson={lesson} align="right" locked={locked} isCurrent={isCurrent} />
-                )}
-              </View>
-
-              {/* node */}
-              <View style={styles.nodeCol}>
-                {isCurrent && !locked && (
-                  <View style={styles.companionPerch} pointerEvents="none">
-                    <CompanionLottie type={companionType} state="idle" size={46} />
+                  {/* centered title under the node */}
+                  <View style={[styles.nodeLabel, { left: p.x - 62, top: p.y + NODE / 2 + 6 }]} pointerEvents="none">
+                    {isCurrent && <Text style={[styles.currentTag, { color: accent }]}>YOU'RE HERE</Text>}
+                    <Text style={[styles.nodeTitle, { color: locked || n.state === 'reward-off' ? palette.ink3 : palette.ink }]} numberOfLines={2}>
+                      {n.title}
+                    </Text>
+                    <Text style={[styles.nodeMeta, { color: palette.ink3 }]} numberOfLines={1}>
+                      {n.meta}
+                    </Text>
                   </View>
-                )}
-                <PressableScale
-                  onPress={() => !locked && onLessonTap(lesson.id)}
-                  disabled={locked}
-                  haptic={locked ? 'none' : 'light'}
-                  scaleTo={0.9}
-                  style={[
-                    styles.node,
-                    { borderColor: palette.glass.edge, backgroundColor: palette.glass.bg },
-                    isComplete && { backgroundColor: `${AURORA_SUCCESS}22`, borderColor: AURORA_SUCCESS },
-                    isCurrent && !locked && { borderColor: accent, backgroundColor: `${accent}22`, shadowColor: accent, shadowOpacity: 0.6, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
-                    locked && { opacity: 0.55 },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${lesson.title}${locked ? ' (locked)' : isComplete ? ' (complete)' : ''}`}
-                  accessibilityState={{ disabled: locked }}
-                >
-                  <Text style={styles.nodeGlyph}>
-                    {isComplete ? '✓' : locked ? '🔒' : lesson.emoji}
-                  </Text>
-                </PressableScale>
-              </View>
-
-              {/* right label slot */}
-              <View style={styles.labelSlot}>
-                {!labelLeft && (
-                  <NodeLabel lesson={lesson} align="left" locked={locked} isCurrent={isCurrent} />
-                )}
-              </View>
-            </View>
-          );
-        })}
-
-        {/* Reward node */}
-        <View style={styles.nodeRow}>
-          <View style={styles.labelSlot} />
-          <View style={styles.nodeCol}>
-            <View
-              style={[
-                styles.node,
-                styles.rewardNode,
-                { borderColor: allComplete ? palette.accent : palette.glass.edge, backgroundColor: allComplete ? `${palette.accent}22` : palette.glass.bg },
-                !allComplete && { opacity: 0.6 },
-              ]}
-            >
-              <Text style={styles.nodeGlyph}>{allComplete ? '🏆' : '🎁'}</Text>
-            </View>
-          </View>
-          <View style={styles.labelSlot}>
-            <View style={styles.labelCardLeft}>
-              <Text style={[styles.nodeTitle, { color: palette.ink }]} numberOfLines={2}>
-                {allComplete ? `${path.title} complete!` : 'Path reward'}
-              </Text>
-              <Text style={[styles.nodeMeta, { color: palette.ink3 }]}>
-                +{path.completionXP} XP · +{path.completionGems}💎
-              </Text>
-            </View>
-          </View>
-        </View>
+                </View>
+              );
+            })}
+          </>
+        )}
       </View>
     </View>
   );
 }
 
-function NodeLabel({
-  lesson,
-  align,
-  locked,
-  isCurrent,
-}: {
-  lesson: Lesson;
-  align: 'left' | 'right';
-  locked: boolean;
-  isCurrent: boolean;
-}): JSX.Element {
-  const { palette } = useAurora();
-  return (
-    <View style={align === 'left' ? styles.labelCardLeft : styles.labelCardRight}>
-      {isCurrent && !locked && (
-        <Text style={[styles.currentTag, { color: palette.accent, textAlign: align === 'left' ? 'left' : 'right' }]}>
-          YOU'RE HERE
-        </Text>
-      )}
-      <Text
-        style={[styles.nodeTitle, { color: locked ? palette.ink3 : palette.ink, textAlign: align === 'left' ? 'left' : 'right' }]}
-        numberOfLines={2}
-      >
-        {lesson.title}
-      </Text>
-      <Text style={[styles.nodeMeta, { color: palette.ink3, textAlign: align === 'left' ? 'left' : 'right' }]}>
-        {lesson.estimatedMinutes} min · {lesson.xpReward} XP{lesson.quizId ? ' · Quiz' : ''}
-      </Text>
-    </View>
-  );
+/** Smooth vertical S-curve through the node centres (control points at the mid-Y). */
+function buildTrailPath(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return '';
+  const first = pts[0]!;
+  let d = `M ${first.x} ${first.y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const p0 = pts[i - 1]!;
+    const p1 = pts[i]!;
+    const my = (p0.y + p1.y) / 2;
+    d += ` C ${p0.x} ${my}, ${p1.x} ${my}, ${p1.x} ${p1.y}`;
+  }
+  return d;
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
@@ -514,25 +551,21 @@ const styles = StyleSheet.create({
   pathProgressBarFill: { height: '100%', borderRadius: 3 },
   pathProgressText: { ...Typography.preset.captionBold, minWidth: 40, textAlign: 'right' },
 
-  trail: { position: 'relative', marginTop: Spacing.md },
-  connector: { position: 'absolute', left: '50%', width: 3, marginLeft: -1.5, top: 44, bottom: 44, borderRadius: 2 },
-  nodeRow: { flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.sm },
-  labelSlot: { flex: 1, justifyContent: 'center' },
-  nodeCol: { width: 76, alignItems: 'center', justifyContent: 'center' },
-  companionPerch: { position: 'absolute', top: -34, zIndex: 3 },
+  // Trail nodes + labels are absolutely positioned over the SVG stream.
+  companionPerch: { position: 'absolute', width: 48, alignItems: 'center', zIndex: 3 },
   node: {
-    width: 64,
-    height: 64,
+    position: 'absolute',
+    width: 62,
+    height: 62,
     borderRadius: 22,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
-  rewardNode: { width: 66, height: 66, borderRadius: 24 },
-  nodeGlyph: { fontSize: 28 },
-  labelCardLeft: { alignItems: 'flex-start', paddingLeft: Spacing.sm },
-  labelCardRight: { alignItems: 'flex-end', paddingRight: Spacing.sm },
+  nodeGlyph: { fontSize: 27 },
+  nodeLabel: { position: 'absolute', width: 124, alignItems: 'center' },
   currentTag: { ...Typography.preset.overline, fontSize: 9, letterSpacing: 1, marginBottom: 2 },
-  nodeTitle: { ...Typography.preset.bodySemibold, fontSize: 14 },
-  nodeMeta: { ...Typography.preset.caption, fontSize: 11, marginTop: 2 },
+  nodeTitle: { ...Typography.preset.bodySemibold, fontSize: 13, textAlign: 'center' },
+  nodeMeta: { ...Typography.preset.caption, fontSize: 10.5, marginTop: 1, textAlign: 'center' },
 });
