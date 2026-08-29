@@ -8,10 +8,11 @@ import {
   Share,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { AuroraBackground } from '../../src/components/ui';
+import { A } from '../../src/theme';
 import {
   useReportStore,
   selectCachedReport,
@@ -80,7 +81,9 @@ export default function DoctorReportScreen() {
   // After generation → show the preview + Share/Change-range CTAs
   if (cachedReport) {
     return (
-      <View style={styles.container}>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.container}>
         <View style={styles.previewWrap}>
           <ReportPreview data={cachedReport} />
         </View>
@@ -104,13 +107,16 @@ export default function DoctorReportScreen() {
             <Text style={styles.primaryButtonText}>Share summary</Text>
           </Pressable>
         </View>
-      </View>
+        </View>
+      </AuroraBackground>
     );
   }
 
   // Pre-generation → range picker + generate CTA
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <View style={styles.scrollWrap}>
         {/* Intro */}
         <View style={styles.intro}>
@@ -191,13 +197,14 @@ export default function DoctorReportScreen() {
           disabled={isGenerating}
         >
           {isGenerating ? (
-            <ActivityIndicator color={Colors.text.inverse} />
+            <ActivityIndicator color={A.ground} />
           ) : (
             <Text style={styles.primaryButtonText}>Create summary</Text>
           )}
         </Pressable>
       </View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
@@ -240,7 +247,7 @@ function RangePill({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   scrollWrap: {
     flex: 1,
@@ -262,13 +269,13 @@ const styles = StyleSheet.create({
   },
   introTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },
   introBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     paddingHorizontal: Spacing.sm,
   },
@@ -279,7 +286,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: Spacing.sm,
@@ -295,23 +302,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm + 2,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     minWidth: 96,
     alignItems: 'center',
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   rangePillSelected: {
-    backgroundColor: Colors.primary.coral,
-    borderColor: Colors.primary.coral,
+    backgroundColor: A.accent,
+    borderColor: A.accent,
   },
   rangePillText: {
     ...Typography.preset.buttonSmall,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   rangePillTextSelected: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
 
   // Template pills
@@ -324,33 +331,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.primary.sage,
+    backgroundColor: A.accent2,
   },
   templatePillTextActive: {
     ...Typography.preset.captionBold,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   templatePillDisabled: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
   },
   templatePillTextDisabled: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
 
   // Error card
   errorCard: {
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     marginTop: Spacing.sm,
   },
   errorText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
 
   // Footer (CTAs)
@@ -360,47 +367,47 @@ const styles = StyleSheet.create({
     padding: Spacing.screenPadding,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: A.ground,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   primaryButtonWide: {
     flex: 1,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.button,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
   primaryButton: {
     flex: 1,
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
-    ...Shadows.button,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
   primaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   secondaryButton: {
     flex: 1,
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.border.medium,
+    borderColor: A.edge,
     paddingHorizontal: Spacing.lg,
   },
   secondaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   buttonPressed: {
     opacity: 0.85,

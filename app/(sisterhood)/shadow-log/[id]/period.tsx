@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../../../src/constants/typography';
 import { Spacing } from '../../../../src/constants/spacing';
-import { Shadows } from '../../../../src/constants/shadows';
+import { A } from '../../../../src/theme';
+import { AuroraBackground } from '../../../../src/components/ui';
 import {
   useUserStore,
   useCycleStore,
@@ -143,16 +144,21 @@ export default function PeriodLogScreen() {
 
   if (!rawMember) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={Colors.primary.coral} />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={A.accent} />
+        </View>
+      </AuroraBackground>
     );
   }
 
   const isToday = selectedDate === today;
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -260,13 +266,14 @@ export default function PeriodLogScreen() {
           ]}
         >
           {isSubmitting ? (
-            <ActivityIndicator color={Colors.text.inverse} />
+            <ActivityIndicator color={A.ground} />
           ) : (
             <Text style={styles.primaryButtonText}>Save 🌷</Text>
           )}
         </Pressable>
       </View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
@@ -294,13 +301,13 @@ function formatFriendly(iso: string): string {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
@@ -315,22 +322,22 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...Typography.preset.overline,
-    color: Colors.primary.coral,
+    color: A.accent,
     marginBottom: Spacing.xs,
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 22,
   },
   sectionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: Spacing.lg,
@@ -345,61 +352,61 @@ const styles = StyleSheet.create({
   dayCell: {
     width: 60,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.xl,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   dayCellActive: {
-    backgroundColor: Colors.phase.menstrual.primary,
-    borderColor: Colors.phase.menstrual.primary,
+    backgroundColor: A.rose,
+    borderColor: A.rose,
   },
   dayCellLabel: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginBottom: 2,
   },
   dayCellLabelActive: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   dayCellDay: {
     ...Typography.preset.number,
     fontSize: 18,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   dayCellDayActive: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   todayDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     marginTop: 4,
   },
   todayDotActive: {
-    backgroundColor: Colors.text.inverse,
+    backgroundColor: A.ground,
   },
   // Selected banner
   selectedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.phase.menstrual.light,
+    backgroundColor: `${A.rose}22`,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     marginTop: Spacing.lg,
     gap: Spacing.md,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.phase.menstrual.primary,
+    borderLeftColor: A.rose,
   },
   selectedEmoji: {
     fontSize: 24,
   },
   selectedText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
     lineHeight: 22,
   },
@@ -413,38 +420,38 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     gap: Spacing.md,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   secondaryButton: {
     flex: 1,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   primaryButton: {
     flex: 2,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
   primaryButtonDisabled: {
     opacity: 0.5,
   },
   primaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
 });

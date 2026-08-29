@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../../../src/constants/typography';
 import { Spacing } from '../../../../src/constants/spacing';
-import { Shadows } from '../../../../src/constants/shadows';
+import { A } from '../../../../src/theme';
+import { AuroraBackground } from '../../../../src/components/ui';
 import {
   useUserStore,
   useSisterhoodStore,
@@ -148,15 +149,20 @@ export default function TransferScreen() {
 
   if (!rawMember) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={Colors.primary.coral} />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={A.accent} />
+        </View>
+      </AuroraBackground>
     );
   }
 
   if (rawMember.kind !== 'shadow') {
     return (
-      <View style={styles.errorContainer}>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.errorContainer}>
         <Text style={styles.errorEmoji}>🔗</Text>
         <Text style={styles.errorTitle}>Already linked</Text>
         <Text style={styles.errorBody}>
@@ -172,12 +178,15 @@ export default function TransferScreen() {
         >
           <Text style={styles.errorButtonText}>Got it</Text>
         </Pressable>
-      </View>
+        </View>
+      </AuroraBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -196,7 +205,7 @@ export default function TransferScreen() {
         {/* Code display */}
         {isGenerating ? (
           <View style={styles.codeCardLoading}>
-            <ActivityIndicator color={Colors.primary.coral} size="large" />
+            <ActivityIndicator color={A.accent} size="large" />
             <Text style={styles.codeLoadingText}>
               {companion.name} is making a code...
             </Text>
@@ -288,7 +297,8 @@ export default function TransferScreen() {
           <Text style={styles.primaryButtonText}>Done 💛</Text>
         </Pressable>
       </View>
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
@@ -341,13 +351,13 @@ void Platform;
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
@@ -362,41 +372,41 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...Typography.preset.overline,
-    color: Colors.primary.coral,
+    color: A.accent,
     marginBottom: Spacing.xs,
   },
   title: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 22,
   },
   // Code card
   codeCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['3xl'],
     alignItems: 'center',
-    ...Shadows.cardElevated,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.45, shadowRadius: 28, elevation: 8,
   },
   codeCardLoading: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing['3xl'],
     borderRadius: Spacing.radius['3xl'],
     alignItems: 'center',
     gap: Spacing.md,
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   codeLoadingText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   codeCardError: {
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     alignItems: 'center',
@@ -407,25 +417,25 @@ const styles = StyleSheet.create({
   },
   codeErrorText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
   },
   codeLabel: {
     ...Typography.preset.overline,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginBottom: Spacing.md,
   },
   codeValue: {
     fontSize: 56,
     fontWeight: '800',
     letterSpacing: 8,
-    color: Colors.primary.coral,
+    color: A.accent,
     fontVariant: ['tabular-nums'],
     textAlign: 'center',
   },
   codeExpiry: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: Spacing.md,
   },
   // Action row
@@ -436,24 +446,24 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     alignItems: 'center',
     gap: Spacing.xs,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   actionEmoji: {
     fontSize: 24,
   },
   actionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   // Section
   sectionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: Spacing['2xl'],
@@ -463,24 +473,24 @@ const styles = StyleSheet.create({
   stepCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sm,
     gap: Spacing.md,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   stepNumberWrap: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumber: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.inverse,
+    color: A.ground,
     fontSize: 16,
   },
   stepContent: {
@@ -488,18 +498,18 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: 2,
   },
   stepBody: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 18,
   },
   // Note card
   noteCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     marginTop: Spacing.lg,
@@ -511,39 +521,39 @@ const styles = StyleSheet.create({
   },
   noteText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     lineHeight: 18,
   },
   noteBold: {
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: A.ink,
   },
   // Bottom bar (single button)
   bottomBar: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   primaryButton: {
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.button,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 6,
   },
   primaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   // Error state
   errorContainer: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing['3xl'],
@@ -554,18 +564,18 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
   },
   errorBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 22,
   },
   errorButton: {
     marginTop: Spacing.md,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     paddingHorizontal: Spacing['3xl'],
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
@@ -574,6 +584,6 @@ const styles = StyleSheet.create({
   },
   errorButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.inverse,
+    color: A.ground,
   },
 });

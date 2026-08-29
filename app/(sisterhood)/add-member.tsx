@@ -13,11 +13,11 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
-import { GradientButton, PressableScale } from '../../src/components/ui';
+import { A } from '../../src/theme';
+import { GradientButton, PressableScale, AuroraBackground } from '../../src/components/ui';
 import {
   useUserStore,
   useCycleStore,
@@ -331,10 +331,12 @@ export default function AddMemberScreen() {
 
   // ─── Render ─────────────────────────────────────────────────────
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       {/* Top bar: close + step indicator */}
       {step !== 'celebration' && (
         <View style={[styles.topBar, { paddingTop: insets.top + Spacing.md }]}>
@@ -462,7 +464,8 @@ export default function AddMemberScreen() {
           style={styles.primaryButtonGrow}
         />
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </AuroraBackground>
   );
 }
 
@@ -531,7 +534,7 @@ function IdentityStep({
           value={displayName}
           onChangeText={onChangeName}
           placeholder="Like Aisha, Lulu, or Bestie 💛"
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={A.ink3}
           style={styles.textInput}
           maxLength={32}
           autoFocus
@@ -607,7 +610,7 @@ function RelationshipStep({
             value={customValue}
             onChangeText={onChangeCustom}
             placeholder="Tell us what they are to you ✨"
-            placeholderTextColor={Colors.text.tertiary}
+            placeholderTextColor={A.ink3}
             style={styles.textInput}
             maxLength={40}
             autoFocus
@@ -751,7 +754,7 @@ function ShadowStep({
           value={age}
           onChangeText={(v) => onChangeAge(v.replace(/[^0-9]/g, '').slice(0, 3))}
           placeholder="Optional · helps tune predictions"
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={A.ink3}
           style={styles.textInput}
           keyboardType="number-pad"
           maxLength={3}
@@ -800,7 +803,7 @@ function ShadowStep({
           value={lastPeriod}
           onChangeText={(v) => onChangeLastPeriod(v.replace(/[^0-9-]/g, '').slice(0, 10))}
           placeholder="YYYY-MM-DD · optional"
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={A.ink3}
           style={styles.textInput}
           keyboardType="numbers-and-punctuation"
           autoCorrect={false}
@@ -814,7 +817,7 @@ function ShadowStep({
           value={notes}
           onChangeText={onChangeNotes}
           placeholder="Just for you. They never see this."
-          placeholderTextColor={Colors.text.tertiary}
+          placeholderTextColor={A.ink3}
           style={[styles.textInput, styles.notesInput]}
           multiline
           maxLength={300}
@@ -891,7 +894,7 @@ function parseAge(input: string): number | null {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   // Top bar
   topBar: {
@@ -906,14 +909,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   closeButtonText: {
     fontSize: 18,
-    color: Colors.text.secondary,
+    color: A.ink2,
     fontWeight: '600',
   },
   topBarSpacer: {
@@ -933,22 +936,22 @@ const styles = StyleSheet.create({
   },
   stepEyebrow: {
     ...Typography.preset.overline,
-    color: Colors.primary.coral,
+    color: A.accent,
     marginBottom: Spacing.xs,
   },
   stepTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.sm,
   },
   stepSubtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 22,
   },
   sectionLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: Spacing.lg,
@@ -960,17 +963,17 @@ const styles = StyleSheet.create({
   },
   // Identity
   inputCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.xl,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border.light,
-    ...Shadows.sm,
+    borderColor: A.edge,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   textInput: {
     ...Typography.preset.bodyLarge,
-    color: Colors.text.primary,
+    color: A.ink,
     minHeight: 28,
   },
   notesCard: {
@@ -989,42 +992,42 @@ const styles = StyleSheet.create({
   relationshipPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     gap: 6,
   },
   relationshipPillActive: {
-    backgroundColor: Colors.primary.coral,
-    borderColor: Colors.primary.coral,
+    backgroundColor: A.accent,
+    borderColor: A.accent,
   },
   relationshipEmoji: {
     fontSize: 14,
   },
   relationshipLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   relationshipLabelActive: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   // Shadow mode rows
   shadowOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     gap: Spacing.md,
     borderWidth: 2,
     borderColor: 'transparent',
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   shadowOptionRowActive: {
-    borderColor: Colors.primary.coral,
+    borderColor: A.accent,
   },
   shadowOptionEmoji: {
     fontSize: 28,
@@ -1036,29 +1039,29 @@ const styles = StyleSheet.create({
   },
   shadowOptionLabel: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   shadowOptionHint: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   radioOuter: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: Colors.border.medium,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioOuterActive: {
-    borderColor: Colors.primary.coral,
+    borderColor: A.accent,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
   },
   // Condition chips
   conditionRow: {
@@ -1067,23 +1070,23 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   conditionChip: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
   },
   conditionChipActive: {
-    backgroundColor: Colors.primary.sage,
-    borderColor: Colors.primary.sage,
+    backgroundColor: A.accent2,
+    borderColor: A.accent2,
   },
   conditionChipLabel: {
     ...Typography.preset.captionBold,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   conditionChipLabelActive: {
-    color: Colors.text.inverse,
+    color: A.ground,
   },
   // Celebration
   celebration: {
@@ -1104,13 +1107,13 @@ const styles = StyleSheet.create({
   },
   celebrationTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   celebrationBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: Spacing.md,
@@ -1122,23 +1125,23 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
     gap: Spacing.md,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   secondaryButton: {
     flex: 1,
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   secondaryButtonText: {
     ...Typography.preset.button,
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   // GradientButton owns its height / fill / padding / shadow — we only
   // hand it flex growth so it fills the action bar next to Back.

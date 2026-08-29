@@ -10,11 +10,11 @@ import {
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../../src/constants/typography';
 import { Spacing } from '../../../src/constants/spacing';
-import { Shadows } from '../../../src/constants/shadows';
-import { PressableScale, BreathingView } from '../../../src/components/ui';
+import { A } from '../../../src/theme';
+import { PressableScale, BreathingView, AuroraBackground } from '../../../src/components/ui';
 import {
   useUserStore,
   useCycleStore,
@@ -210,18 +210,23 @@ export default function MemberDetailScreen() {
 
   if (!view) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={Colors.primary.coral} />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={A.accent} />
+        </View>
+      </AuroraBackground>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Hero */}
       <Animated.View entering={rise(0)} style={styles.hero}>
         <BreathingView>
@@ -328,7 +333,8 @@ export default function MemberDetailScreen() {
       </Animated.View>
 
       <View style={{ height: Spacing['4xl'] }} />
-    </ScrollView>
+      </ScrollView>
+    </AuroraBackground>
   );
 }
 
@@ -336,7 +342,7 @@ export default function MemberDetailScreen() {
 
 function KindBadge({ kind }: { kind: MemberView['kind'] }) {
   const label = kind === 'shadow' ? 'Shadow Profile' : 'Linked';
-  const color = kind === 'shadow' ? Colors.primary.peach : Colors.primary.calm;
+  const color = kind === 'shadow' ? A.gold : A.accent2;
   return (
     <View style={[styles.badge, { backgroundColor: color }]}>
       <Text style={styles.badgeText}>{label}</Text>
@@ -355,7 +361,7 @@ function PrivacyBadge({ level }: { level: MemberView['privacyLevel'] }) {
   return (
     <View style={[styles.badge, styles.privacyBadge]}>
       <Text style={styles.badgeEmoji}>{emoji}</Text>
-      <Text style={[styles.badgeText, { color: Colors.text.secondary }]}>{label}</Text>
+      <Text style={[styles.badgeText, { color: A.ink2 }]}>{label}</Text>
     </View>
   );
 }
@@ -560,13 +566,13 @@ function formatRelative(iso: string): string {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
@@ -583,12 +589,12 @@ const styles = StyleSheet.create({
   },
   heroName: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
   },
   heroRelationship: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     marginTop: 2,
   },
   heroBadges: {
@@ -605,7 +611,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   privacyBadge: {
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
   },
   badgeEmoji: {
     fontSize: 12,
@@ -614,42 +620,42 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.text.inverse,
+    color: A.ground,
     letterSpacing: 0.3,
   },
   // Phase sync inline
   syncInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.phase.ovulatory.light,
+    backgroundColor: `${A.gold}22`,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.phase.ovulatory.primary,
+    borderLeftColor: A.gold,
   },
   syncInlineEmoji: {
     fontSize: 22,
   },
   syncInlineText: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
     lineHeight: 20,
   },
   // Snapshot card
   snapshotCard: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     marginBottom: Spacing.lg,
     gap: Spacing.md,
-    ...Shadows.card,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 22, elevation: 6,
   },
   snapshotLabel: {
     ...Typography.preset.overline,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   snapshotRow: {
     flexDirection: 'row',
@@ -664,11 +670,11 @@ const styles = StyleSheet.create({
   },
   snapshotPrimary: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   snapshotSub: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   snapshotEmoji: {
@@ -686,13 +692,13 @@ const styles = StyleSheet.create({
   },
   snapshotEmptyText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     fontStyle: 'italic',
     lineHeight: 18,
   },
   lastActive: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     textAlign: 'right',
     marginTop: Spacing.xs,
   },
@@ -702,12 +708,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.xs,
   },
   sectionSubtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     marginBottom: Spacing.md,
     lineHeight: 18,
   },
@@ -715,11 +721,11 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   actionEmoji: {
     fontSize: 26,
@@ -732,21 +738,21 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   actionSubtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   actionArrow: {
     fontSize: 24,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   // Linked placeholder
   linkedCard: {
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     marginBottom: Spacing.lg,
@@ -757,12 +763,12 @@ const styles = StyleSheet.create({
   },
   linkedTitle: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: Spacing.xs,
   },
   linkedBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -773,14 +779,14 @@ const styles = StyleSheet.create({
   removeButton: {
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     borderWidth: 1,
-    borderColor: Colors.border.light,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
   removeButtonText: {
     ...Typography.preset.bodySemibold,
-    color: Colors.semantic.error,
+    color: A.error,
   },
 });

@@ -12,14 +12,15 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../src/constants/colors';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { Shadows } from '../../src/constants/shadows';
+import { A } from '../../src/theme';
 import {
   GradientButton,
   GradientFab,
   BreathingView,
+  AuroraBackground,
 } from '../../src/components/ui';
 import {
   useUserStore,
@@ -161,14 +162,19 @@ export default function SisterhoodCircleScreen() {
 
   if (!userId) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={Colors.primary.coral} />
-      </View>
+      <AuroraBackground>
+        <StatusBar style="light" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={A.accent} />
+        </View>
+      </AuroraBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <AuroraBackground>
+      <StatusBar style="light" />
+      <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -179,8 +185,8 @@ export default function SisterhoodCircleScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor={Colors.primary.coral}
-            colors={[Colors.primary.coral]}
+            tintColor={A.accent}
+            colors={[A.accent]}
           />
         }
       >
@@ -220,7 +226,7 @@ export default function SisterhoodCircleScreen() {
         {/* Member list OR empty state */}
         {isLoading && !hasMembers ? (
           <View style={styles.loadingInline}>
-            <ActivityIndicator color={Colors.primary.coral} />
+            <ActivityIndicator color={A.accent} />
             <Text style={styles.loadingText}>
               {companion.name} is gathering your circle...
             </Text>
@@ -269,7 +275,8 @@ export default function SisterhoodCircleScreen() {
           accessibilityLabel="Add a sister to your circle"
         />
       )}
-    </View>
+      </View>
+    </AuroraBackground>
   );
 }
 
@@ -345,7 +352,7 @@ function EmptyFeatureCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
@@ -355,7 +362,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.surface.background,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -366,7 +373,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
   // Hero
   hero: {
@@ -379,12 +386,12 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
   },
   heroSubtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.lg,
@@ -411,12 +418,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.preset.h3,
-    color: Colors.text.primary,
+    color: A.ink,
     textAlign: 'center',
   },
   emptyBody: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: Spacing.sm,
@@ -429,22 +436,22 @@ const styles = StyleSheet.create({
   emptyFeatureCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     gap: Spacing.md,
-    ...Shadows.sm,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   emptyFeatureEmoji: {
     fontSize: 28,
   },
   emptyFeatureTitle: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   emptyFeatureBody: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     flexShrink: 1,
   },
@@ -452,7 +459,7 @@ const styles = StyleSheet.create({
   footerHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     marginTop: Spacing['2xl'],
@@ -463,7 +470,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
     fontStyle: 'italic',
     lineHeight: 18,
