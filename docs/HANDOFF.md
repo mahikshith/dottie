@@ -5,7 +5,8 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-27 (all 5 tab screens themed + AuroraTabBar wired + report patterns UI)
+**Last updated:** 2026-08-30 (deep-screen aurora theming COMPLETE — community + onboarding +
+doctor-report + all sisterhood screens; ready for the Node/device verification pass)
 **Updated by:** Claude (Opus 4.8) — aurora theming phase (screen-by-screen)
 **Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/FEATURES-AND-RESEARCH.md`
 (the COMPLETE picture: predictor math, features, aurora system, research)**,
@@ -17,14 +18,21 @@ On **`design-v2`** (all committed + pushed; `main` untouched; everything ⚠️ 
 - **Symptom↔cycle correlation insights** — additive to Dottie Predicts (§0.6 · FEATURES §2)
 - **Condition-pattern flags** — in the doctor report, non-diagnostic (§0.6 · FEATURES §3)
 - **Mood Aurora** design system + mood-reveal + aurora components (§0 · FEATURES §4)
-**Aurora theming — DONE so far (design-v2, ⚠️ UNVERIFIED — no Node):** all **5 tab screens**
-(Home, Calendar, Learn, Community, Profile) themed to the aurora palette + StatusBar flipped
-to light; **AuroraTabBar wired** into `(tabs)/_layout.tsx` (retired the old cream bar + TabIcon);
-report **`patternsToDiscuss` section rendered** in `ReportPreview.tsx`.
-**Next (UI/UX phase, needs a Node machine):** theme the **deep screens** (daily-checkin modal
-FIRST — it's the mood-logging hook; then community/sisterhood/profile-sub/onboarding/celebration
-modals + lesson/quiz); `expo install expo-blur` (real frost); perimenopause / birth-control-pill
-modes; then `tsc` + device verify + merge to `main`.
+**Aurora theming — ✅ COMPLETE (design-v2, ⚠️ UNVERIFIED — no Node yet):** all **5 tab screens**
+(Home, Calendar, Learn, Community, Profile) + **AuroraTabBar** wired into `(tabs)/_layout.tsx`;
+report `patternsToDiscuss` in `ReportPreview.tsx`; and ALL **deep screens**: celebration flow (4
+modals) · profile sub-screens (Reminders/Privacy/Medications) · daily-checkin cluster (+ mood pick
+calls `applyMood`) · lesson + quiz readers · **community** (new-post, post detail) · **onboarding**
+(welcome/mode-select/companion-select/cycle-setup/ready + layout) · **doctor-report** (ReportPreview
+kept a light clinical document by design) · **sisterhood** (circle, member/[id], add-member,
+shadow-log period + transfer). Deep-screen pattern: swap `Colors`/`Shadows` imports for the static
+`A` tokens + `<AuroraBackground>` wrap + `StatusBar style="light"`; StyleSheet colours only, all
+logic/handlers/copy byte-for-byte unchanged; phase badges map to `PHASE_AURORA` hues.
+Intentionally NOT themed: `decoy-home` (a disguise screen) + `ghost-lock` (no direct Colors).
+**Next (needs the Node machine — user now has one):** `expo install expo-blur` (real frost on glass),
+then the verification pass — `npm install` → `tsc` (type-check) → EAS dev build → device feel-check
+(esp. mood→recolour, the Learn aurora-stream, notification permission/delivery) — the gate to
+merge `design-v2` → `main`. Also queued: perimenopause / birth-control-pill modes.
 
 ## 0.9 Competitive research — features to consider (2026-08-27)
 Scan of competitor apps (Flo, Clue, Stardust, Natural Cycles, Oura, Drip, Wenly, Aavia, Life) +

@@ -133,9 +133,13 @@ read `.claude/skills/animate-expo` — it has the exact Reanimated recipes for o
   aurora AND its mood pick calls `applyMood(v)` (a full check-in recolours the app), and the
   Sisterhood `shadow-log/[id]/check-in.tsx` (shares MoodScale) is aurora too; ✅ **lesson + quiz
   readers** (`app/lesson/[id].tsx`, `app/quiz/[id].tsx`) themed (quiz uses fixed Nocturne `A.*` tokens
-  since it's a focused task screen; ground still from AuroraBackground). **Still to do:** community
-  (new-post, post detail); sisterhood (circle, member, add-member, shadow-log period/transfer);
-  onboarding; doctor-report; decoy-home; ghost-lock. Then `expo-blur` for real frost, `tsc` + device
-  feel-check, merge → main.
+  since it's a focused task screen; ground still from AuroraBackground); ✅ **community** (new-post,
+  post detail); ✅ **onboarding** (welcome/mode-select/companion-select/cycle-setup/ready + layout);
+  ✅ **doctor-report** (both returns wrapped; ReportPreview intentionally stays a light clinical
+  document); ✅ **sisterhood** (circle, member/[id], add-member, shadow-log period + transfer —
+  phase badges map to PHASE_AURORA hues). **Deep-screen aurora theming is now COMPLETE.**
+  Intentionally NOT themed: `decoy-home` (a disguise screen — must look like an unrelated app) and
+  `ghost-lock` (no direct Colors). **Remaining before merge → main:** `expo-blur` for real frost
+  (needs Node), then the `npm install` → `tsc` → dev-build → device feel-check verification pass.
 
 Community & Sisterhood are treated as complete local features — **no "preview" banners**.
