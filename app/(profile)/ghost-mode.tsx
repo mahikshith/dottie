@@ -45,9 +45,9 @@ import {
   ScrollView,
   Pressable,
   Switch,
-  Alert,
   SafeAreaView,
 } from 'react-native';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../src/constants/colors';
@@ -172,57 +172,60 @@ export default function GhostModeSettingsScreen() {
       startSetMain();
       return;
     }
-    Alert.alert(
-      'Turn off Ghost Mode?',
-      'Your PIN will be erased. You can always set it up again later.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    showAppDialog({
+      emoji: '🔓',
+      title: 'Turn off Ghost Mode?',
+      body: 'Your PIN will be erased. You can always set it up again later.',
+      actions: [
+        { label: 'Cancel', variant: 'ghost', onPress: () => {} },
         {
-          text: 'Turn off',
-          style: 'destructive',
+          label: 'Turn off',
+          variant: 'danger',
           onPress: () => {
             useGhostModeStore.getState().disable();
             bumpConfig();
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const handleClearPanicPin = () => {
-    Alert.alert(
-      'Remove panic PIN?',
-      'You\'ll keep your main Ghost Mode PIN, but the panic PIN will no longer work.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    showAppDialog({
+      emoji: '🔑',
+      title: 'Remove panic PIN?',
+      body: "You'll keep your main Ghost Mode PIN, but the panic PIN will no longer work.",
+      actions: [
+        { label: 'Cancel', variant: 'ghost', onPress: () => {} },
         {
-          text: 'Remove',
+          label: 'Remove',
           onPress: () => {
             useGhostModeStore.getState().setPanicPin(null);
             bumpConfig();
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const handleTogglePanicWipe = (next: boolean) => {
     if (next) {
-      Alert.alert(
-        'Enable panic wipe?',
-        'When the panic PIN is entered, all your Dottie data will be silently deleted. There is no undo.\n\nReally enable this?',
-        [
-          { text: 'Cancel', style: 'cancel' },
+      showAppDialog({
+        emoji: '⚠️',
+        title: 'Enable panic wipe?',
+        body: 'When the panic PIN is entered, all your Dottie data will be silently deleted. There is no undo.\n\nReally enable this?',
+        actions: [
+          { label: 'Cancel', variant: 'ghost', onPress: () => {} },
           {
-            text: 'Enable',
-            style: 'destructive',
+            label: 'Enable',
+            variant: 'danger',
             onPress: () => {
               useGhostModeStore.getState().updateConfig({ panicWipeEnabled: true });
               bumpConfig();
             },
           },
-        ]
-      );
+        ],
+      });
     } else {
       useGhostModeStore.getState().updateConfig({ panicWipeEnabled: false });
       bumpConfig();

@@ -12,7 +12,7 @@
  *  (deleteAccount, doctor report, ghost mode, reminders).
  */
 
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground, GlassCard, PressableScale } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import { useAurora } from '../../src/theme';
 import { useUserStore } from '../../src/stores';
 
@@ -42,14 +43,15 @@ export default function PrivacyScreen() {
 
   const confirmDelete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    Alert.alert(
-      'Delete all your data?',
-      'This permanently erases everything Dottie has on this device — cycles, symptoms, notes, progress. It cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    showAppDialog({
+      emoji: '🗑️',
+      title: 'Delete all your data?',
+      body: 'This permanently erases everything Dottie has on this device — cycles, symptoms, notes, progress. It cannot be undone.',
+      actions: [
+        { label: 'Cancel', variant: 'ghost', onPress: () => {} },
         {
-          text: 'Delete everything',
-          style: 'destructive',
+          label: 'Delete everything',
+          variant: 'danger',
           onPress: async () => {
             try {
               await useUserStore.getState().deleteAccount();
@@ -60,8 +62,8 @@ export default function PrivacyScreen() {
             router.replace('/');
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   return (

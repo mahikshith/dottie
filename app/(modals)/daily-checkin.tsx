@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import { useAurora, PHASE_AURORA } from '../../src/theme';
 import {
   useCycleStore,
@@ -189,11 +189,12 @@ export default function DailyCheckInScreen() {
       }
     } catch (err) {
       if (__DEV__) console.warn('[DailyCheckIn] submit failed:', err);
-      Alert.alert(
-        'Something went wrong',
-        'We could not save your check-in. Please try again in a moment.',
-        [{ text: 'OK' }]
-      );
+      showAppDialog({
+        emoji: '😅',
+        title: 'Something went wrong',
+        body: 'We could not save your check-in. Please try again in a moment.',
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
       setSubmitting(false);
     }
   }, [

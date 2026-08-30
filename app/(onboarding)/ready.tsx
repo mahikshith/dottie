@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,6 +10,7 @@ import { Spacing } from '../../src/constants/spacing';
 import { useUserStore, useCycleStore } from '../../src/stores';
 import { awardBetaPioneerIfNew } from '../../src/services/beta-onboarding';
 import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import { A } from '../../src/theme';
 
 /**
@@ -80,16 +81,12 @@ export default function ReadyScreen() {
     } catch (err) {
       if (__DEV__) console.warn('[Ready] completeOnboarding failed:', err);
 
-      Alert.alert(
-        'Something went wrong',
-        "I couldn't finish setting things up — but your answers are still saved. Want to try again?",
-        [
-          {
-            text: 'Try Again',
-            onPress: () => setIsCreating(false),
-          },
-        ]
-      );
+      showAppDialog({
+        emoji: '😅',
+        title: 'Something went wrong',
+        body: "I couldn't finish setting things up — but your answers are still saved. Want to try again?",
+        actions: [{ label: 'Try again', onPress: () => setIsCreating(false) }],
+      });
     }
   };
 
