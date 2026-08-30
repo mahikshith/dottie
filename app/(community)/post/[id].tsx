@@ -24,6 +24,7 @@ import {
   PopOnChange,
   AuroraBackground,
 } from '../../../src/components/ui';
+import { showAppDialog } from '../../../src/components/ui/appDialog';
 import {
   useCommunityStore,
   useUserStore,
@@ -160,11 +161,12 @@ export default function PostDetailScreen() {
     promptReportReason((reason) => {
       submitReport('post', id, reason, () => {
         // If post was auto-hidden, kick back to feed
-        Alert.alert(
-          'Thanks for keeping The Circle safe 💛',
-          'Our team will review this post.',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        showAppDialog({
+          emoji: '💛',
+          title: 'Thanks for keeping The Circle safe',
+          body: 'Our team will review this post.',
+          actions: [{ label: 'OK', onPress: () => router.back() }],
+        });
       });
     });
   }, [id, isPostReported, router]);
@@ -206,15 +208,23 @@ export default function PostDetailScreen() {
     }
 
     if ('moderation' in result) {
-      Alert.alert(
-        'A gentle nudge',
-        result.moderation.message ??
-          "Something in that reply didn't pass our safety check. Could you give it another look? 💛"
-      );
+      showAppDialog({
+        emoji: '💛',
+        title: 'A gentle nudge',
+        body:
+          result.moderation.message ??
+          "Something in that reply didn't pass our safety check. Could you give it another look? 💛",
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
       return;
     }
 
-    Alert.alert("Hmm, that didn't go through", result.message);
+    showAppDialog({
+      emoji: '😅',
+      title: "Hmm, that didn't go through",
+      body: result.message,
+      actions: [{ label: 'OK', onPress: () => {} }],
+    });
   };
 
   // ─── Render: loading / not found ────────────────────────────────
@@ -587,10 +597,12 @@ async function submitReport(
     return;
   }
   if (result.submitted) {
-    Alert.alert(
-      'Thanks for keeping The Circle safe 💛',
-      'We appreciate you looking out for everyone.'
-    );
+    showAppDialog({
+      emoji: '💛',
+      title: 'Thanks for keeping The Circle safe',
+      body: 'We appreciate you looking out for everyone.',
+      actions: [{ label: 'OK', onPress: () => {} }],
+    });
   }
 }
 
