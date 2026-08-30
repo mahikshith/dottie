@@ -9,14 +9,11 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 > haven't earned (no assumed phases/feelings before the user logs).*
 
 ## ▶️ NEXT SESSION — START HERE (current state)
-- **Batch 1 (crash + quick wins) is on GitHub** — pushed to `design-v2` with `[skip ci]` (no
-  build ran). Commits `2c63ede`..`c425f75`.
-- **Theme A "don't fake a phase" (Batch 2 CORE) is DONE, verified (tsc 0 + bundle clean),
-  committed LOCALLY, NOT pushed** — branch **ahead 2** of origin:
-  `a7212c8` A1-A3 (Home gates ALL phase-derived content behind `selectHasCycleData` +
-  honest "log your period" get-started; mood check-in still shown) · `a662748` A4 (calendar
-  DayDetailSheet takes `hasCycleData` — no assumed phase chip/suggestions before a period is
-  logged).
+- **On GitHub (pushed with `[skip ci]`, NO build ran):** Batch 1 (crash + quick wins) + Theme A
+  "don't fake a phase" (`a7212c8` Home gates phase content behind `selectHasCycleData` +
+  honest get-started · `a662748` calendar sheet honest when no data).
+- **DONE locally, NOT pushed (branch ahead 4):** the full **alert-theming** pass — every native
+  `Alert.alert` → `showAppDialog` (see the Follow-up section). tsc 0 + bundle clean.
 
 **Resume options:**
 1. **Build preview:** `git push origin design-v2` (a normal push, NO `[skip ci]`) → GitHub
@@ -139,11 +136,13 @@ gate vs. collect).
 ---
 
 ## Follow-up discovered during Batch 1
-- **30 native `Alert.alert` calls app-wide render white/off-theme** (new-post discard,
-  post detail, sisterhood, ghost-mode, privacy, daily-checkin, onboarding, etc.). Testers
-  flagged two (lesson complete → fixed E5; new-post "Discard this draft?" → 184215). Do a
-  systematic pass: route them all through the themed `CelebrationDialog` pattern (or a small
-  global dialog host). Own task — not a quick win.
+- ✅ **DONE — alert-theming:** ALL 30 native `Alert.alert` app-wide are now the warm
+  `showAppDialog` / `CelebrationDialog` (global host `src/components/ui/appDialog.tsx`,
+  mounted once at root in `app/_layout.tsx`; `danger` action variant for destructive
+  confirms). **ZERO OS-white popups remain** (verified: `grep -r Alert.alert app` = 0).
+  Committed locally in 4 commits (`9fb1fe3`, `eb6ee9e`, `531b56a`, `8ee54b2`).
+  Follow-up polish: the 7-option Report picker uses stacked ghost actions — could become a
+  dedicated action-sheet later.
 - **Today check-in showed the same generic companion wrapper for every question**
   ("WE ARE SO CLOSE!! Can you FEEL it?!") instead of the real question — now shows `q.rawText`
   (G1, done). The companion wrapQuestion voice itself needs a rework so it's warm AND specific
