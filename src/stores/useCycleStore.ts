@@ -299,6 +299,15 @@ export const selectDayInPhase = (s: CycleStoreState): number => {
 export const selectLastPeriodStart = (s: CycleStoreState): string | null =>
   s.lastPeriodStart;
 
+/**
+ * True once the user has logged at least one period — the signal that we can
+ * stop guessing and show real phase-derived content (phase bar, weather,
+ * predicts, daily decode, phase questions). Until then the UI must stay honest
+ * ("log your period first") rather than assuming follicular / day 1.
+ */
+export const selectHasCycleData = (s: CycleStoreState): boolean =>
+  s.lastPeriodStart != null;
+
 export const selectPredictionMessage = (s: CycleStoreState): string | null => {
   if (!s.latestPrediction || !s.lastPeriodStart) return null;
   const userMode = useUserStore.getState().user?.mode ?? 'adult';

@@ -26,6 +26,7 @@ import {
   selectCompanionType,
   selectCurrentPhase,
   selectDayInCycle,
+  selectHasCycleData,
   selectGemsBalance,
   selectStreak,
   selectTodaysCard,
@@ -77,6 +78,7 @@ export default function HomeScreen() {
   const companionType = useUserStore(selectCompanionType);
   const phase = useCycleStore(selectCurrentPhase);
   const dayInCycle = useCycleStore(selectDayInCycle);
+  const hasCycleData = useCycleStore(selectHasCycleData);
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
   // streak + gems moved to the Learn tab (gamification lives there now)
   const todaysCard = useContentStore(selectTodaysCard);
@@ -102,9 +104,13 @@ export default function HomeScreen() {
   // ─── Compose greeting (time + companion + phase) ────────────────
   const greeting = useMemo(() => {
     const timePart = getTimeGreeting(getTimeOfDay());
+    if (!hasCycleData) {
+      // No period logged yet — stay honest, don't imply a phase.
+      return `${timePart}, friend!\nLet's learn your rhythm together 🌱`;
+    }
     const phaseGreeting = companion.greetings[phase];
     return `${timePart}, friend!\n${phaseGreeting}`;
-  }, [companion, phase]);
+  }, [companion, phase, hasCycleData]);
 
   // ─── Build the weather view (snapshot + user's phase) ───────────
   const weatherView = useMemo(() => {
@@ -221,12 +227,39 @@ export default function HomeScreen() {
             </BreathingView>
             <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>
-          <GlowRing progress={cycleProgress} size={92}>
-            <Text style={[styles.ringDay, { color: palette.ink }]}>{dayInCycle}</Text>
-            <Text style={[styles.ringLabel, { color: palette.ink3 }]}>day</Text>
-          </GlowRing>
+          {hasCycleData && (
+            <GlowRing progress={cycleProgress} size={92}>
+              <Text style={[styles.ringDay, { color: palette.ink }]}>{dayInCycle}</Text>
+              <Text style={[styles.ringLabel, { color: palette.ink3 }]}>day</Text>
+            </GlowRing>
+          )}
         </Animated.View>
 
+        {/* No period logged yet → honest get-started, no phase guessing */}
+        {!hasCycleData && (
+          <Animated.View entering={rise(140)}>
+            <GlassCard style={styles.getStartedCard}>
+              <Text style={styles.getStartedEmoji}>🌙</Text>
+              <Text style={[styles.getStartedTitle, { color: palette.ink }]}>Let&apos;s learn your rhythm</Text>
+              <Text style={[styles.getStartedBody, { color: palette.ink2 }]}>
+                Log your last period and I&apos;ll personalize your phases, predictions, and daily
+                decode. Until then, I won&apos;t guess.
+              </Text>
+              <PressableScale
+                onPress={() => router.push('/(tabs)/calendar')}
+                haptic="light"
+                style={[styles.getStartedCta, { backgroundColor: palette.accent }]}
+                accessibilityRole="button"
+                accessibilityLabel="Log your last period"
+              >
+                <Text style={[styles.getStartedCtaText, { color: palette.ground }]}>🩸 Log your last period</Text>
+              </PressableScale>
+            </GlassCard>
+          </Animated.View>
+        )}
+
+        {hasCycleData && (
+          <>
         {/* Phase Indicator */}
         <Animated.View entering={rise(140)} style={styles.phaseBar}>
           <View style={[styles.phaseDot, { backgroundColor: phaseHue }]} />
@@ -274,6 +307,8 @@ export default function HomeScreen() {
             </GlassCard>
           </Animated.View>
         )}
+          </>
+        )}
 
         {/* Quick Check-in (Mood) — the mood colours the world */}
         <Animated.View entering={rise(540)} style={styles.checkInSection}>
@@ -319,8 +354,8 @@ export default function HomeScreen() {
           </PressableScale>
         </Animated.View>
 
-        {/* Phase-Responsive Questions */}
-        {todaysQuestions.length > 0 && (
+        {/* Phase-Responsive Questions (only once we know the phase) */}
+        {hasCycleData && todaysQuestions.length > 0 && (
           <Animated.View entering={rise(620)} style={styles.questionsSection}>
             {todaysQuestions.slice(0, 2).map((q) => (
               <GlassCard key={q.id} style={styles.questionsCard}>
@@ -354,7 +389,7 @@ export default function HomeScreen() {
         )}
 
         {/* All caught up message */}
-        {todaysQuestions.length === 0 && (
+        {hasCycleData && todaysQuestions.length === 0 && (
           <Animated.View entering={rise(620)}>
             <GlassCard style={styles.allCaughtUpCard}>
               <Text style={styles.allCaughtUpEmoji}>🌸</Text>
@@ -489,6 +524,32 @@ const styles = StyleSheet.create({
     ...Typography.preset.bodySemibold,
     marginTop: Spacing.md,
     lineHeight: 22,
+  },
+  getStartedCard: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sectionGap,
+  },
+  getStartedEmoji: { fontSize: 44 },
+  getStartedTitle: {
+    ...Typography.preset.h3,
+    textAlign: 'center',
+  },
+  getStartedBody: {
+    ...Typography.preset.body,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  getStartedCta: {
+    alignSelf: 'stretch',
+    height: Spacing.buttonHeight.md,
+    borderRadius: Spacing.radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.sm,
+  },
+  getStartedCtaText: {
+    ...Typography.preset.button,
   },
   checkInSection: {
     marginBottom: Spacing.sectionGap,
