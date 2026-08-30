@@ -128,7 +128,7 @@ export default function ExerciseScreen() {
             <Text style={[styles.close, { color: palette.ink3 }]}>✕</Text>
           </PressableScale>
           <Text style={[styles.eyebrow, { color: palette.accent }]} numberOfLines={1}>
-            Practice · {lesson.title}
+            {lesson.title}
           </Text>
           <View style={{ width: 24 }} />
         </View>

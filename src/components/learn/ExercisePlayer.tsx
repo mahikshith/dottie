@@ -178,9 +178,6 @@ export function ExercisePlayer({
           <Text style={[styles.feedbackExplain, { color: palette.ink2 }]}>
             {feedback.explanationEmoji} {feedback.explanation}
           </Text>
-          <Text style={[styles.feedbackReaction, { color: palette.ink3 }]}>
-            {feedback.companionReaction}
-          </Text>
         </Animated.View>
       )}
 
