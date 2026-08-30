@@ -24,12 +24,22 @@
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
@@ -69,6 +79,52 @@ function rise(d: number): ReturnType<typeof FadeInDown.duration> {
   return FadeInDown.duration(480).delay(d).springify().damping(16);
 }
 
+/**
+ * A soft glowing ring that scales up and fades out on a loop — the "you are
+ * here" marker the owner asked for, sitting behind the current lesson node.
+ * Reduce-Motion aware (renders a still faint ring).
+ */
+function PulseRing({ color }: { color: string }): JSX.Element {
+  const reduce = useReducedMotion();
+  const t = useSharedValue(0);
+  useEffect(() => {
+    if (reduce) return;
+    t.value = withRepeat(withTiming(1, { duration: 1700, easing: Easing.out(Easing.ease) }), -1, false);
+  }, [reduce, t]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + t.value * 0.55 }],
+    opacity: reduce ? 0.25 : 0.55 * (1 - t.value),
+  }));
+  return <Animated.View pointerEvents="none" style={[styles.pulseRing, { borderColor: color }, style]} />;
+}
+
+/**
+ * The selected spirit companion perched on the current node, hopping in place
+ * (Duolingo-style "you're here" energy). Reduce-Motion → sits still.
+ */
+function HoppingCompanion({ type }: { type: CompanionType }): JSX.Element {
+  const reduce = useReducedMotion();
+  const y = useSharedValue(0);
+  useEffect(() => {
+    if (reduce) return;
+    y.value = withRepeat(
+      withSequence(
+        withTiming(-11, { duration: 360, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: 380, easing: Easing.bounce }),
+        withDelay(760, withTiming(0, { duration: 1 })),
+      ),
+      -1,
+      false,
+    );
+  }, [reduce, y]);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  return (
+    <Animated.View style={style}>
+      <CompanionLottie type={type} state="idle" size={48} />
+    </Animated.View>
+  );
+}
+
 export default function LearnScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -88,8 +144,9 @@ export default function LearnScreen() {
   const [level, setLevel] = useState<LearnLevel | null>(() => Storage.learnLevel.get());
   const guided = level !== 'basics' && level !== 'deep'; // null/'new' → guided
 
-  useEffect(() => {
-    if (!userId) return;
+  // Loader is a stable callback so the focus effect below can re-run it.
+  const loadProgress = useCallback(() => {
+    if (!userId) return undefined;
     let cancelled = false;
     contentRepository
       .getAllLessonProgress(userId)
@@ -105,7 +162,22 @@ export default function LearnScreen() {
     return () => {
       cancelled = true;
     };
+    // contentHydrated is a re-trigger key (progress lands in SQLite on hydrate).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, contentHydrated]);
+
+  // Re-read progress EVERY time the tab regains focus. A lesson finished on the
+  // reader persists to SQLite and pops the nav stack back here — if we don't
+  // re-read, the completed node still looks "current" and the next stays locked
+  // (the reported "can't move forward even after completing" bug). Also re-sync
+  // the saved pace in case it was changed elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      const cleanup = loadProgress();
+      setLevel(Storage.learnLevel.get());
+      return cleanup;
+    }, [loadProgress])
+  );
 
   const pickLevel = (next: LearnLevel) => {
     Haptics.selectionAsync().catch(() => {});
@@ -241,10 +313,11 @@ function PaceChooser({
   onPick: (l: LearnLevel) => void;
 }): JSX.Element {
   const { palette } = useAurora();
+  // One-word labels only — full phrases overflowed the rounded chips on device.
   const options: { key: LearnLevel; emoji: string; label: string }[] = [
-    { key: 'new', emoji: '🌱', label: 'New here' },
-    { key: 'basics', emoji: '🙂', label: 'Knows basics' },
-    { key: 'deep', emoji: '🦉', label: 'Deep dive' },
+    { key: 'new', emoji: '🌱', label: 'New' },
+    { key: 'basics', emoji: '🙂', label: 'Basics' },
+    { key: 'deep', emoji: '🦉', label: 'Deep' },
   ];
   return (
     <View style={styles.pace}>
@@ -345,7 +418,9 @@ function PathTrail({
       key: lesson.id,
       kind: 'lesson',
       lesson,
-      glyph: isComplete ? '✓' : locked ? '🔒' : lesson.emoji,
+      // Locked shows the DIMMED lesson emoji (+ a tiny lock badge in render) —
+      // friendlier than a gloomy padlock glyph. Done = check.
+      glyph: isComplete ? '✓' : lesson.emoji,
       title: lesson.title,
       meta: `${lesson.estimatedMinutes} min · ${lesson.xpReward} XP${lesson.quizId ? ' · Quiz' : ''}`,
       state,
@@ -366,8 +441,9 @@ function PathTrail({
     ? nodes.length - 1
     : Math.max(0, nodes.findIndex((n) => n.state === 'current'));
 
-  // Geometry: gentle meander so the path reads as a journey, not a list.
-  const amp = width > 0 ? Math.min(72, Math.max(28, width * 0.2)) : 0;
+  // Geometry: a wide meander so the trail actually USES the empty side space
+  // (owner feedback) and reads as a winding journey, not a centred list.
+  const amp = width > 0 ? Math.min(width / 2 - 66, Math.max(44, width * 0.28)) : 0;
   const cx = width / 2;
   const points = nodes.map((_, i) => ({
     x: cx + amp * Math.sin(i * 0.9),
@@ -410,13 +486,16 @@ function PathTrail({
                   <Stop offset="1" stopColor={palette.accent2} />
                 </SvgLinearGradient>
               </Defs>
-              {/* dim base ribbon (the whole journey) */}
-              <Path d={buildTrailPath(points)} stroke={palette.glass.edge} strokeWidth={6} fill="none" strokeLinecap="round" />
-              {/* lit portion up to where you are — a soft glow + a bright core */}
+              {/* dim base TUBE (the whole journey): a wide muted casing with a
+                  thin lighter core, so the unlit trail reads as a rounded pipe. */}
+              <Path d={buildTrailPath(points)} stroke={palette.glass.edge} strokeWidth={12} fill="none" strokeLinecap="round" />
+              <Path d={buildTrailPath(points)} stroke={palette.glass.bg} strokeWidth={5} fill="none" strokeLinecap="round" strokeOpacity={0.6} />
+              {/* lit portion up to where you are — soft glow, bright core, gloss. */}
               {currentIndex > 0 && (
                 <>
-                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={palette.accent} strokeOpacity={0.22} strokeWidth={16} fill="none" strokeLinecap="round" />
-                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={`url(#stream_${path.id})`} strokeWidth={6} fill="none" strokeLinecap="round" />
+                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={palette.accent} strokeOpacity={0.22} strokeWidth={20} fill="none" strokeLinecap="round" />
+                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={`url(#stream_${path.id})`} strokeWidth={9} fill="none" strokeLinecap="round" />
+                  <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke="#FFFFFF" strokeOpacity={0.32} strokeWidth={2.5} fill="none" strokeLinecap="round" />
                 </>
               )}
             </Svg>
@@ -429,9 +508,15 @@ function PathTrail({
               const tappable = n.kind === 'lesson' && !locked;
               return (
                 <View key={n.key}>
+                  {/* Pulsing "you are here" glow ring behind the current node. */}
                   {isCurrent && (
-                    <View style={[styles.companionPerch, { left: p.x - 24, top: p.y - NODE / 2 - 40 }]} pointerEvents="none">
-                      <CompanionLottie type={companionType} state="idle" size={48} />
+                    <View style={[styles.glowHost, { left: p.x - NODE / 2, top: p.y - NODE / 2 }]} pointerEvents="none">
+                      <PulseRing color={accent} />
+                    </View>
+                  )}
+                  {isCurrent && (
+                    <View style={[styles.companionPerch, { left: p.x - 24, top: p.y - NODE / 2 - 46 }]} pointerEvents="none">
+                      <HoppingCompanion type={companionType} />
                     </View>
                   )}
                   <PressableScale
@@ -452,14 +537,22 @@ function PathTrail({
                         shadowOffset: { width: 0, height: 0 },
                         elevation: 8,
                       },
-                      (locked || n.state === 'reward-off') && { opacity: 0.5 },
+                      // Locked = soft dashed accent ring (NOT glass, NOT gloomy).
+                      locked && { backgroundColor: `${accent}12`, borderColor: `${accent}66`, borderStyle: 'dashed', opacity: 0.9 },
+                      n.state === 'reward-off' && { opacity: 0.5 },
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel={`${n.title}${locked ? ' (locked)' : n.state === 'done' ? ' (complete)' : ''}`}
                     accessibilityState={{ disabled: !tappable }}
                   >
-                    <Text style={styles.nodeGlyph}>{n.glyph}</Text>
+                    <Text style={[styles.nodeGlyph, locked && styles.nodeGlyphLocked]}>{n.glyph}</Text>
                   </PressableScale>
+                  {/* Small friendly lock badge instead of a full padlock node. */}
+                  {locked && (
+                    <View style={[styles.lockBadge, { left: p.x + NODE / 2 - 20, top: p.y - NODE / 2 - 4, backgroundColor: palette.ground, borderColor: `${accent}66` }]} pointerEvents="none">
+                      <Text style={styles.lockBadgeText}>🔒</Text>
+                    </View>
+                  )}
 
                   {/* centered title under the node */}
                   <View style={[styles.nodeLabel, { left: p.x - 62, top: p.y + NODE / 2 + 6 }]} pointerEvents="none">
@@ -568,7 +661,9 @@ const styles = StyleSheet.create({
   pathProgressText: { ...Typography.preset.captionBold, minWidth: 40, textAlign: 'right' },
 
   // Trail nodes + labels are absolutely positioned over the SVG stream.
-  companionPerch: { position: 'absolute', width: 48, alignItems: 'center', zIndex: 3 },
+  companionPerch: { position: 'absolute', width: 48, alignItems: 'center', zIndex: 4 },
+  glowHost: { position: 'absolute', width: NODE, height: NODE, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  pulseRing: { position: 'absolute', width: NODE, height: NODE, borderRadius: 22, borderWidth: 2.5 },
   node: {
     position: 'absolute',
     width: 62,
@@ -580,6 +675,18 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   nodeGlyph: { fontSize: 27 },
+  nodeGlyphLocked: { opacity: 0.55 },
+  lockBadge: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+  lockBadgeText: { fontSize: 11 },
   nodeLabel: { position: 'absolute', width: 124, alignItems: 'center' },
   currentTag: { ...Typography.preset.overline, fontSize: 9, letterSpacing: 1, marginBottom: 2 },
   nodeTitle: { ...Typography.preset.bodySemibold, fontSize: 13, textAlign: 'center' },
