@@ -561,13 +561,19 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
 
 // ─── SELECTORS ───────────────────────────────────────────────────────
 
+// Stable empty fallbacks. A selector that returns a FRESH [] each render makes
+// Zustand see "new" state every time → infinite re-render ("Maximum update depth
+// exceeded"). Share one reference so empty state stays referentially equal.
+const EMPTY_POSTS: CommunityPost[] = [];
+const EMPTY_REPLIES: CommunityReply[] = [];
+
 export const selectFeedForSpace = (spaceId: FeedCacheKey) =>
   (s: CommunityStoreState): CommunityPost[] =>
-    s.feedCache[spaceId] ?? [];
+    s.feedCache[spaceId] ?? EMPTY_POSTS;
 
 export const selectRepliesForPost = (postId: string) =>
   (s: CommunityStoreState): CommunityReply[] =>
-    s.repliesCache[postId] ?? [];
+    s.repliesCache[postId] ?? EMPTY_REPLIES;
 
 export const selectIsHugged = (targetType: 'post' | 'reply', targetId: string) =>
   (s: CommunityStoreState): boolean =>

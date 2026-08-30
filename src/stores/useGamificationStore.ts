@@ -484,12 +484,19 @@ export const selectXpTotal = (s: GamificationStoreState): number => s.xpTotal;
 export const selectCurrentLevel = (s: GamificationStoreState): number => s.currentLevel;
 
 /**
- * Memoized level progress — but Zustand selectors run on every render,
- * so this is a fresh compute each time. Acceptable: getLevelProgress is
- * a pure O(level_count) iteration over a 30-entry table = sub-ms.
+ * Level progress, memoized by xpTotal. getLevelProgress builds a NEW object each
+ * call; returning that straight from a selector makes Zustand re-render forever
+ * ("Maximum update depth exceeded"). Cache by xpTotal so the reference is stable
+ * between renders when XP hasn't changed.
  */
+let _lpXp = Number.NaN;
+let _lpCache: LevelProgress | null = null;
 export const selectLevelProgress = (s: GamificationStoreState): LevelProgress => {
-  return getLevelProgress(s.xpTotal);
+  if (_lpCache === null || s.xpTotal !== _lpXp) {
+    _lpXp = s.xpTotal;
+    _lpCache = getLevelProgress(s.xpTotal);
+  }
+  return _lpCache;
 };
 
 // ─── INTERNAL HELPERS ────────────────────────────────────────────────

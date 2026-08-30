@@ -464,10 +464,14 @@ export const selectMemberViewById =
   (s: SisterhoodStoreState): MemberView | null =>
     s.viewsById[memberId] ?? null;
 
+// Stable empty fallback (see note in useCommunityStore — a fresh [] per render
+// loops Zustand into "Maximum update depth exceeded").
+const EMPTY_NUDGES: CareNudge[] = [];
+
 export const selectNudgesForMember =
   (memberId: string) =>
   (s: SisterhoodStoreState): CareNudge[] =>
-    s.nudgesByMember[memberId] ?? [];
+    s.nudgesByMember[memberId] ?? EMPTY_NUDGES;
 
 export const selectPendingPhaseSyncs = (s: SisterhoodStoreState) =>
   s.pendingPhaseSyncs;
