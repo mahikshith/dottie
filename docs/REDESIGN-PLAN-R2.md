@@ -112,3 +112,16 @@ Files: `app/(tabs)/learn.tsx`, `app/lesson/[id].tsx`, `app/quiz/[id].tsx`,
 Owner input needed before deep work: confirm order; and design calls on E (path/character
 interaction set), C (mood palette + severity control), B3 (tab-bar look), A (how aggressively to
 gate vs. collect).
+
+---
+
+## Follow-up discovered during Batch 1
+- **30 native `Alert.alert` calls app-wide render white/off-theme** (new-post discard,
+  post detail, sisterhood, ghost-mode, privacy, daily-checkin, onboarding, etc.). Testers
+  flagged two (lesson complete → fixed E5; new-post "Discard this draft?" → 184215). Do a
+  systematic pass: route them all through the themed `CelebrationDialog` pattern (or a small
+  global dialog host). Own task — not a quick win.
+- **Today check-in showed the same generic companion wrapper for every question**
+  ("WE ARE SO CLOSE!! Can you FEEL it?!") instead of the real question — now shows `q.rawText`
+  (G1, done). The companion wrapQuestion voice itself needs a rework so it's warm AND specific
+  (Theme C).

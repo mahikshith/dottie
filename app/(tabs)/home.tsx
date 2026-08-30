@@ -327,7 +327,7 @@ export default function HomeScreen() {
                 <Text style={[styles.questionLabel, { color: palette.accent }]}>
                   {companion.name} asks {companion.emoji}
                 </Text>
-                <Text style={[styles.questionText, { color: palette.ink }]}>{q.companionText}</Text>
+                <Text style={[styles.questionText, { color: palette.ink }]}>{q.rawText}</Text>
                 <View style={styles.questionOptions}>
                   {q.options.map((option, idx) => (
                     <PressableScale
