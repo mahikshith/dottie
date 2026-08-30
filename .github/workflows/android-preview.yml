@@ -12,6 +12,18 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [design-v2]
+    paths:
+      - 'app/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'app.json'
+      - 'babel.config.js'
+      - 'tsconfig.json'
+      - '.github/workflows/android-preview.yml'
 
 jobs:
   android:
