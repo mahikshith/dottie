@@ -64,6 +64,8 @@ export interface DayDetailSheetProps {
   /** Tapped-cell centre in screen coords, for the magnify origin. */
   origin: { x: number; y: number } | null;
   phase: Phase;
+  /** Has the user logged any period yet? If not, don't show an assumed phase. */
+  hasCycleData: boolean;
   isPeriodDay: boolean;
   isFuture: boolean;
   daysUntilPredictedPeriod: number | null;
@@ -187,15 +189,23 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
             </PressableScale>
           </View>
           <View style={styles.chips}>
-            <View style={[styles.chip, { backgroundColor: `${phaseHue}26`, borderColor: `${phaseHue}80` }]}>
-              <View style={[styles.chipDot, { backgroundColor: phaseHue }]} />
-              <Text style={[styles.chipText, { color: palette.ink }]}>{set.phaseLabel} · {set.headline}</Text>
-            </View>
-            {set.prediction && (
-              <View style={[styles.chip, { backgroundColor: `${palette.accent2}22`, borderColor: `${palette.accent2}80` }]}>
-                <Text style={[styles.chipText, { color: palette.ink }]}>
-                  {set.prediction.tone === 'due' ? '🩸' : '🌙'} {predictionShort(set.prediction.text)}
-                </Text>
+            {props.hasCycleData ? (
+              <>
+                <View style={[styles.chip, { backgroundColor: `${phaseHue}26`, borderColor: `${phaseHue}80` }]}>
+                  <View style={[styles.chipDot, { backgroundColor: phaseHue }]} />
+                  <Text style={[styles.chipText, { color: palette.ink }]}>{set.phaseLabel} · {set.headline}</Text>
+                </View>
+                {set.prediction && (
+                  <View style={[styles.chip, { backgroundColor: `${palette.accent2}22`, borderColor: `${palette.accent2}80` }]}>
+                    <Text style={[styles.chipText, { color: palette.ink }]}>
+                      {set.prediction.tone === 'due' ? '🩸' : '🌙'} {predictionShort(set.prediction.text)}
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={[styles.chip, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
+                <Text style={[styles.chipText, { color: palette.ink2 }]}>🌱 Log your period to see your phase</Text>
               </View>
             )}
           </View>
@@ -207,15 +217,24 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Companion line */}
-          <Text style={[styles.companion, { color: palette.ink2 }]}>{set.companionLine}</Text>
+          {props.hasCycleData ? (
+            <>
+              {/* Companion line */}
+              <Text style={[styles.companion, { color: palette.ink2 }]}>{set.companionLine}</Text>
 
-          {/* Suggestions */}
-          {set.suggestions.map((s) => (
-            <SuggestionRow key={s.id} s={s} />
-          ))}
+              {/* Suggestions */}
+              {set.suggestions.map((s) => (
+                <SuggestionRow key={s.id} s={s} />
+              ))}
 
-          <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
+              <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
+            </>
+          ) : (
+            <Text style={[styles.companion, { color: palette.ink2 }]}>
+              Once you log your period, this is where your phase, gentle suggestions, and
+              predictions appear — personalized, never guessed. 🌙
+            </Text>
+          )}
 
           {/* Quick actions */}
           <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>YOUR DAY</Text>

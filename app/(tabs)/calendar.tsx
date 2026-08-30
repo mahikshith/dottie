@@ -397,6 +397,7 @@ export default function CalendarScreen() {
           dateLabel={formatFriendlyDate(selected.iso)}
           origin={selected.origin}
           phase={selected.phase}
+          hasCycleData={lastPeriodStart != null}
           isPeriodDay={selected.isPeriodDay}
           isFuture={selected.isFuture}
           daysUntilPredictedPeriod={selected.daysUntilPredictedPeriod}
