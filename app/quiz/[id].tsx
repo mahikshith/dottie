@@ -17,6 +17,7 @@ import {
   selectStreak,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
+import { CompanionScoreReaction } from '../../src/components/learn/CompanionScoreReaction';
 import type {
   QuizAttemptSession,
   RenderedQuizQuestion,
@@ -422,9 +423,15 @@ function QuizResultScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.resultHero, { backgroundColor: `${accent}11` }]}>
-          <Text style={styles.resultEmoji}>
-            {result.score === 1.0 ? '🌟' : result.passed ? '✨' : '🌱'}
-          </Text>
+          {/* The companion reacts to the score (mind-blown at 100 → warm hug on
+              a low landing) instead of a generic leaf/star. */}
+          <CompanionScoreReaction
+            companionType={companion.type}
+            score={result.score}
+            size={124}
+            headlineColor={accent}
+            badgeBg={A.ground}
+          />
           <Text style={[styles.resultPct, { color: accent }]}>{pct}%</Text>
           <Text style={styles.resultScoreText}>
             {result.correctCount} of {result.totalCount} correct
@@ -574,11 +581,11 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   optionCorrect: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(111,230,168,0.16)',
     borderColor: A.success,
   },
   optionWrong: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: 'rgba(255,122,138,0.16)',
     borderColor: A.error,
   },
   optionText: {
@@ -610,11 +617,11 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
   },
   explanationCorrect: {
-    backgroundColor: '#F1F8F4',
+    backgroundColor: 'rgba(111,230,168,0.10)',
     borderLeftColor: A.success,
   },
   explanationWrong: {
-    backgroundColor: '#FFF5F5',
+    backgroundColor: 'rgba(255,122,138,0.10)',
     borderLeftColor: A.error,
   },
   explanationEmoji: {

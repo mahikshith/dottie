@@ -249,6 +249,17 @@ export default function LessonDetailScreen() {
   const accent = path.gradient[0];
   const isComplete = progress?.status === 'complete';
 
+  // When already done, offer a COMPACT next step instead of a giant button:
+  // practice → quiz → review, whichever the lesson has.
+  const hasExercises = getExercisesForLesson(lesson.id).length > 0;
+  const reviewLabel = hasExercises ? 'Practice →' : lesson.quizId ? 'Quiz →' : 'Review';
+  const handleReviewNext = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (hasExercises) router.replace(`/exercise/${lesson.id}`);
+    else if (lesson.quizId) router.replace(`/quiz/${lesson.quizId}`);
+    else router.back();
+  };
+
   return (
     <AuroraBackground>
       <StatusBar style="light" />
@@ -292,24 +303,40 @@ export default function LessonDetailScreen() {
           ))}
         </View>
 
-        {/* Complete button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.completeButton,
-            { backgroundColor: isComplete ? AURORA_SUCCESS : palette.accent },
-            (pressed || isCompleting) && styles.completeButtonPressed,
-          ]}
-          onPress={handleComplete}
-          disabled={isCompleting}
-        >
-          <Text style={[styles.completeButtonText, { color: palette.ground }]}>
-            {isComplete
-              ? '✓ Already Complete'
-              : isCompleting
-                ? 'Saving...'
-                : 'Mark as Complete'}
-          </Text>
-        </Pressable>
+        {/* Complete CTA — compact when already done (owner: don't hog space) */}
+        {isComplete ? (
+          <View style={styles.completeRow}>
+            <View style={[styles.donePill, { backgroundColor: `${AURORA_SUCCESS}22`, borderColor: AURORA_SUCCESS }]}>
+              <Text style={[styles.donePillText, { color: AURORA_SUCCESS }]}>✓ Completed</Text>
+            </View>
+            <Pressable
+              onPress={handleReviewNext}
+              style={({ pressed }) => [
+                styles.nextChip,
+                { backgroundColor: accent },
+                pressed && styles.completeButtonPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={reviewLabel}
+            >
+              <Text style={[styles.nextChipText, { color: palette.ground }]}>{reviewLabel}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.completeButton,
+              { backgroundColor: palette.accent },
+              (pressed || isCompleting) && styles.completeButtonPressed,
+            ]}
+            onPress={handleComplete}
+            disabled={isCompleting}
+          >
+            <Text style={[styles.completeButtonText, { color: palette.ground }]}>
+              {isCompleting ? 'Saving...' : 'Mark as Complete'}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Quiz hint */}
         {lesson.quizId && !isComplete && (
@@ -532,6 +559,38 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   completeButtonText: {
+    ...Typography.preset.button,
+  },
+  completeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  donePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: Spacing.radius.full,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+  },
+  donePillText: {
+    ...Typography.preset.captionBold,
+  },
+  nextChip: {
+    height: Spacing.buttonHeight.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Spacing.radius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  nextChipText: {
     ...Typography.preset.button,
   },
   quizHint: {
