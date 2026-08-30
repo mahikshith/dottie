@@ -303,8 +303,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm + 2,
     borderRadius: Spacing.radius.full,
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-    borderWidth: 1,
-    borderColor: A.edge,
     minWidth: 96,
     alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
@@ -401,8 +399,6 @@ const styles = StyleSheet.create({
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: A.edge,
     paddingHorizontal: Spacing.lg,
   },
   secondaryButtonText: {

@@ -187,7 +187,7 @@ export default function QuizScreen() {
       // Quiz completion XP via dedicated source; override to use engine's amount
       await useGamificationStore
         .getState()
-        .awardXp('quiz_complete', { overrideAmount: result.xpAwarded });
+        .awardXp('quiz_pass', { overrideAmount: result.xpAwarded });
       // Drip gems through the standard quiz_complete source
       await useGamificationStore.getState().earnGems('quiz_complete');
 

@@ -967,8 +967,6 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.xl,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.md,
-    borderWidth: 1,
-    borderColor: A.edge,
     shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4,
   },
   textInput: {
@@ -996,8 +994,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
-    borderWidth: 1,
-    borderColor: A.edge,
     gap: 6,
   },
   relationshipPillActive: {
@@ -1018,7 +1014,7 @@ const styles = StyleSheet.create({
   shadowOptionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,
     gap: Spacing.md,
@@ -1074,8 +1070,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radius.full,
-    borderWidth: 1,
-    borderColor: A.edge,
   },
   conditionChipActive: {
     backgroundColor: A.accent2,
@@ -1134,8 +1128,6 @@ const styles = StyleSheet.create({
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-    borderWidth: 1,
-    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },

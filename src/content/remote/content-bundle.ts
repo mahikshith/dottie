@@ -74,7 +74,7 @@ export function validateContentBundle(bundle: unknown): BundleValidation {
   counts.exercises = b.exercises.length;
 
   for (const p of b.paths) {
-    const r = validateLearningPath(p as LearningPath);
+    const r = validateLearningPath(p as LearningPath, b.lessons as Lesson[]);
     if (!r.ok) errors.push(...r.errors);
   }
   for (const l of b.lessons as Lesson[]) {

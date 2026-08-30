@@ -147,14 +147,14 @@ export const Typography = {
       fontWeight: '700' as const,
       lineHeight: 29,
       letterSpacing: -0.5,
-      fontVariant: ['tabular-nums'] as const,
+      fontVariant: ['tabular-nums'] as ('tabular-nums')[],
     },
     numberLarge: {
       fontSize: 48,
       fontWeight: '800' as const,
       lineHeight: 52,
       letterSpacing: -1,
-      fontVariant: ['tabular-nums'] as const,
+      fontVariant: ['tabular-nums'] as ('tabular-nums')[],
     },
 
     // Buttons

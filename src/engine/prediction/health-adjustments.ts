@@ -335,7 +335,7 @@ function buildSummaryMessage(adjustments: HealthAdjustment[]): string {
   }
 
   if (adjustments.length === 1) {
-    return adjustments[0].explanation;
+    return adjustments[0]!.explanation;
   }
 
   const factorNames = adjustments.map(a => a.factorName);

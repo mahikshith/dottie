@@ -747,7 +747,7 @@ const OVULATORY_D1_3: PhaseQuestion[] = [
       fox: 'Luna recognizes your peak energy 🦊',
       bunny: 'Pip is BOUNCING off the walls! You?! 🐰⚡',
       butterfly: 'Mira watches you blaze brightly ✨',
-      cat: 'Nyx is impressed. Don't tell anyone 😼',
+      cat: 'Nyx is impressed. Don\'t tell anyone 😼',
       owl: 'Sage notes: ovulation = social peak 🦉',
       blossom: 'You GLOW today! 🩷 Feel it?',
     },
@@ -780,7 +780,7 @@ const OVULATORY_D1_3: PhaseQuestion[] = [
     companionVariants: {
       fox: 'Luna observes your body announcing itself 🦊',
       bunny: 'Pip says: BODY UPDATE — twinges?! 🐰',
-      butterfly: 'Mira hears the body's quiet signals ✨',
+      butterfly: 'Mira hears the body\'s quiet signals ✨',
       cat: 'Nyx supports anatomical awareness 😼',
       owl: 'Sage notes: ovulation pain — log if present 🦉',
       blossom: 'Any side twinges? 🩷',
@@ -902,7 +902,7 @@ const OVULATORY_D4_7: PhaseQuestion[] = [
     companionVariants: {
       fox: 'Luna gathers her people 🦊',
       bunny: 'Pip is SOCIAL BUNNY! Did you connect?! 🐰',
-      butterfly: 'Mira lands where she's celebrated ✨',
+      butterfly: 'Mira lands where she\'s celebrated ✨',
       cat: 'Nyx accepts limited social interaction 😼',
       owl: 'Sage logs social connection 🦉',
       blossom: 'Did you connect with someone? 🩷',
@@ -1168,7 +1168,7 @@ const LUTEAL_D1_3: PhaseQuestion[] = [
     companionVariants: {
       fox: 'Luna observes bodily changes 🦊',
       bunny: 'Pip is doing the BLOAT check! 🐰',
-      butterfly: 'Mira sees the body's quiet changes ✨',
+      butterfly: 'Mira sees the body\'s quiet changes ✨',
       cat: 'Nyx tolerates bodily fluctuations 😼',
       owl: 'Sage notes: progesterone causes water retention 🦉',
       blossom: 'Any bloating today? 🩷',
@@ -1203,7 +1203,7 @@ const LUTEAL_D4_7: PhaseQuestion[] = [
     options: ['Drained', 'Low', 'Okay', 'Good', 'High'],
     tracksMetric: 'energy',
     companionVariants: {
-      fox: 'Luna moves slower and that's wise 🦊',
+      fox: 'Luna moves slower and that\'s wise 🦊',
       bunny: 'Pip is being CALM bunny! 🐰',
       butterfly: 'Mira knows stillness IS movement ✨',
       cat: 'Nyx is in her element 😼',
@@ -1275,7 +1275,7 @@ const LUTEAL_D8_11: PhaseQuestion[] = [
     tracksMetric: 'pms',
     companionVariants: {
       fox: 'Luna grants maximum gentleness 🦊',
-      bunny: 'Pip says PMS is REAL — you're BRAVE! 🐰💛',
+      bunny: 'Pip says PMS is REAL — you\'re BRAVE! 🐰💛',
       butterfly: 'Mira softens before the storm ✨',
       cat: 'Nyx supports comfort food as medicine 😼',
       owl: 'Sage notes: estrogen + progesterone dropping 🦉',
@@ -1327,7 +1327,7 @@ const LUTEAL_D8_11: PhaseQuestion[] = [
     companionVariants: {
       fox: 'Luna eats more when her body asks 🦊',
       bunny: 'Pip wants you FED! 🐰🍎',
-      butterfly: 'Mira nourishes herself like she's worth it ✨',
+      butterfly: 'Mira nourishes herself like she\'s worth it ✨',
       cat: 'Nyx supports increased food intake 😼',
       owl: 'Sage notes: BMR rises in luteal 🦉',
       blossom: 'Did you eat enough? 🩷',
@@ -1380,7 +1380,7 @@ const LUTEAL_D12_14: PhaseQuestion[] = [
     tracksMetric: 'pms',
     companionVariants: {
       fox: 'Luna believes severe ≠ normal 🦊',
-      bunny: 'Pip says ASK FOR HELP if it's bad! 🐰',
+      bunny: 'Pip says ASK FOR HELP if it\'s bad! 🐰',
       butterfly: 'Mira honors what your body says ✨',
       cat: 'Nyx does NOT tolerate suffering 😼',
       owl: 'Sage notes: PMDD if severe + consistent 🦉',

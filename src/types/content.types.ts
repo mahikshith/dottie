@@ -73,18 +73,38 @@ export interface PhaseQuestion {
 
 /** Metrics that phase questions can track */
 export type TrackedMetric =
-  | 'energy'
-  | 'mood'
-  | 'sleep'
+  // physical / symptoms
   | 'cramps'
   | 'skin'
-  | 'cravings'
   | 'bloating'
   | 'headache'
-  | 'focus'
-  | 'social_energy'
+  | 'cravings'
+  | 'appetite'
   | 'libido'
-  | 'anxiety';
+  | 'sleep'
+  | 'bbt'
+  | 'cervical_mucus'
+  | 'pms'
+  | 'pain_tolerance'
+  // energy / mind
+  | 'energy'
+  | 'mood'
+  | 'anxiety'
+  | 'stress'
+  | 'focus'
+  | 'confidence'
+  | 'motivation'
+  | 'productivity'
+  | 'social_energy'
+  // cycle awareness / behaviour
+  | 'flow'
+  | 'cycle_length'
+  | 'hydration'
+  | 'exercise'
+  | 'reflection'
+  | 'phase_awareness'
+  | 'period_prediction'
+  | 'period_prep';
 
 // ─── LEARNING PATHS & LESSONS ────────────────────────────────────────
 

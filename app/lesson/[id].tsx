@@ -22,7 +22,7 @@ import {
 } from '../../src/content/learning-paths';
 import { getExercisesForLesson } from '../../src/content/exercises';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
-import { LessonSection, Phase } from '../../src/types/cycle.types';
+import { Phase } from '../../src/types/cycle.types';
 import type { LessonSection as LessonSectionType } from '../../src/types/content.types';
 
 /**
@@ -367,7 +367,7 @@ function resolveHighlightColor(
 }
 
 // Touch import so unused-import warnings don't trigger in dev
-void LessonSection;
+// (LessonSectionType from content.types is used for section typing above.)
 
 // ─── STYLES ──────────────────────────────────────────────────────────
 

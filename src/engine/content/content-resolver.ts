@@ -58,7 +58,8 @@ export type CohortContentType =
   | 'questions'         // Phase-responsive questions
   | 'tips'              // Phase-specific tips
   | 'predictions'       // "Dottie Predicts" templates
-  | 'phase_weather';    // Global pulse data
+  | 'phase_weather'     // Global pulse data
+  | 'quiz';             // Dynamically-loaded quizzes (cohort fallback)
 
 // ─── PROVIDER INTERFACE (Pluggable Storage) ───────────────────────────
 

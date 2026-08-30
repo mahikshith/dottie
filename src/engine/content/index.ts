@@ -22,11 +22,11 @@ export {
   ContentResolver,
   InMemoryCohortProvider,
   buildStateKeyFromInputs,
-  classifySymptomCluster,
+  detectSymptomCluster,
 } from './content-resolver';
 export type {
-  CohortProvider,
-  ContentType,
+  CohortContentProvider,
+  CohortContentType,
   RecentSymptom,
 } from './content-resolver';
 
@@ -103,8 +103,10 @@ export {
   buildContext,
   getCompanionGreeting,
   getTimeGreeting,
+  getTimeOfDay,
 } from './companion-dialogue';
 export type { TimeOfDay } from './companion-dialogue';
+export type { CohortContentType as ContentType } from './content-resolver';
 
 // ─── BUNDLED CONTENT PROVIDER FACTORIES ──────────────────────────────
 

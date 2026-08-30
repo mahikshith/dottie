@@ -106,7 +106,7 @@ async function tryMailComposer(
     // Dynamic import — the module won't be in the bundle for users
     // who never trigger feedback. Also tolerant of the module being
     // un-installed (returns a graceful failure).
-    const MailComposer = await import('expo-mail-composer').catch(() => null);
+    const MailComposer = await import('expo-mail-composer' as string).catch(() => null);
     if (!MailComposer) {
       return { kind: 'no_transport_available' };
     }

@@ -780,8 +780,6 @@ const styles = StyleSheet.create({
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-    borderWidth: 1,
-    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },

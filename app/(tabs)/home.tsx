@@ -34,7 +34,7 @@ import {
   selectPredictsDeck,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
-import { getTimeGreeting } from '../../src/engine/content';
+import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
@@ -102,7 +102,7 @@ export default function HomeScreen() {
 
   // ─── Compose greeting (time + companion + phase) ────────────────
   const greeting = useMemo(() => {
-    const timePart = getTimeGreeting();
+    const timePart = getTimeGreeting(getTimeOfDay());
     const phaseGreeting = companion.greetings[phase];
     return `${timePart}, friend!\n${phaseGreeting}`;
   }, [companion, phase]);
@@ -349,7 +349,7 @@ export default function HomeScreen() {
                 <Text style={[styles.questionLabel, { color: palette.accent }]}>
                   {companion.name} asks {companion.emoji}
                 </Text>
-                <Text style={[styles.questionText, { color: palette.ink }]}>{q.text}</Text>
+                <Text style={[styles.questionText, { color: palette.ink }]}>{q.companionText}</Text>
                 <View style={styles.questionOptions}>
                   {q.options.map((option, idx) => (
                     <PressableScale

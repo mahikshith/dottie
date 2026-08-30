@@ -22,7 +22,7 @@
  */
 
 import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import LottieView from 'lottie-react-native';
+import LottieView, { type LottieViewProps } from 'lottie-react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { BreathingView } from './BreathingView';
 import { getCompanionLottie, type CompanionAnim } from '../../content/companion-lottie';
@@ -55,7 +55,7 @@ export function CompanionLottie({
   if (asset != null) {
     return (
       <LottieView
-        source={asset}
+        source={asset as LottieViewProps['source']}
         autoPlay={!reduce}
         loop={loop && !reduce}
         style={[{ width: size, height: size }, style]}

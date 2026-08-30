@@ -79,7 +79,7 @@ export default function ExerciseScreen() {
       if (summary.xpAwarded > 0) {
         await useGamificationStore
           .getState()
-          .awardXp('quiz_complete', { overrideAmount: summary.xpAwarded });
+          .awardXp('lesson_complete', { overrideAmount: summary.xpAwarded });
         await useGamificationStore.getState().earnGems('quiz_complete');
       }
     } catch (err) {

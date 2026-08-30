@@ -17,7 +17,7 @@
  * - Luteal: Post-ovulation → next period
  */
 
-import { Phase, CyclePrediction } from '../types/cycle.types';
+import { Phase, CyclePrediction } from '../../types/cycle.types';
 
 /** Default assumptions when data is limited */
 const DEFAULTS = {

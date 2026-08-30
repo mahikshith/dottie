@@ -508,9 +508,9 @@ export function buildContext(input: {
  * Categorize a Date into a time-of-day bucket.
  * Used to pick contextual greetings ("Good morning", "Hey", etc.).
  */
-export function getTimeOfDay(
-  now: Date = new Date()
-): 'morning' | 'afternoon' | 'evening' | 'night' {
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+
+export function getTimeOfDay(now: Date = new Date()): TimeOfDay {
   const hour = now.getHours();
   if (hour >= 5 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 17) return 'afternoon';

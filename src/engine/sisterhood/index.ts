@@ -382,5 +382,5 @@ function daysBetween(a: string, b: string): number {
   return Math.round(Math.abs(t2 - t1) / (24 * 60 * 60 * 1000));
 }
 
-// Unused-import suppressor for ShadowCheckIn (re-exported for future use)
-void ShadowCheckIn;
+// ShadowCheckIn is imported for type use / future re-export.
+export type { ShadowCheckIn };

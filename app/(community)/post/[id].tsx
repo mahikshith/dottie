@@ -813,8 +813,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
     borderRadius: Spacing.radius.full,
-    borderWidth: 1,
-    borderColor: A.edge,
     height: 40,
     justifyContent: 'center',
   },

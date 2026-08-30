@@ -257,7 +257,7 @@ export function getCurrentJourneyPhase(currentLevel: number): JourneyPhase {
     }
   }
   // Default to last phase for very high levels
-  return JOURNEY_PHASES[JOURNEY_PHASES.length - 1];
+  return JOURNEY_PHASES[JOURNEY_PHASES.length - 1]!;
 }
 
 /**
@@ -333,7 +333,7 @@ export function getLevelSummary(
   currentXP: number,
   currentLevel: number
 ): LevelSummary {
-  const levelDef = LEVEL_DEFINITIONS.find(l => l.level === currentLevel) ?? LEVEL_DEFINITIONS[0];
+  const levelDef = LEVEL_DEFINITIONS.find(l => l.level === currentLevel) ?? LEVEL_DEFINITIONS[0]!;
   const nextLevel = getNextLevelDefinition(currentLevel);
   const journeyPhase = getCurrentJourneyPhase(currentLevel);
 
@@ -425,7 +425,7 @@ export interface LevelSummary {
 // ─── INTERNAL HELPERS ────────────────────────────────────────────────
 
 function getLevelFromDefinitions(totalXP: number): LevelDefinition {
-  let current = LEVEL_DEFINITIONS[0];
+  let current = LEVEL_DEFINITIONS[0]!;
   for (const level of LEVEL_DEFINITIONS) {
     if (totalXP >= level.xpRequired) {
       current = level;
@@ -439,7 +439,7 @@ function getLevelFromDefinitions(totalXP: number): LevelDefinition {
 function getNextLevelDefinition(currentLevel: number): LevelDefinition | null {
   const index = LEVEL_DEFINITIONS.findIndex(l => l.level === currentLevel);
   if (index === -1 || index >= LEVEL_DEFINITIONS.length - 1) return null;
-  return LEVEL_DEFINITIONS[index + 1];
+  return LEVEL_DEFINITIONS[index + 1] ?? null;
 }
 
 function getLevelUpDescription(level: number): string {

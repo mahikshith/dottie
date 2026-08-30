@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   dayCell: {
     width: 60,
     paddingVertical: Spacing.sm,
-    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
+    backgroundColor: A.glass,
     borderRadius: Spacing.radius.xl,
     alignItems: 'center',
     borderWidth: 2,
@@ -429,8 +429,6 @@ const styles = StyleSheet.create({
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-    borderWidth: 1,
-    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },

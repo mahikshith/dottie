@@ -659,7 +659,7 @@ function formatFriendlyDate(iso: string): string {
 function phaseForDate(
   iso: string,
   lastPeriodStart: string | null,
-  health: { averageCycleLength: number; averagePeriodLength: number } | null | undefined
+  health: { averageCycleLength: number | null; averagePeriodLength: number | null } | null | undefined
 ): Phase | null {
   if (!lastPeriodStart) return null;
   const last = new Date(lastPeriodStart + 'T00:00:00');

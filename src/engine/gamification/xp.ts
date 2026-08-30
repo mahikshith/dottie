@@ -147,7 +147,7 @@ export function awardXP(
  * Get the user's current level based on total XP.
  */
 export function getLevelForXP(totalXP: number): LevelDefinition {
-  let currentLevel = LEVEL_DEFINITIONS[0];
+  let currentLevel = LEVEL_DEFINITIONS[0]!;
 
   for (const level of LEVEL_DEFINITIONS) {
     if (totalXP >= level.xpRequired) {
@@ -201,7 +201,7 @@ export function getLevelProgress(totalXP: number): LevelProgress {
 export function getNextLevel(currentLevel: number): LevelDefinition | null {
   const index = LEVEL_DEFINITIONS.findIndex(l => l.level === currentLevel);
   if (index === -1 || index >= LEVEL_DEFINITIONS.length - 1) return null;
-  return LEVEL_DEFINITIONS[index + 1];
+  return LEVEL_DEFINITIONS[index + 1] ?? null;
 }
 
 /**
