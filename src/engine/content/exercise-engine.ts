@@ -190,8 +190,38 @@ export interface ExerciseFeedback {
   explanation: string;
   explanationEmoji: string;
   companionReaction: string;
+  /**
+   * A human-readable rendering of the CORRECT answer — shown on a wrong/partial
+   * attempt so the learner sees the right answer, not just a score (owner ask).
+   * Safe to compute here: it's only surfaced AFTER the user has answered.
+   */
+  solution: string;
   xpAwarded: number;
   gemsAwarded: number;
+}
+
+/** The correct answer as a short display string (post-answer reveal). */
+export function describeSolution(exercise: Exercise): string {
+  switch (exercise.type) {
+    case 'pairs':
+      return exercise.pairs.map((p) => `${p.left} → ${p.right}`).join(' · ');
+    case 'order':
+      return exercise.items.map((it, i) => `${i + 1}. ${it}`).join('   ');
+    case 'fill_blank':
+      return exercise.sentence.replace(/\{\{(\d+)\}\}/g, (_m, d: string) => {
+        const ans = exercise.blanks[Number(d)]?.answer;
+        return ans ? `[${ans}]` : '[…]';
+      });
+    case 'tap_diagram': {
+      const o = exercise.options[exercise.correctIndex];
+      return o ? `${o.emoji ? o.emoji + ' ' : ''}${o.label}` : '';
+    }
+    case 'tap_word':
+      return exercise.correctTokenIndexes
+        .map((i) => exercise.tokens[i])
+        .filter(Boolean)
+        .join(' ');
+  }
 }
 
 /**
@@ -225,6 +255,7 @@ export function checkExerciseAnswer(
     explanation: exercise.explanation,
     explanationEmoji: exercise.explanationEmoji ?? (grade.correct ? '✨' : '💡'),
     companionReaction,
+    solution: describeSolution(exercise),
     xpAwarded,
     gemsAwarded,
   };

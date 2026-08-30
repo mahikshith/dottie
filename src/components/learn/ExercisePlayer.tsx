@@ -175,6 +175,14 @@ export function ExercisePlayer({
                   : 'Not quite'}
             </Text>
           </View>
+          {/* On a wrong/partial answer, SHOW the correct answer — not just a
+              score (owner: "we didn't even show the correct answer, just 1/4"). */}
+          {!feedback.correct && feedback.solution ? (
+            <View style={[styles.solutionRow, { borderColor: '#6FE6A8', backgroundColor: '#6FE6A81A' }]}>
+              <Text style={[styles.solutionLabel, { color: '#6FE6A8' }]}>ANSWER</Text>
+              <Text style={[styles.solutionText, { color: palette.ink }]}>{feedback.solution}</Text>
+            </View>
+          ) : null}
           <Text style={[styles.feedbackExplain, { color: palette.ink2 }]}>
             {feedback.explanationEmoji} {feedback.explanation}
           </Text>
@@ -713,6 +721,15 @@ const styles = StyleSheet.create({
   feedbackVerdict: { ...Typography.preset.h4 },
   feedbackExplain: { ...Typography.preset.body, lineHeight: 22 },
   feedbackReaction: { ...Typography.preset.caption, fontStyle: 'italic' },
+  solutionRow: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: 2,
+  },
+  solutionLabel: { ...Typography.preset.overline, fontSize: 10, letterSpacing: 1 },
+  solutionText: { ...Typography.preset.bodySemibold, lineHeight: 22 },
 
   ctaRow: { marginTop: Spacing.xs },
   cta: {
