@@ -14,7 +14,7 @@
  *    "Mark as period" (past/today only), so nothing is lost, and future days
  *    become plannable (the point of a week-ahead planner).
  *  • Rendered as an in-screen overlay (not a Modal) so the calendar shows
- *    through, dimmed. True frosted blur awaits `expo-blur`; a scrim stands in.
+ *    through — now frosted via an expo-blur BlurView + a dim scrim.
  *  • Origin-magnify + scrim fade run on the UI thread (Reanimated), Reduce-Motion
  *    aware (instant, centered). Follows `.claude/skills/animate-expo`.
  *
@@ -40,6 +40,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { PressableScale } from '../ui';
@@ -154,8 +155,16 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
-      {/* Scrim — tap to close */}
-      <Animated.View style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]}>
+      {/* Frosted + dimmed backdrop — tap to close. Real blur so the month
+          behind the sheet stops bleeding through (was translucent-only). */}
+      <Animated.View style={[StyleSheet.absoluteFill, scrimStyle]}>
+        <BlurView
+          intensity={40}
+          tint="dark"
+          experimentalBlurMethod="dimezisBlurView"
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[StyleSheet.absoluteFill, styles.scrim]} />
         <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" accessibilityRole="button" />
       </Animated.View>
 
