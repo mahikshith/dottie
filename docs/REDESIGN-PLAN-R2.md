@@ -10,10 +10,15 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 
 ## ▶️ NEXT SESSION — START HERE (current state)
 - **On GitHub (pushed with `[skip ci]`, NO build ran):** Batch 1 (crash + quick wins) + Theme A
-  "don't fake a phase" (`a7212c8` Home gates phase content behind `selectHasCycleData` +
-  honest get-started · `a662748` calendar sheet honest when no data).
-- **DONE locally, NOT pushed (branch ahead 4):** the full **alert-theming** pass — every native
-  `Alert.alert` → `showAppDialog` (see the Follow-up section). tsc 0 + bundle clean.
+  "don't fake a phase" + the full **alert-theming** pass (every native `Alert.alert` →
+  `showAppDialog`). Origin tip `8eb3975`.
+- **DONE locally, NOT pushed (branch ahead 5):** **Batch 4 — Learn overhaul** (E1–E7 + polish).
+  tsc 0 + bundle clean (4.91 MB). Commits `a2fe4b3` (E3 focus-reload bug + E4 labels/lock + E1
+  tube/glow + E2 hop) · `9d4f2d9` (E1 auto-scroll) · `fd995e8` (E7 CompanionScoreReaction + E5
+  on-theme quiz result + compact "already complete") · `3640561` (E6 correct-answer reveal in
+  exercises) · `4d3cc99` (lesson-reader companion animation).
+  **Remaining in Theme E:** E8 (phase-aware / skill-level content TIERING — the pace chip only
+  toggles locks today, not depth) and E9 (opaque lesson pane + more content — owner said "later").
 
 **Resume options:**
 1. **Build preview:** `git push origin design-v2` (a normal push, NO `[skip ci]`) → GitHub
@@ -82,6 +87,7 @@ log, or show honest "still learning" states — never a fabricated phase/feeling
 ## Theme E — Learn (biggest chunk) `[R]` — Duolingo-grade path
 Files: `app/(tabs)/learn.tsx`, `app/lesson/[id].tsx`, `app/quiz/[id].tsx`,
 `app/exercise/[lessonId].tsx`, `src/content/exercises.ts`, aurora path components.
+**STATUS: E1–E7 DONE (Batch 4, local, ahead 5). E8/E9 remain (see below).**
 - **E1** Path: replace grey connector with a clean **concentric-tube / node trail** — completed
   node glows, next is highlighted; route the trail through the side empty space; a small glowy
   marker shows "you are here"; **auto-scroll** to the current lesson on open.
