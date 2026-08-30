@@ -24,7 +24,7 @@
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -144,6 +144,32 @@ export default function LearnScreen() {
   const [level, setLevel] = useState<LearnLevel | null>(() => Storage.learnLevel.get());
   const guided = level !== 'basics' && level !== 'deep'; // null/'new' → guided
 
+  // Auto-scroll: bring the current lesson into view on open / after finishing one
+  // (owner ask — don't make the user hunt for where they are). `armed` is reset
+  // on focus so each visit re-centres; the once-guard stops multiple trails from
+  // fighting over the scroll.
+  const scrollRef = useRef<ScrollView>(null);
+  const autoScrollArmed = useRef(true);
+  const scrollToCurrent = useCallback((anchor: View | null) => {
+    if (!autoScrollArmed.current) return;
+    const sv = scrollRef.current;
+    if (!anchor || !sv) return;
+    autoScrollArmed.current = false;
+    setTimeout(() => {
+      try {
+        const inner = (sv as unknown as { getInnerViewNode?: () => number }).getInnerViewNode?.();
+        if (inner == null) return;
+        anchor.measureLayout(
+          inner,
+          (_x: number, y: number) => sv.scrollTo({ y: Math.max(0, y - 170), animated: true }),
+          () => {},
+        );
+      } catch {
+        // best-effort; a failed measure just means no auto-scroll this time
+      }
+    }, 450);
+  }, []);
+
   // Loader is a stable callback so the focus effect below can re-run it.
   const loadProgress = useCallback(() => {
     if (!userId) return undefined;
@@ -175,6 +201,7 @@ export default function LearnScreen() {
     useCallback(() => {
       const cleanup = loadProgress();
       setLevel(Storage.learnLevel.get());
+      autoScrollArmed.current = true; // re-centre on the current lesson each visit
       return cleanup;
     }, [loadProgress])
   );
@@ -213,10 +240,20 @@ export default function LearnScreen() {
   const totalLessons = availablePaths.reduce((sum, p) => sum + (pathStats.get(p.id)?.total ?? 0), 0);
   const completedLessons = availablePaths.reduce((sum, p) => sum + (pathStats.get(p.id)?.completed ?? 0), 0);
 
+  // The one path that still has a current lesson — only it drives auto-scroll.
+  const activePathId = useMemo(
+    () => availablePaths.find((p) => {
+      const s = pathStats.get(p.id);
+      return !s || s.completed < s.total;
+    })?.id ?? null,
+    [availablePaths, pathStats]
+  );
+
   return (
     <AuroraBackground>
       <StatusBar style="light" />
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
@@ -291,6 +328,8 @@ export default function LearnScreen() {
               guided={guided}
               companionType={companionType}
               onLessonTap={openLesson}
+              isActivePath={path.id === activePathId}
+              onAutoScroll={scrollToCurrent}
             />
           </Animated.View>
         ))}
@@ -383,6 +422,8 @@ function PathTrail({
   guided,
   companionType,
   onLessonTap,
+  isActivePath,
+  onAutoScroll,
 }: {
   path: LearningPath;
   lessons: Lesson[];
@@ -391,10 +432,13 @@ function PathTrail({
   guided: boolean;
   companionType: CompanionType;
   onLessonTap: (lessonId: string) => void;
+  isActivePath: boolean;
+  onAutoScroll: (anchor: View | null) => void;
 }): JSX.Element {
   const { palette } = useAurora();
   const accent = path.gradient[0];
   const [width, setWidth] = useState(0);
+  const anchorRef = useRef<View>(null);
 
   const currentId = useMemo(
     () => lessons.find((l) => progressMap.get(l.id)?.status !== 'complete')?.id ?? null,
@@ -451,6 +495,17 @@ function PathTrail({
   }));
   const height = TOP + (nodes.length - 1) * ROW_H + NODE + BOTTOM;
 
+  // Once laid out, ask the parent to scroll the current node into view. Re-fires
+  // when currentIndex advances (a lesson was just completed) — the parent's
+  // once-guard/arming decides whether it actually scrolls.
+  useEffect(() => {
+    if (width > 0 && isActivePath && currentIndex >= 0) {
+      onAutoScroll(anchorRef.current);
+    }
+  }, [width, isActivePath, currentIndex, onAutoScroll]);
+
+  const anchorPoint = points[currentIndex];
+
   return (
     <View style={styles.trailWrap}>
       {/* Path header */}
@@ -478,6 +533,14 @@ function PathTrail({
       <View style={{ height: width > 0 ? height : ROW_H }} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {width > 0 && (
           <>
+            {/* Invisible auto-scroll anchor pinned to the current node. */}
+            {isActivePath && anchorPoint && (
+              <View
+                ref={anchorRef}
+                style={{ position: 'absolute', left: anchorPoint.x, top: anchorPoint.y, width: 1, height: 1 }}
+                pointerEvents="none"
+              />
+            )}
             {/* aurora stream behind the nodes */}
             <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
               <Defs>
