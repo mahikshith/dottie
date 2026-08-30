@@ -50,6 +50,7 @@ import {
   selectCompanionType,
   selectXpTotal,
   selectGemsBalance,
+  selectStreak,
 } from '../../src/stores';
 import {
   LEARNING_PATHS,
@@ -76,6 +77,7 @@ export default function LearnScreen() {
   const companionType = useUserStore(selectCompanionType);
   const xpTotal = useGamificationStore(selectXpTotal);
   const gemsBalance = useGamificationStore(selectGemsBalance);
+  const streak = useGamificationStore(selectStreak);
   const userId = useUserStore((s) => s.userId);
   const contentHydrated = useContentStore((s) => s.hydrated);
 
@@ -147,12 +149,28 @@ export default function LearnScreen() {
         contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header — title left, minimal streak/gems (no words) top-right */}
         <Animated.View entering={rise(0)} style={styles.header}>
-          <Text style={[styles.title, { color: palette.ink }]}>Learn &amp; Grow {companion.emoji}</Text>
-          <Text style={[styles.subtitle, { color: palette.ink2 }]}>
-            A little quest for your body. Earn XP and gems as you go.
-          </Text>
+          <View style={styles.headerText}>
+            <Text style={[styles.title, { color: palette.ink }]}>Learn &amp; Grow {companion.emoji}</Text>
+            <Text style={[styles.subtitle, { color: palette.ink2 }]}>
+              A little quest for your body. Earn XP and gems as you go.
+            </Text>
+          </View>
+          <View style={styles.topStats}>
+            <View style={[styles.topStat, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
+              <Text style={styles.topStatEmoji}>🔥</Text>
+              <PopOnChange value={streak.currentStreak}>
+                <Text style={[styles.topStatValue, { color: palette.ink }]}>{streak.currentStreak}</Text>
+              </PopOnChange>
+            </View>
+            <View style={[styles.topStat, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
+              <Text style={styles.topStatEmoji}>💎</Text>
+              <PopOnChange value={gemsBalance}>
+                <Text style={[styles.topStatValue, { color: palette.ink }]}>{gemsBalance}</Text>
+              </PopOnChange>
+            </View>
+          </View>
         </Animated.View>
 
         {/* Stats */}
@@ -170,13 +188,6 @@ export default function LearnScreen() {
               <Text style={[styles.statValue, { color: palette.ink }]}>{xpTotal}</Text>
             </PopOnChange>
             <Text style={[styles.statLabel, { color: palette.ink3 }]}>XP</Text>
-          </GlassCard>
-          <GlassCard style={styles.statBox} padding={Spacing.md}>
-            <Text style={styles.statEmoji}>💎</Text>
-            <PopOnChange value={gemsBalance}>
-              <Text style={[styles.statValue, { color: palette.ink }]}>{gemsBalance}</Text>
-            </PopOnChange>
-            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Gems</Text>
           </GlassCard>
         </Animated.View>
 
@@ -505,7 +516,12 @@ void LEARNING_PATHS;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   contentContainer: { paddingHorizontal: Spacing.screenPadding },
-  header: { marginBottom: Spacing.lg },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.md, marginBottom: Spacing.lg },
+  headerText: { flex: 1 },
+  topStats: { flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.xs },
+  topStat: { flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: Spacing.radius.full, paddingHorizontal: Spacing.sm, paddingVertical: 5 },
+  topStatEmoji: { fontSize: 14 },
+  topStatValue: { ...Typography.preset.captionBold, fontSize: 14 },
   title: { ...Typography.preset.h2, marginBottom: Spacing.sm },
   subtitle: { ...Typography.preset.body, lineHeight: 24 },
 

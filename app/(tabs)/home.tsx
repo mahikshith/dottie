@@ -78,8 +78,7 @@ export default function HomeScreen() {
   const phase = useCycleStore(selectCurrentPhase);
   const dayInCycle = useCycleStore(selectDayInCycle);
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
-  const streak = useGamificationStore(selectStreak);
-  const gemsBalance = useGamificationStore(selectGemsBalance);
+  // streak + gems moved to the Learn tab (gamification lives there now)
   const todaysCard = useContentStore(selectTodaysCard);
   const todaysQuestions = useContentStore(selectTodaysQuestions);
   const weatherSnapshot = usePhaseWeatherStore(selectWeatherSnapshot);
@@ -244,27 +243,6 @@ export default function HomeScreen() {
           </Animated.View>
         ) : null}
 
-        {/* Streak & Gems Row */}
-        <Animated.View entering={rise(300)} style={styles.statsRow}>
-          <GlassCard style={styles.statCard} padding={Spacing.cardPadding}>
-            <Text style={styles.statEmoji}>🔥</Text>
-            <PopOnChange value={streak.currentStreak}>
-              <Text style={[styles.statNumber, { color: palette.accent }]}>
-                {streak.currentStreak}
-              </Text>
-            </PopOnChange>
-            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Day Streak</Text>
-          </GlassCard>
-          <GlassCard style={styles.statCard} padding={Spacing.cardPadding}>
-            <Text style={styles.statEmoji}>💎</Text>
-            <PopOnChange value={gemsBalance}>
-              <Text style={[styles.statNumber, { color: palette.accent2 }]}>
-                {gemsBalance}
-              </Text>
-            </PopOnChange>
-            <Text style={[styles.statLabel, { color: palette.ink3 }]}>Gems</Text>
-          </GlassCard>
-        </Animated.View>
 
         {/* Dottie Predicts — themed in its own file */}
         <Animated.View entering={rise(380)}>
