@@ -9,6 +9,7 @@ import { Spacing } from '../src/constants/spacing';
 import { Shadows } from '../src/constants/shadows';
 import { hydrateAppState } from '../src/stores';
 import { AuroraProvider } from '../src/theme';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
@@ -238,6 +239,7 @@ export default function RootLayout() {
     // screens are themed one by one.
     <AuroraProvider>
       <StatusBar style="dark" />
+      <ErrorBoundary>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -262,6 +264,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      </ErrorBoundary>
 
       {/* Ghost Mode overlay — renders the lock screen or decoy app
           above the navigation tree when ghost mode is engaged.

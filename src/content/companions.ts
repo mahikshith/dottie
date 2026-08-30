@@ -210,7 +210,7 @@ export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
  * Get a companion definition by type.
  */
 export function getCompanion(type: CompanionType): CompanionDefinition {
-  return COMPANIONS[type];
+  return COMPANIONS[type] ?? COMPANIONS.blossom;
 }
 
 /**
