@@ -8,6 +8,27 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 > energetic (Duolingo-level fun) — not placeholder-y or clinical. Don't show data we
 > haven't earned (no assumed phases/feelings before the user logs).*
 
+## ▶️ NEXT SESSION — START HERE (state at session end)
+**Batch 1 (crash + quick wins) is DONE and verified (tsc 0 + bundle clean), committed
+LOCALLY on `design-v2` but NOT pushed** — branch is **ahead 8** of `origin/design-v2`.
+Commits (newest first): `e940c82` G1 · `4f50667` B3 · `c892194` D1 · `5fd7cc5` E6-partial ·
+`78d34a0` E5 · `13131c8` B1 · `62ec008` plan · `2c63ede` crash fix.
+
+What's in Batch 1 (all should be re-tested on-device): crash fix (Circle/You open now),
+B1 streak/gems→Learn, E5 themed lesson CelebrationDialog, E6-partial (drop "soft snacks" +
+shorten exercise header), D1 calendar frosted blur (added `expo-blur`), B3 frosted borderless
+tab bar, G1 Today shows real question.
+
+**Owner was asked to approve a preview build; session hit its limit first. Resume options:**
+1. **Build preview:** `git push origin design-v2` → GitHub Actions builds the APK (~20 min via
+   `gh run watch <id> --exit-status`) → owner installs & re-tests Batch 1 → feedback.
+2. **Keep building first:** the systematic **alert-theming** pass (30 native `Alert.alert` →
+   `src/components/ui/CelebrationDialog.tsx` pattern), then **Batch 2 (honesty layer)**.
+
+Env: prefix every node cmd with `$env:Path = "C:\Program Files\nodejs;" + $env:Path`.
+Verify: `npx tsc --noEmit` (expect 0). Bundle: `npx expo export --platform android
+--output-dir <tmp> --no-minify`. `gh` is authed. Owner has an Android phone.
+
 ---
 
 ## ✅ P0 — Circle/You crash — **DONE (committed `2c63ede`)**
