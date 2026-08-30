@@ -39,6 +39,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 import { useAurora } from '../../../theme/ThemeProvider';
 
 // ─── Minimal react-navigation tab-bar props (only what we use) ───────
@@ -135,16 +136,16 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
   };
 
   return (
-    <View
-      style={[
-        styles.bar,
-        {
-          paddingBottom: insets.bottom + 10,
-          backgroundColor: palette.ground + 'E6', // ~90% opaque ground (glass w/o blur)
-          borderTopColor: palette.glass.edge,
-        },
-      ]}
-    >
+    <View style={[styles.bar, { paddingBottom: insets.bottom + 10 }]}>
+      {/* Frosted, borderless background that blends into the screen — no hard
+          rectangle. The moving glass pill below marks the active tab. */}
+      <BlurView
+        intensity={24}
+        tint="dark"
+        experimentalBlurMethod="dimezisBlurView"
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.ground + '40' }]} />
       <Animated.View
         pointerEvents="none"
         style={[
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 10,
     paddingHorizontal: 12,
-    borderTopWidth: 1,
+    overflow: 'hidden',
   },
   pill: {
     position: 'absolute',
