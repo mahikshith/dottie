@@ -15,7 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 export interface DialogAction {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost';
+  variant?: 'primary' | 'ghost' | 'danger';
 }
 
 interface Props {
@@ -68,7 +68,7 @@ export function CelebrationDialog({
                 <Pressable
                   key={a.label}
                   onPress={a.onPress}
-                  style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryPressed]}
+                  style={({ pressed }) => [styles.primaryBtn, a.variant === 'danger' && styles.dangerBtn, pressed && styles.primaryPressed]}
                   accessibilityRole="button"
                   accessibilityLabel={a.label}
                 >
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryPressed: { transform: [{ scale: 0.97 }], opacity: 0.95 },
+  dangerBtn: { backgroundColor: '#E5484D' },
   primaryText: { color: '#FFF8F2', fontSize: 16, fontWeight: '700' },
   ghostBtn: { paddingVertical: 12, alignItems: 'center' },
   ghostText: { color: '#6B5344', fontSize: 15, fontWeight: '600' },

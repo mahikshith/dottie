@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { GradientButton, PressableScale, AuroraBackground } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import { A } from '../../src/theme';
 import {
   useCommunityStore,
@@ -163,25 +163,34 @@ export default function NewPostScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
         () => {}
       );
-      Alert.alert(
-        'Thanks for sharing 💛',
-        `${companion.name} added your post to The Circle. +${result.xpAwarded} XP · +${result.gemsAwarded}💎`,
-        [{ text: 'Yay!', onPress: () => router.back() }]
-      );
+      showAppDialog({
+        emoji: '💛',
+        title: 'Thanks for sharing',
+        body: `${companion.name} added your post to The Circle. +${result.xpAwarded} XP · +${result.gemsAwarded} 💎`,
+        actions: [{ label: 'Yay!', onPress: () => router.back() }],
+      });
       return;
     }
 
     // Failure paths
     if ('moderation' in result) {
-      Alert.alert(
-        'A gentle nudge',
-        result.moderation.message ??
-          "Something in that post didn't pass our safety check. Could you give it another look? 💛"
-      );
+      showAppDialog({
+        emoji: '💛',
+        title: 'A gentle nudge',
+        body:
+          result.moderation.message ??
+          "Something in that post didn't pass our safety check. Could you give it another look? 💛",
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
       return;
     }
 
-    Alert.alert("Hmm, that didn't go through", result.message);
+    showAppDialog({
+      emoji: '😅',
+      title: "Hmm, that didn't go through",
+      body: result.message,
+      actions: [{ label: 'OK', onPress: () => {} }],
+    });
   };
 
   const handleCancel = () => {
@@ -189,18 +198,15 @@ export default function NewPostScreen() {
       router.back();
       return;
     }
-    Alert.alert(
-      'Discard this draft?',
-      'Your post will be lost.',
-      [
-        { text: 'Keep writing', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => router.back(),
-        },
-      ]
-    );
+    showAppDialog({
+      emoji: '📝',
+      title: 'Discard this draft?',
+      body: 'Your post will be lost.',
+      actions: [
+        { label: 'Keep writing', variant: 'ghost', onPress: () => {} },
+        { label: 'Discard', variant: 'danger', onPress: () => router.back() },
+      ],
+    });
   };
 
   // ─── Render ─────────────────────────────────────────────────────

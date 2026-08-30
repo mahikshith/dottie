@@ -10,6 +10,7 @@ import { Shadows } from '../src/constants/shadows';
 import { hydrateAppState } from '../src/stores';
 import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { AppDialogHost } from '../src/components/ui/appDialog';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
@@ -271,6 +272,7 @@ export default function RootLayout() {
           Renders nothing (zero cost) when ghost mode is disabled or
           the user is unlocked. */}
       <AppLockGate />
+      <AppDialogHost />
     </AuroraProvider>
   );
 }
