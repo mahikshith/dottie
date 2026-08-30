@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0" stop-color="#241028"/><stop offset="0.52" stop-color="#54213B"/><stop offset="1" stop-color="#B5432E"/>
+    </linearGradient>
+    <linearGradient id="r1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A5C"/><stop offset="1" stop-color="#FFC27A"/></linearGradient>
+    <linearGradient id="r2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB27A"/><stop offset="1" stop-color="#C79BE6"/></linearGradient>
+    <linearGradient id="r3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4A261"/><stop offset="1" stop-color="#FF8A6B"/></linearGradient>
+    <radialGradient id="moon" cx="0.42" cy="0.38" r="0.7"><stop offset="0" stop-color="#FFF3D6"/><stop offset="0.46" stop-color="#FFCB8C"/><stop offset="1" stop-color="#F0955A"/></radialGradient>
+    <filter id="b7" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="33"/></filter>
+    <filter id="b14" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="66"/></filter>
+    <clipPath id="round"><rect width="1024" height="1024" rx="242" ry="242"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <g style="mix-blend-mode:screen">
+      <path d="M-93 735 Q279 642 559 745 T1164 698" fill="none" stroke="url(#r1)" stroke-width="102" stroke-linecap="round" opacity="0.55" filter="url(#b7)"/>
+      <path d="M-93 847 Q326 745 652 847 T1164 801" fill="none" stroke="url(#r2)" stroke-width="84" stroke-linecap="round" opacity="0.5" filter="url(#b7)"/>
+      <path d="M-93 782 Q372 875 698 763 T1164 698" fill="none" stroke="url(#r3)" stroke-width="65" stroke-linecap="round" opacity="0.45" filter="url(#b7)"/>
+    </g>
+    <g fill="#FFF0CE"><circle cx="242" cy="242" r="9"/><circle cx="819" cy="279" r="7"/><circle cx="698" cy="186" r="6"/><circle cx="186" cy="428" r="6"/><circle cx="860" cy="470" r="5"/></g>
+    <circle cx="540" cy="388" r="156" fill="#FFE0B0" opacity="0.5" filter="url(#b14)"/>
+    <circle cx="540" cy="388" r="120" fill="url(#moon)"/>
+  </g>
+</svg>
