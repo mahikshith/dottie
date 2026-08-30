@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
@@ -24,6 +24,7 @@ import { getExercisesForLesson } from '../../src/content/exercises';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
 import { Phase } from '../../src/types/cycle.types';
 import type { LessonSection as LessonSectionType } from '../../src/types/content.types';
+import { CelebrationDialog, type DialogAction } from '../../src/components/ui/CelebrationDialog';
 
 /**
  * Lesson Detail Screen — Renders a single lesson and awards completion XP.
@@ -71,6 +72,12 @@ export default function LessonDetailScreen() {
 
   const [progress, setProgress] = useState<LessonProgress | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [dialog, setDialog] = useState<{
+    emoji: string;
+    title: string;
+    body?: string;
+    actions: DialogAction[];
+  } | null>(null);
 
   // ─── Mark as started on mount, load existing progress ───────────
   useEffect(() => {
@@ -164,13 +171,12 @@ export default function LessonDetailScreen() {
           completedAt: new Date().toISOString(),
         });
 
-        Alert.alert(
-          `${path.emoji} ${path.title} Complete!`,
-          `You finished the whole path!\n+${path.completionXP} XP · +${path.completionGems}💎`,
-          [
-            { text: 'Yay!', onPress: () => router.back() },
-          ]
-        );
+        setDialog({
+          emoji: path.emoji,
+          title: `${path.title} complete!`,
+          body: `You finished the whole path!\n+${path.completionXP} XP · +${path.completionGems} 💎`,
+          actions: [{ label: 'Yay! 🎉', onPress: () => { setDialog(null); router.back(); } }],
+        });
 
         // Touch pathXp so it's not unused
         void pathXp;
@@ -184,21 +190,41 @@ export default function LessonDetailScreen() {
       const rewardLine = `+${xpResult.xpAwarded} XP · +${gemResult.gemsAwarded}💎`;
 
       if (hasExercises) {
-        Alert.alert('Lesson complete! ✨', `${rewardLine}\n\nReady to practice what you learned?`, [
-          { text: 'Later', style: 'cancel', onPress: () => router.back() },
-          { text: 'Practice ✨', onPress: () => router.replace(`/exercise/${lesson.id}`) },
-        ]);
+        setDialog({
+          emoji: '✨',
+          title: 'Lesson complete!',
+          body: `${rewardLine}\n\nReady to practice what you learned?`,
+          actions: [
+            { label: 'Practice ✨', onPress: () => { setDialog(null); router.replace(`/exercise/${lesson.id}`); } },
+            { label: 'Later', variant: 'ghost', onPress: () => { setDialog(null); router.back(); } },
+          ],
+        });
       } else if (lesson.quizId) {
-        Alert.alert('Lesson complete! ✨', `${rewardLine}\n\nWant to take the quiz?`, [
-          { text: 'Later', style: 'cancel', onPress: () => router.back() },
-          { text: 'Take Quiz', onPress: () => router.replace(`/quiz/${lesson.quizId}`) },
-        ]);
+        setDialog({
+          emoji: '✨',
+          title: 'Lesson complete!',
+          body: `${rewardLine}\n\nWant to take the quiz?`,
+          actions: [
+            { label: 'Take the quiz →', onPress: () => { setDialog(null); router.replace(`/quiz/${lesson.quizId}`); } },
+            { label: 'Later', variant: 'ghost', onPress: () => { setDialog(null); router.back(); } },
+          ],
+        });
       } else {
-        Alert.alert('Lesson complete! ✨', rewardLine, [{ text: 'Nice!', onPress: () => router.back() }]);
+        setDialog({
+          emoji: '🌟',
+          title: 'Lesson complete!',
+          body: rewardLine,
+          actions: [{ label: 'Nice!', onPress: () => { setDialog(null); router.back(); } }],
+        });
       }
     } catch (err) {
       if (__DEV__) console.warn('[Lesson] complete failed:', err);
-      Alert.alert('Oops', "I couldn't save your progress. Try again?");
+      setDialog({
+        emoji: '😅',
+        title: "That didn't save",
+        body: "I couldn't save your progress just now. Want to try again?",
+        actions: [{ label: 'OK', onPress: () => setDialog(null) }],
+      });
     } finally {
       setIsCompleting(false);
     }
@@ -294,6 +320,15 @@ export default function LessonDetailScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
+
+      <CelebrationDialog
+        visible={dialog !== null}
+        emoji={dialog?.emoji ?? ''}
+        title={dialog?.title ?? ''}
+        body={dialog?.body}
+        actions={dialog?.actions ?? []}
+        onRequestClose={() => setDialog(null)}
+      />
     </AuroraBackground>
   );
 }
