@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -15,6 +14,7 @@ import { Typography } from '../../../../src/constants/typography';
 import { Spacing } from '../../../../src/constants/spacing';
 import { A } from '../../../../src/theme';
 import { AuroraBackground } from '../../../../src/components/ui';
+import { showAppDialog } from '../../../../src/components/ui/appDialog';
 import {
   useUserStore,
   useCycleStore,
@@ -101,10 +101,12 @@ export default function PeriodLogScreen() {
   const handleSubmit = async () => {
     if (!userId || !rawMember || isSubmitting) return;
     if (rawMember.kind !== 'shadow') {
-      Alert.alert(
-        'Linked members track their own cycle',
-        `${rawMember.displayName} logs their own period in their Dottie. Sending them a care nudge is the way to support today 💛`
-      );
+      showAppDialog({
+        emoji: '🌙',
+        title: 'Linked members track their own cycle',
+        body: `${rawMember.displayName} logs their own period in their Dottie. Sending them a care nudge is the way to support today 💛`,
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
       return;
     }
 
@@ -124,17 +126,20 @@ export default function PeriodLogScreen() {
 
       const dayLabel =
         selectedDate === today ? 'today' : `on ${formatFriendly(selectedDate)}`;
-      Alert.alert(
-        `Logged ${dayLabel} 🌷`,
-        `${companion.name} noted ${rawMember.displayName}'s period day. Their phase predictions will update gently.`,
-        [{ text: 'Sweet 💛', onPress: () => router.back() }]
-      );
+      showAppDialog({
+        emoji: '🌷',
+        title: `Logged ${dayLabel}`,
+        body: `${companion.name} noted ${rawMember.displayName}'s period day. Their phase predictions will update gently.`,
+        actions: [{ label: 'Sweet 💛', onPress: () => router.back() }],
+      });
     } catch (err) {
       if (__DEV__) console.warn('[PeriodLog] failed:', err);
-      Alert.alert(
-        'Could not log',
-        "Something gentle went sideways — could you try again in a moment?"
-      );
+      showAppDialog({
+        emoji: '😅',
+        title: 'Could not log',
+        body: 'Something gentle went sideways — could you try again in a moment?',
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
     } finally {
       setIsSubmitting(false);
     }

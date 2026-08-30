@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -554,31 +553,20 @@ function CredPill({ emoji, value }: { emoji: string; value: string }) {
 // ─── HELPERS ─────────────────────────────────────────────────────────
 
 function promptReportReason(onPick: (reason: ReportReason) => void) {
-  Alert.alert(
-    'Report this content',
-    'What would you like to flag this for?',
-    [
-      {
-        text: 'Sharing medical advice',
-        onPress: () => onPick('medical_advice'),
-      },
-      {
-        text: 'Personal info shared',
-        onPress: () => onPick('personal_info'),
-      },
-      {
-        text: 'Bullying or harassment',
-        onPress: () => onPick('bullying_harassment'),
-      },
-      {
-        text: 'Self-harm content',
-        onPress: () => onPick('pro_ana_self_harm'),
-      },
-      { text: 'Spam', onPress: () => onPick('spam') },
-      { text: 'Something else', onPress: () => onPick('other') },
-      { text: 'Cancel', style: 'cancel' },
-    ]
-  );
+  showAppDialog({
+    emoji: '🚩',
+    title: 'Report this content',
+    body: 'What would you like to flag this for?',
+    actions: [
+      { label: 'Sharing medical advice', variant: 'ghost', onPress: () => onPick('medical_advice') },
+      { label: 'Personal info shared', variant: 'ghost', onPress: () => onPick('personal_info') },
+      { label: 'Bullying or harassment', variant: 'ghost', onPress: () => onPick('bullying_harassment') },
+      { label: 'Self-harm content', variant: 'ghost', onPress: () => onPick('pro_ana_self_harm') },
+      { label: 'Spam', variant: 'ghost', onPress: () => onPick('spam') },
+      { label: 'Something else', variant: 'ghost', onPress: () => onPick('other') },
+      { label: 'Cancel', variant: 'ghost', onPress: () => {} },
+    ],
+  });
 }
 
 async function submitReport(

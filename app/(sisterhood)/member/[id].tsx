@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
@@ -15,6 +14,7 @@ import { Typography } from '../../../src/constants/typography';
 import { Spacing } from '../../../src/constants/spacing';
 import { A } from '../../../src/theme';
 import { PressableScale, BreathingView, AuroraBackground } from '../../../src/components/ui';
+import { showAppDialog } from '../../../src/components/ui/appDialog';
 import {
   useUserStore,
   useCycleStore,
@@ -147,15 +147,21 @@ export default function MemberDetailScreen() {
       Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success
       ).catch(() => {});
-      Alert.alert(
-        `Sent to ${view.displayName} ${template.emoji}`,
-        rawMember?.kind === 'linked'
+      showAppDialog({
+        emoji: template.emoji,
+        title: `Sent to ${view.displayName}`,
+        body: rawMember?.kind === 'linked'
           ? "They'll see it next time they open Dottie."
           : `${companion.name} held this nudge close. When ${view.displayName} gets their own Dottie, they'll find your warmth waiting.`,
-        [{ text: 'Sweet 💛' }]
-      );
+        actions: [{ label: 'Sweet 💛', onPress: () => {} }],
+      });
     } else {
-      Alert.alert('Hmm', result.message);
+      showAppDialog({
+        emoji: '😅',
+        title: 'Hmm',
+        body: result.message,
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
     }
   };
 
@@ -183,16 +189,17 @@ export default function MemberDetailScreen() {
     if (!view) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-    Alert.alert(
-      `Remove ${view.displayName} from your circle?`,
-      rawMember?.kind === 'shadow'
+    showAppDialog({
+      emoji: '💔',
+      title: `Remove ${view.displayName} from your circle?`,
+      body: rawMember?.kind === 'shadow'
         ? `This will erase everything you've tracked for ${view.displayName}. This can't be undone.`
         : `${view.displayName} will leave your circle. You can always invite them back.`,
-      [
-        { text: 'Keep them', style: 'cancel' },
+      actions: [
+        { label: 'Keep them', variant: 'ghost', onPress: () => {} },
         {
-          text: 'Remove',
-          style: 'destructive',
+          label: 'Remove',
+          variant: 'danger',
           onPress: async () => {
             try {
               await useSisterhoodStore.getState().removeMember(memberId);
@@ -202,8 +209,8 @@ export default function MemberDetailScreen() {
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   // ─── Render ─────────────────────────────────────────────────────

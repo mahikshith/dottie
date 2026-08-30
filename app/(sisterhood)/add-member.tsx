@@ -7,7 +7,6 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +17,7 @@ import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { A } from '../../src/theme';
 import { GradientButton, PressableScale, AuroraBackground } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import {
   useUserStore,
   useCycleStore,
@@ -212,14 +212,15 @@ export default function AddMemberScreen() {
       return;
     }
 
-    Alert.alert(
-      'Leave this without finishing?',
-      "Your draft will be gone — you can always start again.",
-      [
-        { text: 'Keep going', style: 'cancel' },
-        { text: 'Leave', style: 'destructive', onPress: () => router.back() },
-      ]
-    );
+    showAppDialog({
+      emoji: '📝',
+      title: 'Leave this without finishing?',
+      body: 'Your draft will be gone — you can always start again.',
+      actions: [
+        { label: 'Keep going', variant: 'ghost', onPress: () => {} },
+        { label: 'Leave', variant: 'danger', onPress: () => router.back() },
+      ],
+    });
   };
 
   // ─── Submit ─────────────────────────────────────────────────────
@@ -277,10 +278,12 @@ export default function AddMemberScreen() {
       setStep('celebration');
     } catch (err) {
       if (__DEV__) console.warn('[Wizard] addMember failed:', err);
-      Alert.alert(
-        'Something gentle went sideways',
-        "Couldn't add them right now — please try again in a moment."
-      );
+      showAppDialog({
+        emoji: '😅',
+        title: 'Something gentle went sideways',
+        body: "Couldn't add them right now — please try again in a moment.",
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -6,7 +6,6 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,6 +21,7 @@ import {
   BreathingView,
   AuroraBackground,
 } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
 import {
   useUserStore,
   useCycleStore,
@@ -141,11 +141,12 @@ export default function SisterhoodCircleScreen() {
     if (!userId) return;
 
     if (atFreeLimit) {
-      Alert.alert(
-        'Your circle is feeling full 💛',
-        `On the free plan you can connect with ${MAX_FREE_MEMBERS} sister. Dottie+ lets you grow your circle so you can care for everyone you love.`,
-        [{ text: 'Got it' }]
-      );
+      showAppDialog({
+        emoji: '💛',
+        title: 'Your circle is feeling full',
+        body: `On the free plan you can connect with ${MAX_FREE_MEMBERS} sister. Dottie+ lets you grow your circle so you can care for everyone you love.`,
+        actions: [{ label: 'Got it', onPress: () => {} }],
+      });
       return;
     }
 

@@ -6,7 +6,6 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
   Share,
   Clipboard,
   Platform,
@@ -18,6 +17,7 @@ import { Typography } from '../../../../src/constants/typography';
 import { Spacing } from '../../../../src/constants/spacing';
 import { A } from '../../../../src/theme';
 import { AuroraBackground } from '../../../../src/components/ui';
+import { showAppDialog } from '../../../../src/components/ui/appDialog';
 import {
   useUserStore,
   useSisterhoodStore,
@@ -126,9 +126,19 @@ export default function TransferScreen() {
       Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success
       ).catch(() => {});
-      Alert.alert('Copied 💛', `Code ${transferCode.code} is on your clipboard.`);
+      showAppDialog({
+        emoji: '💛',
+        title: 'Copied',
+        body: `Code ${transferCode.code} is on your clipboard.`,
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
     } catch {
-      Alert.alert('Almost', "Couldn't copy automatically — long-press the code to copy manually.");
+      showAppDialog({
+        emoji: '📋',
+        title: 'Almost',
+        body: "Couldn't copy automatically — long-press the code to copy manually.",
+        actions: [{ label: 'OK', onPress: () => {} }],
+      });
     }
   };
 
