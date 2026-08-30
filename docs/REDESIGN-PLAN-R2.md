@@ -8,22 +8,24 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 > energetic (Duolingo-level fun) — not placeholder-y or clinical. Don't show data we
 > haven't earned (no assumed phases/feelings before the user logs).*
 
-## ▶️ NEXT SESSION — START HERE (state at session end)
-**Batch 1 (crash + quick wins) is DONE and verified (tsc 0 + bundle clean), committed
-LOCALLY on `design-v2` but NOT pushed** — branch is **ahead 8** of `origin/design-v2`.
-Commits (newest first): `e940c82` G1 · `4f50667` B3 · `c892194` D1 · `5fd7cc5` E6-partial ·
-`78d34a0` E5 · `13131c8` B1 · `62ec008` plan · `2c63ede` crash fix.
+## ▶️ NEXT SESSION — START HERE (current state)
+- **Batch 1 (crash + quick wins) is on GitHub** — pushed to `design-v2` with `[skip ci]` (no
+  build ran). Commits `2c63ede`..`c425f75`.
+- **Theme A "don't fake a phase" (Batch 2 CORE) is DONE, verified (tsc 0 + bundle clean),
+  committed LOCALLY, NOT pushed** — branch **ahead 2** of origin:
+  `a7212c8` A1-A3 (Home gates ALL phase-derived content behind `selectHasCycleData` +
+  honest "log your period" get-started; mood check-in still shown) · `a662748` A4 (calendar
+  DayDetailSheet takes `hasCycleData` — no assumed phase chip/suggestions before a period is
+  logged).
 
-What's in Batch 1 (all should be re-tested on-device): crash fix (Circle/You open now),
-B1 streak/gems→Learn, E5 themed lesson CelebrationDialog, E6-partial (drop "soft snacks" +
-shorten exercise header), D1 calendar frosted blur (added `expo-blur`), B3 frosted borderless
-tab bar, G1 Today shows real question.
-
-**Owner was asked to approve a preview build; session hit its limit first. Resume options:**
-1. **Build preview:** `git push origin design-v2` → GitHub Actions builds the APK (~20 min via
-   `gh run watch <id> --exit-status`) → owner installs & re-tests Batch 1 → feedback.
-2. **Keep building first:** the systematic **alert-theming** pass (30 native `Alert.alert` →
-   `src/components/ui/CelebrationDialog.tsx` pattern), then **Batch 2 (honesty layer)**.
+**Resume options:**
+1. **Build preview:** `git push origin design-v2` (a normal push, NO `[skip ci]`) → GitHub
+   Actions builds the APK (~20 min) → owner installs & re-tests **Batch 1 + Theme A** on-device.
+2. **Keep building:** remaining Theme D (D3 dynamic popover copy / D4 week-ahead), the
+   systematic **alert-theming** pass (30 native `Alert.alert` → `CelebrationDialog`), then
+   **Batch 3 (check-in/mood)** and **Batch 4 (Learn overhaul)**.
+NOTE on push policy: owner wants commits backed up but NOT to trigger CI/CD unless a preview is
+explicitly approved — use `[skip ci]` on the tip when backing up without building.
 
 Env: prefix every node cmd with `$env:Path = "C:\Program Files\nodejs;" + $env:Path`.
 Verify: `npx tsc --noEmit` (expect 0). Bundle: `npx expo export --platform android
