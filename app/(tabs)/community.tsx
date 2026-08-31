@@ -55,6 +55,14 @@ import {
 import { getCompanion } from '../../src/content/companions';
 
 type FilterKey = SpaceId | 'all';
+type SortKey = 'trending' | 'new' | 'hugs' | 'answered';
+
+const SORTS: { key: SortKey; label: string; emoji: string }[] = [
+  { key: 'trending', label: 'Trending', emoji: '🔥' },
+  { key: 'new', label: 'New', emoji: '🌱' },
+  { key: 'hugs', label: 'Most hugs', emoji: '🤗' },
+  { key: 'answered', label: 'Most answered', emoji: '💬' },
+];
 
 export default function CommunityScreen() {
   const router = useRouter();
@@ -68,6 +76,7 @@ export default function CommunityScreen() {
 
   // Active space filter — defaults to 'all'
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const [sort, setSort] = useState<SortKey>('trending');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // ─── Teen Mode space filtering ──────────────────────────────────
@@ -77,6 +86,8 @@ export default function CommunityScreen() {
 
   // Read feed from cache via selector (re-renders only on relevant change)
   const feed = useCommunityStore(selectFeedForSpace(activeFilter));
+  // Client-side sort (trending / new / most hugs / most answered).
+  const sortedFeed = useMemo(() => sortPosts(feed, sort), [feed, sort]);
 
   const companion = getCompanion(companionType);
 
@@ -101,6 +112,11 @@ export default function CommunityScreen() {
   const handleFilterTap = (key: FilterKey) => {
     Haptics.selectionAsync().catch(() => {});
     setActiveFilter(key);
+  };
+
+  const handleSortTap = (key: SortKey) => {
+    Haptics.selectionAsync().catch(() => {});
+    setSort(key);
   };
 
   const handleNewPost = () => {
@@ -138,31 +154,8 @@ export default function CommunityScreen() {
         </Text>
       </Animated.View>
 
-      {/* Filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        style={styles.filterScrollContainer}
-      >
-        <FilterChip
-          label="All"
-          emoji="✨"
-          active={activeFilter === 'all'}
-          onPress={() => handleFilterTap('all')}
-        />
-        {visibleSpaces.map((space) => (
-          <FilterChip
-            key={space.id}
-            label={space.title}
-            emoji={space.emoji}
-            active={activeFilter === space.id}
-            onPress={() => handleFilterTap(space.id)}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Feed */}
+      {/* Feed — spaces GRID on top (browse), or the selected space header;
+          then sort filters, then the sorted posts. */}
       <ScrollView
         style={styles.feed}
         contentContainerStyle={styles.feedContent}
@@ -175,21 +168,43 @@ export default function CommunityScreen() {
           />
         }
       >
-        {isFetching && feed.length === 0 ? (
+        {activeFilter === 'all' ? (
+          <SpaceGrid spaces={visibleSpaces} onPick={handleFilterTap} />
+        ) : (
+          <SelectedSpaceHeader
+            space={getSpaceById(activeFilter)}
+            onBack={() => handleFilterTap('all')}
+          />
+        )}
+
+        {/* Sort filters */}
+        <View style={styles.sortRow}>
+          {SORTS.map((s) => (
+            <SortChip
+              key={s.key}
+              label={s.label}
+              emoji={s.emoji}
+              active={sort === s.key}
+              onPress={() => handleSortTap(s.key)}
+            />
+          ))}
+        </View>
+
+        {isFetching && sortedFeed.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={palette.accent} />
             <Text style={[styles.loadingText, { color: palette.ink3 }]}>
               {companion.name} is gathering the feed...
             </Text>
           </View>
-        ) : feed.length === 0 ? (
+        ) : sortedFeed.length === 0 ? (
           <EmptyState
             companionEmoji={companion.emoji}
             companionName={companion.name}
             onShare={handleNewPost}
           />
         ) : (
-          feed.map((post, index) => (
+          sortedFeed.map((post, index) => (
             <Animated.View
               key={post.id}
               entering={FadeInDown.duration(420)
@@ -217,7 +232,73 @@ export default function CommunityScreen() {
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────
 
-function FilterChip({
+// A prominent 2-col grid of spaces — the primary way to discover the Circle
+// (was a side-scroll-only chip row the owner couldn't see at a glance).
+function SpaceGrid({
+  spaces,
+  onPick,
+}: {
+  spaces: CommunitySpace[];
+  onPick: (id: SpaceId) => void;
+}) {
+  const { palette } = useAurora();
+  return (
+    <View style={styles.gridWrap}>
+      <Text style={[styles.gridLabel, { color: palette.ink3 }]}>SPACES</Text>
+      <View style={styles.grid}>
+        {spaces.map((space) => (
+          <PressableScale
+            key={space.id}
+            onPress={() => onPick(space.id)}
+            haptic="none"
+            scaleTo={0.97}
+            style={[styles.spaceCard, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${space.title} space`}
+          >
+            <Text style={styles.spaceEmoji}>{space.emoji}</Text>
+            <Text style={[styles.spaceTitle, { color: palette.ink }]} numberOfLines={1}>{space.title}</Text>
+            <Text style={[styles.spaceDesc, { color: palette.ink3 }]} numberOfLines={2}>{space.description}</Text>
+          </PressableScale>
+        ))}
+      </View>
+      <Text style={[styles.gridLabel, { color: palette.ink3, marginTop: Spacing.base }]}>ACROSS THE CIRCLE</Text>
+    </View>
+  );
+}
+
+// The chosen space, pulled to the top with a back-to-all control.
+function SelectedSpaceHeader({
+  space,
+  onBack,
+}: {
+  space: CommunitySpace;
+  onBack: () => void;
+}) {
+  const { palette } = useAurora();
+  return (
+    <View style={styles.spaceHeaderWrap}>
+      <PressableScale
+        onPress={onBack}
+        haptic="none"
+        style={[styles.backChip, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}
+        accessibilityRole="button"
+        accessibilityLabel="Back to all spaces"
+      >
+        <Text style={[styles.backChipText, { color: palette.ink2 }]}>← Spaces</Text>
+      </PressableScale>
+      <View style={styles.spaceHeaderRow}>
+        <Text style={styles.spaceHeaderEmoji}>{space.emoji}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.spaceHeaderTitle, { color: palette.ink }]}>{space.title}</Text>
+          <Text style={[styles.spaceHeaderDesc, { color: palette.ink3 }]}>{space.description}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SortChip({
   label,
   emoji,
   active,
@@ -240,7 +321,7 @@ function FilterChip({
         active && { backgroundColor: palette.accent, borderColor: palette.accent },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`Filter: ${label}`}
+      accessibilityLabel={`Sort: ${label}`}
       accessibilityState={{ selected: active }}
     >
       <Text style={styles.filterChipEmoji}>{emoji}</Text>
@@ -398,6 +479,31 @@ function formatMemberSince(iso: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
 }
 
+// Client-side feed sort. 'trending' blends hugs + replies with a mild recency
+// nudge so a fresh, engaged post can rise; the rest are single-signal.
+function sortPosts(posts: CommunityPost[], sort: SortKey): CommunityPost[] {
+  const copy = [...posts];
+  const time = (p: CommunityPost) => new Date(p.createdAt).getTime();
+  switch (sort) {
+    case 'new':
+      return copy.sort((a, b) => time(b) - time(a));
+    case 'hugs':
+      return copy.sort((a, b) => b.hugsCount - a.hugsCount || time(b) - time(a));
+    case 'answered':
+      return copy.sort((a, b) => b.repliesCount - a.repliesCount || time(b) - time(a));
+    case 'trending':
+    default: {
+      const now = Date.now();
+      const score = (p: CommunityPost) => {
+        const ageHrs = Math.max(1, (now - time(p)) / 3_600_000);
+        const recency = Math.max(0, 6 - Math.log2(ageHrs)); // decays over ~days
+        return p.hugsCount + p.repliesCount * 1.5 + recency;
+      };
+      return copy.sort((a, b) => score(b) - score(a));
+    }
+  }
+}
+
 // Touch unused selector import so future refactors keep barrel intact
 void useGamificationStore;
 
@@ -438,6 +544,59 @@ const styles = StyleSheet.create({
   filterChipLabel: {
     ...Typography.preset.captionBold,
   },
+  // Sort chips row (above the feed)
+  sortRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.base,
+  },
+  // Space grid
+  gridWrap: {
+    marginBottom: Spacing.sm,
+  },
+  gridLabel: {
+    ...Typography.preset.overline,
+    letterSpacing: 1,
+    marginBottom: Spacing.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  spaceCard: {
+    width: '48%',
+    flexGrow: 1,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.base,
+    gap: 4,
+  },
+  spaceEmoji: { fontSize: 24 },
+  spaceTitle: { ...Typography.preset.bodySemibold, fontSize: 14 },
+  spaceDesc: { ...Typography.preset.caption, fontSize: 11, lineHeight: 15 },
+  // Selected space header
+  spaceHeaderWrap: {
+    marginBottom: Spacing.base,
+    gap: Spacing.sm,
+  },
+  backChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: Spacing.radius.full,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.xs,
+  },
+  backChipText: { ...Typography.preset.captionBold },
+  spaceHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  spaceHeaderEmoji: { fontSize: 34 },
+  spaceHeaderTitle: { ...Typography.preset.h4 },
+  spaceHeaderDesc: { ...Typography.preset.caption, marginTop: 2 },
   feed: {
     flex: 1,
   },
