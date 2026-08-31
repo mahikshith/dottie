@@ -126,6 +126,10 @@ const Keys = {
   // Medication / birth-control plans (design-v2). A JSON array of MedicationPlan.
   // Local-only; drives daily medication reminders via the scheduler.
   MEDICATIONS: 'meds.plans',
+
+  // One-shot "seen the explainer" flags — surface a gentle first-time popup
+  // so a new feature isn't a mystery on the first tap, then never again.
+  SISTERHOOD_EXPLAINER_SEEN: 'ux.sisterhood_explainer_seen',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -434,6 +438,12 @@ export const Storage = {
     get: (): MedicationPlan[] => getJson<MedicationPlan[]>(Keys.MEDICATIONS) ?? [],
     set: (plans: MedicationPlan[]): void => setJson(Keys.MEDICATIONS, plans),
     clear: (): void => mmkv.delete(Keys.MEDICATIONS),
+  },
+
+  sisterhoodExplainerSeen: {
+    get: (): boolean => mmkv.getBoolean(Keys.SISTERHOOD_EXPLAINER_SEEN) === true,
+    set: (): void => mmkv.set(Keys.SISTERHOOD_EXPLAINER_SEEN, true),
+    clear: (): void => mmkv.delete(Keys.SISTERHOOD_EXPLAINER_SEEN),
   },
 
   // ─── Bulk operations ────────────────────────────────────────────

@@ -36,6 +36,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, type GestureResponderEvent } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -46,11 +47,13 @@ import { useAurora, PHASE_AURORA } from '../../src/theme';
 import {
   useCycleStore,
   useUserStore,
+  useSisterhoodStore,
   selectCurrentPhase,
   selectDayInCycle,
   selectLastPeriodStart,
   selectPredictionMessage,
   selectUserMode,
+  selectMemberCount,
 } from '../../src/stores';
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
@@ -76,7 +79,10 @@ interface SelectedDay {
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { palette } = useAurora();
+  // Sister count drives the copy on the loved-ones bridge card below.
+  const sisterCount = useSisterhoodStore(selectMemberCount);
 
   // ─── Live state ─────────────────────────────────────────────────
   const phase = useCycleStore(selectCurrentPhase);
@@ -385,6 +391,47 @@ export default function CalendarScreen() {
           <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
           <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
           <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+        </Animated.View>
+
+        {/* Loved-ones bridge — a non-clunky calendar → Sisterhood entry point.
+            Kept SEPARATE from the primary user's grid on purpose: user feedback
+            was to link the two without collapsing a sister's cycle into the
+            same month view. Tapping opens the Sisterhood tab, where each
+            sister has her own calendar. */}
+        <Animated.View entering={rise(360)}>
+          <PressableScale
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push('/(sisterhood)/circle');
+            }}
+            haptic="none"
+            scaleTo={0.98}
+            style={[
+              styles.sisterBridge,
+              { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              sisterCount > 0
+                ? `Open your Sisterhood circle — ${sisterCount} ${sisterCount === 1 ? 'sister' : 'sisters'}`
+                : 'Open your Sisterhood circle — track a loved one'
+            }
+          >
+            <Text style={styles.sisterBridgeEmoji}>👯</Text>
+            <View style={styles.sisterBridgeText}>
+              <Text style={[styles.sisterBridgeTitle, { color: palette.ink }]}>
+                {sisterCount > 0
+                  ? `Care for your ${sisterCount === 1 ? 'sister' : `${sisterCount} sisters`} →`
+                  : 'Care for a loved one →'}
+              </Text>
+              <Text style={[styles.sisterBridgeSubtitle, { color: palette.ink2 }]}>
+                {sisterCount > 0
+                  ? 'Log period days, mood, and check-ins on their behalf — each in their own calendar.'
+                  : 'Sisterhood lets you track periods & health for a little sister, a friend, or someone who doesn\'t have a phone yet.'}
+              </Text>
+            </View>
+            <Text style={[styles.sisterBridgeArrow, { color: palette.accent }]}>›</Text>
+          </PressableScale>
         </Animated.View>
 
         {/* Bottom padding */}
@@ -826,5 +873,34 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     ...Typography.preset.caption,
+  },
+  // Sisterhood bridge card — sits below the legend, links to Sisterhood.
+  sisterBridge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.cardPadding,
+    borderRadius: Spacing.radius.xl,
+    borderWidth: 1,
+    marginTop: Spacing.lg,
+  },
+  sisterBridgeEmoji: {
+    fontSize: 30,
+  },
+  sisterBridgeText: {
+    flex: 1,
+  },
+  sisterBridgeTitle: {
+    ...Typography.preset.bodySemibold,
+    marginBottom: 2,
+  },
+  sisterBridgeSubtitle: {
+    ...Typography.preset.caption,
+    lineHeight: 17,
+  },
+  sisterBridgeArrow: {
+    fontSize: 26,
+    fontWeight: '600',
+    marginLeft: Spacing.xs,
   },
 });

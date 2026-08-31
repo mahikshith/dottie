@@ -28,18 +28,10 @@
  *  installed @react-navigation/bottom-tabs when wiring.
  */
 
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import Animated, {
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
 import { useAurora } from '../../../theme/ThemeProvider';
 
 // ─── Minimal react-navigation tab-bar props (only what we use) ───────
@@ -107,25 +99,6 @@ function TabIcon({ name, color }: { name: IconName; color: string }): JSX.Elemen
 export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Element {
   const { palette } = useAurora();
   const insets = useSafeAreaInsets();
-  const reduce = useReducedMotion();
-
-  const [layouts, setLayouts] = useState<Record<number, { x: number; width: number }>>({});
-
-  const px = useSharedValue(0);
-  const pw = useSharedValue(0);
-
-  useEffect(() => {
-    const l = layouts[state.index];
-    if (!l) return;
-    const spring = { duration: 440, dampingRatio: 0.72 }; // gentle overshoot
-    px.value = reduce ? l.x + 4 : withSpring(l.x + 4, spring);
-    pw.value = reduce ? l.width - 8 : withSpring(l.width - 8, spring);
-  }, [state.index, layouts, reduce, px, pw]);
-
-  const pillStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: px.value }],
-    width: pw.value,
-  }));
 
   const onPress = (route: TabRoute, index: number) => {
     Haptics.selectionAsync().catch(() => {});
@@ -135,29 +108,13 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
     }
   };
 
+  // No background rectangle: the aurora ground shows straight through. The
+  // ONLY differentiation is per-tab colour — active = palette.accent (with a
+  // small underline dot), inactive = dim ink3. User feedback: "remove that
+  // rectangle... I just want the icons to be differentiated in a different
+  // color so we don't have to keep using that rectangle again and again."
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom + 10 }]}>
-      {/* Frosted, borderless background that blends into the screen — no hard
-          rectangle. The moving glass pill below marks the active tab. */}
-      <BlurView
-        intensity={24}
-        tint="dark"
-        experimentalBlurMethod="dimezisBlurView"
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.ground + '40' }]} />
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.pill,
-          {
-            backgroundColor: palette.glass.bg,
-            borderColor: palette.glass.edge,
-            shadowColor: palette.accent,
-          },
-          pillStyle,
-        ]}
-      />
+    <View style={[styles.bar, { paddingBottom: insets.bottom + 8 }]} pointerEvents="box-none">
       {state.routes.map((route, index) => {
         const meta = TAB_META[route.name];
         if (!meta) return null;
@@ -167,17 +124,21 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
           <Pressable
             key={route.key}
             onPress={() => onPress(route, index)}
-            onLayout={(e) => {
-              const { x, width } = e.nativeEvent.layout;
-              setLayouts((prev) => (prev[index]?.x === x && prev[index]?.width === width ? prev : { ...prev, [index]: { x, width } }));
-            }}
             style={styles.tab}
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={meta.label}
           >
             <TabIcon name={meta.icon} color={color} />
-            <Text style={[styles.label, { color }]}>{meta.label}</Text>
+            <Text style={[styles.label, { color, fontWeight: focused ? '800' : '600' }]}>
+              {meta.label}
+            </Text>
+            <View
+              style={[
+                styles.underline,
+                { backgroundColor: focused ? palette.accent : 'transparent' },
+              ]}
+            />
           </Pressable>
         );
       })}
@@ -188,29 +149,27 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    paddingTop: 10,
+    paddingTop: 8,
     paddingHorizontal: 12,
-    overflow: 'hidden',
-  },
-  pill: {
-    position: 'absolute',
-    top: 8,
-    height: 52,
-    borderRadius: 20,
-    borderWidth: 1,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    // No backgroundColor, no BlurView — the aurora ground of the screen
+    // behind reads straight through, so there's no rectangle around the tabs.
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 7,
+    gap: 3,
+    paddingVertical: 6,
   },
   label: {
     fontSize: 10,
-    fontWeight: '700',
+  },
+  // Tiny accent bar under the active tab — the only shape besides the icon,
+  // so nothing reads as a container/rectangle.
+  underline: {
+    marginTop: 2,
+    width: 18,
+    height: 2,
+    borderRadius: 1,
   },
 });

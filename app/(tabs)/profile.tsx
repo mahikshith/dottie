@@ -34,6 +34,8 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { PressableScale, PopOnChange, BreathingView, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { showAppDialog } from '../../src/components/ui/appDialog';
+import { Storage } from '../../src/database/storage';
 import { useAurora } from '../../src/theme';
 import {
   useUserStore,
@@ -84,6 +86,23 @@ export default function ProfileScreen() {
 
   const handleSisterhoodTap = () => {
     Haptics.selectionAsync().catch(() => {});
+    // First-time explainer — Sisterhood is easy to miss/misread as a chat
+    // feature. Tell the user once what it's actually for (caring for the
+    // periods + health of loved ones on their behalf), then never again.
+    // Feedback: "we need to inform or tell the user... that sisterhood helps
+    // you track the periods or the health of loved ones."
+    if (!Storage.sisterhoodExplainerSeen.get()) {
+      Storage.sisterhoodExplainerSeen.set();
+      showAppDialog({
+        emoji: '👯',
+        title: 'Your Sisterhood Circle',
+        body: 'Care for the people you love — log periods, mood, and gentle check-ins on their behalf, or connect their own Dottie later. Privacy-first: they always choose how much they share.',
+        actions: [
+          { label: 'Open my circle', onPress: () => router.push('/(sisterhood)/circle') },
+        ],
+      });
+      return;
+    }
     router.push('/(sisterhood)/circle');
   };
 
@@ -344,14 +363,18 @@ function rise(delayMs: number) {
 }
 
 function formatMode(mode: string): string {
+  // Match the friendly labels shown on the onboarding mode picker. The old
+  // "Endocrine Mode" badge read clinical/scary and made users feel the app
+  // had defaulted them into a medical category — align with onboarding's
+  // "Irregular Cycles" wording so the badge reflects the user's own choice.
   switch (mode) {
     case 'teen':
-      return 'Teen Mode';
+      return 'Teen';
     case 'endocrine':
-      return 'Endocrine Mode';
+      return 'Irregular Cycles';
     case 'adult':
     default:
-      return 'Adult Mode';
+      return 'Adult';
   }
 }
 
