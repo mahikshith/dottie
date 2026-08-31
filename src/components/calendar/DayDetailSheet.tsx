@@ -93,6 +93,12 @@ export interface DayDetailSheetProps {
   recentSymptoms?: DaySuggestionSymptom[];
   /** Log this day as a period day (past/today only). Parent persists + reloads. */
   onLogPeriod: () => void;
+  /**
+   * Tap on a "worth tracking" chip. Parent closes the sheet and routes into
+   * the daily check-in modal so the prompt is one tap from action. Optional;
+   * when absent the chips render as inert visuals (their old behavior).
+   */
+  onTrackTap?: (chipId: string) => void;
   /** Close — parent saves the note/planned flag and refreshes dots. */
   onClose: (result: DayDetailResult) => void;
 }
@@ -339,15 +345,19 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
               ))}
 
               {/* Track-today chips — mirrors Clue's "here's what others in
-                  this sub-phase are tracking" prompt. Non-interactive today
-                  (they're hints); tapping them to jump into a log flow is a
-                  follow-up. */}
+                  this sub-phase are tracking" prompt. Tap → parent closes
+                  the sheet + opens the daily check-in modal so the prompt
+                  is one tap from action. */}
               {set.trackPrompts.length > 0 ? (
                 <View style={styles.trackWrap}>
                   <Text style={[styles.trackLabel, { color: palette.ink3 }]}>WORTH TRACKING</Text>
                   <View style={styles.trackRow}>
                     {set.trackPrompts.map((t) => (
-                      <TrackChip key={t.id} t={t} />
+                      <TrackChip
+                        key={t.id}
+                        t={t}
+                        onPress={props.onTrackTap ? () => props.onTrackTap!(t.id) : undefined}
+                      />
                     ))}
                   </View>
                 </View>
@@ -426,15 +436,29 @@ function PersonalSignalRow({ sig }: { sig: PersonalSignal }): JSX.Element {
   );
 }
 
-function TrackChip({ t }: { t: TrackPrompt }): JSX.Element {
+function TrackChip({ t, onPress }: { t: TrackPrompt; onPress?: () => void }): JSX.Element {
   const { palette } = useAurora();
+  const style = [
+    styles.trackChip,
+    { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+  ];
+  if (onPress) {
+    return (
+      <PressableScale
+        onPress={onPress}
+        haptic="light"
+        scaleTo={0.94}
+        style={style}
+        accessibilityRole="button"
+        accessibilityLabel={`Log ${t.label}`}
+      >
+        <Text style={styles.trackChipEmoji}>{t.emoji}</Text>
+        <Text style={[styles.trackChipText, { color: palette.ink2 }]}>{t.label}</Text>
+      </PressableScale>
+    );
+  }
   return (
-    <View
-      style={[
-        styles.trackChip,
-        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
-      ]}
-    >
+    <View style={style}>
       <Text style={styles.trackChipEmoji}>{t.emoji}</Text>
       <Text style={[styles.trackChipText, { color: palette.ink2 }]}>{t.label}</Text>
     </View>

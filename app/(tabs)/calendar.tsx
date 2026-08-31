@@ -465,6 +465,11 @@ export default function CalendarScreen() {
           todayCheckIn={selected.iso === todayIso ? todayCheckIn : null}
           recentSymptoms={recentSymptoms}
           onLogPeriod={onLogSelectedPeriod}
+          onTrackTap={() => {
+            // Open the daily check-in on top of the sheet — the user comes
+            // back to the sheet with their note intact. Was inert before.
+            router.push('/(modals)/daily-checkin');
+          }}
           onClose={onSheetClose}
         />
       )}

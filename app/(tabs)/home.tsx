@@ -29,8 +29,10 @@ import {
   selectHasCycleData,
   selectGemsBalance,
   selectStreak,
+  selectRecentSymptoms,
   selectTodaysCard,
   selectTodaysQuestions,
+  selectUserMode,
   selectWeatherSnapshot,
   selectPredictsDeck,
 } from '../../src/stores';
@@ -39,7 +41,13 @@ import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
+import { TodayAtAGlanceCard } from '../../src/components/home/TodayAtAGlanceCard';
 import { todayISO } from '../../src/utils/date.utils';
+import type { HealthCondition } from '../../src/types/cycle.types';
+
+// Stable empty fallback so a null health profile doesn't return a fresh []
+// each render (would ping-pong the memo below).
+const EMPTY_CONDITIONS: HealthCondition[] = [];
 
 /**
  * Home Dashboard — The daily ritual screen.
@@ -85,6 +93,14 @@ export default function HomeScreen() {
   const todaysQuestions = useContentStore(selectTodaysQuestions);
   const weatherSnapshot = usePhaseWeatherStore(selectWeatherSnapshot);
   const predictsDeck = usePredictsStore(selectPredictsDeck);
+  // Inputs for the Today-at-a-glance narrative (day-suggestion engine v2).
+  const recentSymptoms = useCycleStore(selectRecentSymptoms);
+  const latestPrediction = useCycleStore((s) => s.latestPrediction);
+  const userMode = useUserStore(selectUserMode);
+  const conditions = useUserStore((s) => s.user?.healthProfile.conditions) ?? EMPTY_CONDITIONS;
+  // Today is treated as a period day when the current phase is menstrual —
+  // good enough for the Home summary (the calendar day sheet uses the
+  // actual period_days set for the precise per-day marker).
 
   const companion = getCompanion(companionType);
 
@@ -267,6 +283,46 @@ export default function HomeScreen() {
             {capitalize(phase)} Phase
           </Text>
           <Text style={[styles.phaseDay, { color: palette.ink3 }]}>Day {dayInCycle}</Text>
+        </Animated.View>
+
+        {/* TODAY AT A GLANCE — Clue-style narrative for today (sub-phase +
+            hormone story + personal signal + one tip + track chips). Uses
+            the same engine as the calendar day sheet — see
+            docs/DAY-SUGGESTIONS.md. */}
+        <Animated.View entering={rise(180)}>
+          <TodayAtAGlanceCard
+            phase={phase}
+            dayInCycle={dayInCycle}
+            daysUntilPredictedPeriod={
+              latestPrediction
+                ? Math.max(
+                    -30,
+                    Math.min(
+                      30,
+                      Math.round(
+                        (new Date(latestPrediction.predictedNextPeriod).getTime() -
+                          new Date(todayISO() + 'T00:00:00').getTime()) /
+                          86400000
+                      )
+                    )
+                  )
+                : null
+            }
+            isPeriodDay={phase === 'menstrual'}
+            mode={userMode}
+            conditions={conditions}
+            todayCheckIn={todayCheckIn}
+            recentSymptoms={recentSymptoms}
+            companionEmoji={companion.emoji}
+            onSeeMore={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push('/(tabs)/calendar');
+            }}
+            onTrack={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push('/(modals)/daily-checkin');
+            }}
+          />
         </Animated.View>
 
         {/* Phase Weather — themed in its own file */}
