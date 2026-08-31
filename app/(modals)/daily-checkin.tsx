@@ -25,7 +25,7 @@ import {
 import { getCompanion } from '../../src/content/companions';
 import { MoodScale } from '../../src/components/sisterhood/MoodScale';
 import { SectionHeader } from '../../src/components/checkin/SectionHeader';
-import { ScalePicker } from '../../src/components/checkin/ScalePicker';
+import { AuroraSlider } from '../../src/components/checkin/AuroraSlider';
 import {
   SymptomPicker,
   SYMPTOM_CATALOG,
@@ -292,7 +292,7 @@ export default function DailyCheckInScreen() {
           />
           <View style={styles.scaleGroup}>
             <Text style={[styles.scaleLabel, { color: palette.ink }]}>Stress today</Text>
-            <ScalePicker
+            <AuroraSlider
               value={stress}
               onChange={setStress}
               lowLabel="Chill"
@@ -302,7 +302,7 @@ export default function DailyCheckInScreen() {
           </View>
           <View style={styles.scaleGroup}>
             <Text style={[styles.scaleLabel, { color: palette.ink }]}>Sleep last night</Text>
-            <ScalePicker
+            <AuroraSlider
               value={sleep}
               onChange={setSleep}
               lowLabel="Restless"
