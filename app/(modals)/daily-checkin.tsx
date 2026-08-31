@@ -32,6 +32,7 @@ import {
   symptomKey,
   severityToNumber,
 } from '../../src/components/checkin/SymptomPicker';
+import { MoodWordPicker } from '../../src/components/checkin/MoodWordPicker';
 import type { SymptomSeverity } from '../../src/components/checkin/SymptomChip';
 
 /**
@@ -98,7 +99,19 @@ export default function DailyCheckInScreen() {
     todayCheckIn?.sleepQuality ?? null
   );
   const [symptoms, setSymptoms] = useState<Record<string, SymptomSeverity>>({});
+  // Named moods (valence-independent) — persisted as emotional symptom logs.
+  const [moodWords, setMoodWords] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+
+  const toggleMoodWord = useCallback((type: string) => {
+    Haptics.selectionAsync().catch(() => {});
+    setMoodWords((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
 
   // Whenever the modal opens (or todayCheckIn updates), sync prefill.
   useEffect(() => {
@@ -145,6 +158,18 @@ export default function DailyCheckInScreen() {
           category: item.category,
           symptomType: item.type,
           severity: severityToNumber(sev),
+          phaseAtLog: phase,
+        });
+      }
+
+      // 2b. Persist named moods as emotional symptom logs (append-only), so the
+      //     valence score and the specific feelings are both captured.
+      for (const type of moodWords) {
+        await useCycleStore.getState().logSymptom({
+          date: today,
+          category: 'emotional',
+          symptomType: type,
+          severity: 5,
           phaseAtLog: phase,
         });
       }
@@ -204,6 +229,7 @@ export default function DailyCheckInScreen() {
     stress,
     sleep,
     symptoms,
+    moodWords,
     phase,
     router,
   ]);
@@ -271,6 +297,12 @@ export default function DailyCheckInScreen() {
               applyMood(v, origin);
             }}
           />
+          {/* Named moods — the valence scale sets the colour, these name the
+              feelings (they can layer). Stored as emotional symptom logs. */}
+          <Text style={[styles.moodWordsLabel, { color: palette.ink3 }]}>
+            What's the mood? Optional — pick any that fit
+          </Text>
+          <MoodWordPicker selected={moodWords} onToggle={toggleMoodWord} />
         </View>
 
         {/* ENERGY */}
@@ -319,7 +351,11 @@ export default function DailyCheckInScreen() {
             title="Anything your body is feeling?"
             hint="Tap what fits. Skip what doesn't."
           />
-          <SymptomPicker selections={symptoms} onChange={setSymptoms} />
+          <SymptomPicker
+            selections={symptoms}
+            onChange={setSymptoms}
+            excludeCategories={['emotional']}
+          />
         </View>
 
         {/* Bottom padding so the footer doesn't overlap last section */}
@@ -416,6 +452,11 @@ const styles = StyleSheet.create({
   },
   scaleLabel: {
     ...Typography.preset.bodySemibold,
+  },
+  moodWordsLabel: {
+    ...Typography.preset.caption,
+    fontWeight: '700',
+    marginTop: Spacing.base,
   },
   footer: {
     position: 'absolute',

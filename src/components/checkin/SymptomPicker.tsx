@@ -129,19 +129,24 @@ export function severityToNumber(s: SymptomSeverity): number {
 export function SymptomPicker({
   selections,
   onChange,
+  excludeCategories,
 }: {
   selections: Record<string, SymptomSeverity>;
   onChange: (next: Record<string, SymptomSeverity>) => void;
+  /** Categories to hide (e.g. 'emotional' when moods are shown separately). */
+  excludeCategories?: SymptomCatalogItem['category'][];
 }) {
   // Group catalog by category — memoized so we don't re-bucket every render.
   const grouped = useMemo(() => {
+    const skip = new Set(excludeCategories ?? []);
     const m: Record<string, SymptomCatalogItem[]> = {};
     for (const item of SYMPTOM_CATALOG) {
+      if (skip.has(item.category)) continue;
       if (!m[item.category]) m[item.category] = [];
       m[item.category]!.push(item);
     }
     return m;
-  }, []);
+  }, [excludeCategories]);
 
   // Tap = add (at Moderate) / remove. Severity is set below, not by re-tapping.
   const toggle = useCallback(
