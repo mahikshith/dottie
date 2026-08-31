@@ -530,7 +530,11 @@ const styles = StyleSheet.create({
   moderationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#FFF1E8',
+    // Was a hardcoded cream (#FFF1E8) pane with near-white A.ink text on top —
+    // off-theme AND barely legible on the dark aurora screen. Now aurora glass.
+    backgroundColor: A.glass,
+    borderColor: A.edge,
+    borderWidth: 1,
     padding: Spacing.md,
     borderRadius: Spacing.radius.lg,
     borderLeftWidth: 3,
