@@ -9,20 +9,25 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 > haven't earned (no assumed phases/feelings before the user logs).*
 
 ## ▶️ NEXT SESSION — START HERE (current state)
-- **On GitHub (pushed with `[skip ci]`, NO build ran):** Batch 1 (crash + quick wins) + Theme A
-  "don't fake a phase" + the full **alert-theming** pass + **Batch 4 — Learn overhaul (E1–E7)** +
-  the doc refresh. Origin tip `1f422b3`.
-- **DONE locally, NOT pushed (branch ahead 3):** **Batch 3 — mood & check-in (Theme C).**
-  tsc 0 + bundle clean (4.91 MB). Commits `d0e75fa` (C1: mood recolour RADIATES from the tapped
-  emoji via `MoodScale` origin → `applyMood`; reveal slowed 520→720 / 340→440) · `4176ec7` (C2:
-  symptom severity is now an explicit Mild/Moderate/Strong control per selected symptom — was
-  hidden behind re-tapping a chip; + more catalog options) · `07473c7` (C3: new `AuroraSlider`
-  (PanResponder, snaps to 1..5) replaces the 1–5 number grid for Stress + Sleep).
-  **Open C1 design Q (deferred, needs owner):** expand the core 5-point mood scale to MORE moods?
-  It drives `paletteForMood` + the whole recolour + the stored `moodScore`, so it's a model
-  change — I broadened the emotional FEELINGS chips instead (calm/overwhelmed/foggy/low+high
-  drive) as the low-risk take.
-  **Remaining in Theme E:** E8 (phase-aware / skill-level content TIERING) + E9 ("later").
+**Everything below is on GitHub, pushed with `[skip ci]` (NO build has run since device test #1).**
+Verified each step: `tsc` 0 + bundle clean (4.92 MB). Shipped on `design-v2`:
+- **Batch 1** (crash + quick wins) · **Theme A** "don't fake a phase" · **alert-theming** (0 native
+  popups) · **Batch 4 — Learn overhaul (E1–E7)** — see §0.10 in HANDOFF.
+- **Batch 3 — mood & check-in (Theme C):** C1 mood recolour RADIATES from the tapped emoji +
+  slower reveal · C2 explicit Mild/Moderate/Strong severity control (was hidden multi-tap) · C3
+  `AuroraSlider` (PanResponder, snaps 1..5) replaces the 1–5 grid · **mood-word layer** (owner
+  chose it): `MoodWordPicker` names feelings under the valence scale, stored as emotional logs.
+- **Theme D — calendar:** D2/D3 day sheet now leads with "YOUR DAY" (log fast) and pushes the
+  "cosy & covered" suggestions BELOW under "FOR THIS PHASE"; D4 week-ahead gated behind real data.
+- **Batch 5 — Community F1:** prominent 2-col SPACE GRID + sort filters (Trending/New/Most
+  hugs/Most answered); selecting a space pulls it to a header with back control. F2/F3 remain.
+- **G2** off-theme cream "white pane" (new-post moderation card) retinted to aurora glass.
+
+**Remaining backlog (not yet built):** Learn **E8** (phase-aware / skill-level content TIERING —
+the pace chip toggles locks, not depth) + **E9** ("later"); Community **F2** (personalized feed) +
+**F3** (replies — "later"). Everything else from `docs/testing.md` is addressed.
+**No preview build has run yet** — the whole redesign is UNVERIFIED on device; a preview APK is
+the obvious next step (push WITHOUT `[skip ci]`).
 
 **Resume options:**
 1. **Build preview:** `git push origin design-v2` (a normal push, NO `[skip ci]`) → GitHub
@@ -71,8 +76,9 @@ log, or show honest "still learning" states — never a fabricated phase/feeling
   tab**. Make a clean design choice. `[R]`
 
 ## Theme C — Mood + check-in (`home.tsx`, daily check-in components)
-**STATUS: Batch 3 DONE (local, ahead 3) — C1 reveal-origin+slower ✅, C2 severity control ✅,
-C3 slider + more options ✅. Open: expand the core 5-pt mood scale? (owner design call).**
+**STATUS: Batch 3 DONE ✅ — C1 reveal-origin+slower · C2 explicit severity control · C3
+AuroraSlider + more options · mood-word layer (MoodWordPicker) added (owner's chosen resolution
+of "more moods"). All on GitHub.**
 - **C1** Mood color fill must **originate from the tapped swatch** (radial reveal from the touch
   point), a touch slower; the origin point is the point. More mood options (periods bring many
   moods). `[R]` (there IS a mood-reveal in design-v2 — audit `AuroraProvider`/mood-reveal)
@@ -83,6 +89,8 @@ C3 slider + more options ✅. Open: expand the core 5-pt mood scale? (owner desi
   (space-hungry) with a compact **slider** (fewer taps).
 
 ## Theme D — Calendar (`app/(tabs)/calendar.tsx`)
+**STATUS: DONE ✅ — D1 blur (Batch 1) · D2/D3 day sheet leads with log-first, suggestions pushed
+below · D4 week-ahead gated behind real cycle data. On GitHub.**
 - **D1** Day popover: real **backdrop blur + dim** behind it (expo-blur), so the page isn't
   visible through it and text stops overlapping.
 - **D2** Remove/относить the repeated "warm & simple / cosy & covered" per-day placeholder copy;
@@ -117,6 +125,8 @@ Files: `app/(tabs)/learn.tsx`, `app/lesson/[id].tsx`, `app/quiz/[id].tsx`,
 - **E9** The transparent lesson pane should be opaque/themed; more lessons/animations (later).
 
 ## Theme F — Circle / Community (`app/(tabs)/community.tsx`) `[R]`
+**STATUS: F1 DONE ✅ (space grid + sort filters, on GitHub). F2 (personalized feed) + F3
+(replies / follow) REMAIN.**
 - **F1** Space chips (PCOS Warriors etc.) are side-scroll only. Show them **prominently first**
   (grid) + trending; on selecting one, transition it to the top and reveal posts below with
   **sort filters** (trending / new / upvotes / most-answered).
@@ -124,6 +134,8 @@ Files: `app/(tabs)/learn.tsx`, `app/lesson/[id].tsx`, `app/quiz/[id].tsx`,
 - **F3** Replies to posts (currently can't) — later. Follow non-anonymous users — later.
 
 ## Theme G — Orphan / broken screens
+**STATUS: G1 DONE ✅ (home shows `q.rawText`). G2 DONE ✅ — the "white pane" was the new-post
+moderation card (hardcoded cream + near-white text); retinted to aurora glass.**
 - **G1** The context-less screen with repetitive headings (`184039`) — identify & remove or
   rebuild with a real purpose.
 - **G2** The plain white pane (`184215`) that ignores the theme — identify & theme or remove.

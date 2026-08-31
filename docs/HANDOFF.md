@@ -40,10 +40,23 @@ full execution plan + live status is **`docs/REDESIGN-PLAN-R2.md`**. Shipped so 
   confirms). **0 OS-white popups remain.**
 - **Batch 4 — Learn overhaul (E1–E7)** — see `## 0.10` below.
 
-**NEXT (owner picks):** (a) preview APK to test all the above on device; or keep building —
-**Batch 3** (mood/check-in: obvious severity slider, mood radial reveal + more moods, more
-body/energy options), **Batch 5** (Community: space grid + sort filters, personalized feed), or
-Learn **E8** (phase-aware / skill-level content tiering) / **E9** (opaque lesson pane — "later").
+**Also shipped (2026-08-31, on GitHub, `[skip ci]`, ⚠️ UNVERIFIED on device):**
+- **Batch 3 — mood & check-in (Theme C):** C1 mood recolour RADIATES from the tapped emoji
+  (`MoodScale` now surfaces the touch point → `applyMood(v, origin)`) + slower reveal (720/440ms);
+  C2 explicit Mild/Moderate/Strong severity control (`SymptomPicker`, was hidden multi-tap dots);
+  C3 `AuroraSlider` (PanResponder, snaps 1..5) replaces the 1–5 grid for Stress/Sleep; **mood-word
+  layer** — `MoodWordPicker` names feelings under the valence scale (owner's chosen resolution of
+  "more moods"), persisted as emotional symptom logs (no schema change; emotional removed from the
+  symptom grid to avoid dup).
+- **Theme D — calendar:** D2/D3 the day sheet leads with "YOUR DAY" (log-first) and pushes the
+  "cosy & covered" suggestions below under "FOR THIS PHASE"; D4 week-ahead gated behind real data.
+- **Batch 5 — Community F1:** prominent 2-col SPACE GRID + sort filters (Trending/New/Most
+  hugs/Most answered); a selected space pulls up to a header with a back control.
+- **G2:** the off-theme cream "white pane" was the new-post moderation card — retinted to glass.
+
+**NEXT:** the whole redesign is UNVERIFIED on device — a **preview APK** (push WITHOUT `[skip ci]`)
+is the obvious next step. Remaining backlog: Learn **E8** (content depth tiering) / **E9**
+("later"); Community **F2** (personalized feed) / **F3** (replies — "later").
 
 ## 0.10 Batch 4 — Learn overhaul (DONE, design-v2, ⚠️ UNVERIFIED on device)
 From `docs/testing.md` (screenshots 3,4,5 + 183339/183500/183547/183615/183655/184117). Files:
