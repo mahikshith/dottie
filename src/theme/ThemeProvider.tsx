@@ -145,11 +145,13 @@ function MoodReveal({
     const toId = reveal.toId;
     scale.value = 0;
     opacity.value = 1;
-    // 1) grow to cover → 2) commit palette underneath → 3) fade the cover out
-    scale.value = withTiming(1, { duration: 520, easing: EASE_OUT }, (finished) => {
+    // 1) grow to cover → 2) commit palette underneath → 3) fade the cover out.
+    // Paced a touch slower (owner: "the same transition but a little slower") so
+    // the colour is felt spreading from the tapped mood, not snapping in.
+    scale.value = withTiming(1, { duration: 720, easing: EASE_OUT }, (finished) => {
       if (!finished) return;
       runOnJS(onCommit)(toId);
-      opacity.value = withTiming(0, { duration: 340, easing: EASE_OUT }, (done) => {
+      opacity.value = withTiming(0, { duration: 440, easing: EASE_OUT }, (done) => {
         if (done) runOnJS(onFinish)();
       });
     });

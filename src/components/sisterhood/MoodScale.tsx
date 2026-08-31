@@ -1,7 +1,7 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, type GestureResponderEvent } from 'react-native';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAurora } from '../../theme';
+import { useAurora, type RevealOrigin } from '../../theme';
 
 /**
  * MoodScale
@@ -37,7 +37,8 @@ export function MoodScale({
 }: {
   kind: 'mood' | 'energy';
   value: number; // 1-5
-  onChange: (v: number) => void;
+  /** `origin` is the tap point — pass it to `applyMood` for the radiate reveal. */
+  onChange: (v: number, origin?: RevealOrigin) => void;
 }) {
   const { palette } = useAurora();
   const emojis = kind === 'mood' ? MOOD_EMOJIS : ENERGY_EMOJIS;
@@ -50,7 +51,9 @@ export function MoodScale({
         return (
           <Pressable
             key={score}
-            onPress={() => onChange(score)}
+            onPress={(e: GestureResponderEvent) =>
+              onChange(score, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY })
+            }
             style={({ pressed }) => [
               styles.cell,
               { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },

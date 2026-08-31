@@ -264,10 +264,11 @@ export default function DailyCheckInScreen() {
           <MoodScale
             kind="mood"
             value={mood}
-            onChange={(v) => {
+            onChange={(v, origin) => {
               setMood(v);
-              // Logging the mood recolours the whole app (the signature idea).
-              applyMood(v);
+              // Logging the mood recolours the whole app (the signature idea) —
+              // pass the tap point so the colour RADIATES from the emoji you hit.
+              applyMood(v, origin);
             }}
           />
         </View>
