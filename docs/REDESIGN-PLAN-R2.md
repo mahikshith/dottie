@@ -10,15 +10,19 @@ preview build. `[R]` = needs research/design exploration. Status: TODO / WIP / D
 
 ## ▶️ NEXT SESSION — START HERE (current state)
 - **On GitHub (pushed with `[skip ci]`, NO build ran):** Batch 1 (crash + quick wins) + Theme A
-  "don't fake a phase" + the full **alert-theming** pass (every native `Alert.alert` →
-  `showAppDialog`). Origin tip `8eb3975`.
-- **DONE locally, NOT pushed (branch ahead 5):** **Batch 4 — Learn overhaul** (E1–E7 + polish).
-  tsc 0 + bundle clean (4.91 MB). Commits `a2fe4b3` (E3 focus-reload bug + E4 labels/lock + E1
-  tube/glow + E2 hop) · `9d4f2d9` (E1 auto-scroll) · `fd995e8` (E7 CompanionScoreReaction + E5
-  on-theme quiz result + compact "already complete") · `3640561` (E6 correct-answer reveal in
-  exercises) · `4d3cc99` (lesson-reader companion animation).
-  **Remaining in Theme E:** E8 (phase-aware / skill-level content TIERING — the pace chip only
-  toggles locks today, not depth) and E9 (opaque lesson pane + more content — owner said "later").
+  "don't fake a phase" + the full **alert-theming** pass + **Batch 4 — Learn overhaul (E1–E7)** +
+  the doc refresh. Origin tip `1f422b3`.
+- **DONE locally, NOT pushed (branch ahead 3):** **Batch 3 — mood & check-in (Theme C).**
+  tsc 0 + bundle clean (4.91 MB). Commits `d0e75fa` (C1: mood recolour RADIATES from the tapped
+  emoji via `MoodScale` origin → `applyMood`; reveal slowed 520→720 / 340→440) · `4176ec7` (C2:
+  symptom severity is now an explicit Mild/Moderate/Strong control per selected symptom — was
+  hidden behind re-tapping a chip; + more catalog options) · `07473c7` (C3: new `AuroraSlider`
+  (PanResponder, snaps to 1..5) replaces the 1–5 number grid for Stress + Sleep).
+  **Open C1 design Q (deferred, needs owner):** expand the core 5-point mood scale to MORE moods?
+  It drives `paletteForMood` + the whole recolour + the stored `moodScore`, so it's a model
+  change — I broadened the emotional FEELINGS chips instead (calm/overwhelmed/foggy/low+high
+  drive) as the low-risk take.
+  **Remaining in Theme E:** E8 (phase-aware / skill-level content TIERING) + E9 ("later").
 
 **Resume options:**
 1. **Build preview:** `git push origin design-v2` (a normal push, NO `[skip ci]`) → GitHub
@@ -67,6 +71,8 @@ log, or show honest "still learning" states — never a fabricated phase/feeling
   tab**. Make a clean design choice. `[R]`
 
 ## Theme C — Mood + check-in (`home.tsx`, daily check-in components)
+**STATUS: Batch 3 DONE (local, ahead 3) — C1 reveal-origin+slower ✅, C2 severity control ✅,
+C3 slider + more options ✅. Open: expand the core 5-pt mood scale? (owner design call).**
 - **C1** Mood color fill must **originate from the tapped swatch** (radial reveal from the touch
   point), a touch slower; the origin point is the point. More mood options (periods bring many
   moods). `[R]` (there IS a mood-reveal in design-v2 — audit `AuroraProvider`/mood-reveal)
