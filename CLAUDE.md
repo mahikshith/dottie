@@ -35,6 +35,10 @@ use Lottie illustrated art**, shipped emoji-first via the **drop-in pipeline**:
   + companion on the current node, connected by a glowing SVG **aurora stream** (lit up to the
   current node). **Hybrid pace** via `Storage.learnLevel` ('new'=guided locks; 'basics'/'deep'=
   unlocked/self-directed). All 7 lessons have exercises (`src/content/exercises.ts`).
+  **Batch 4 Learn overhaul (2026-08-31, done — see HANDOFF §0.10):** fixed the "can't advance"
+  bug (`useFocusEffect` progress reload), tube trail + pulsing "you're here" + hopping companion
+  + auto-scroll, `CompanionScoreReaction` (score→expression), correct-answer reveal in exercises.
+  Remaining: E8 (content DEPTH tiering by pace — locks only today) + E9 ("later").
 - **Notifications v1** (local, opt-in): `src/notifications/scheduler.ts` (`applyReminderPrefs`) +
   `Storage.reminderPrefs` + `app/(profile)/reminders.tsx` (wired from Profile). Uses the existing
   discrete/explicit copy. `expo-notifications` added to package.json (needs `npm install` + dev build).
@@ -56,18 +60,25 @@ A warm, local-first women's-health / cycle-tracking companion. React Native + Ex
 "Warm Geometric" design language. 12-chunk MVP is complete; currently in a UI/UX
 premium-polish phase.
 
-## ⚠️ Environment constraints (READ THIS)
-- Built on a **corporate laptop with NO Node.js/npm** and restricted installs. Only
-  `git` is available. **You cannot run, build, `tsc`, lint, or launch the app here.**
-- So **all code is written statically and is UNVERIFIED at runtime** until the user
-  gets to a Node-capable machine. Reason carefully; prefer changes verifiable by reading.
-- Do NOT assume `npm install`/`npx`/`eas` work — confirm with the user first.
-- `react-native-mmkv` can't run in Expo Go (needs an EAS dev build). `assets/` (icon/
-  splash) referenced by `app.json` is currently missing.
+## ⚠️ Environment + workflow (READ THIS — updated 2026-08-31)
+- **Node IS available now** — 24.19.0 via winget. New shells don't auto-add it; prepend
+  `C:\Program Files\nodejs` to PATH first (bash: `export PATH="/c/Program Files/nodejs:$PATH"`).
+  Then `npx tsc --noEmit` (expect 0) and `npx expo export --platform android --output-dir <tmp>
+  --no-minify` (bundle check) both work — **verify every change this way before committing.**
+- **Still no on-device runtime here** — the app runs on the owner's Android phone via a
+  **GitHub Actions** build (`.github/workflows/android-preview.yml`): push to `design-v2` → an
+  installable release APK. So code is verified by tsc + bundle + careful reading, then feel-checked
+  on device only after a preview build. `react-native-mmkv` needs a dev/native build (not Expo Go).
+- **Backup vs build workflow (standing owner rule):** commit LOCALLY freely. To back up to GitHub
+  WITHOUT triggering a build, put `[skip ci]` on the TIP commit, then `git push origin design-v2`
+  (confirm no run started via `gh run list`). Push WITHOUT `[skip ci]` **only when the owner OKs a
+  preview.** `gh` is authed. Commit messages end with the Co-Authored-By trailer.
 
 ## Repo
-- GitHub: `https://github.com/mahikshith/dottie` (this `code/` folder is the repo root).
-- Branch `main`. Commit only when asked. Owner email `mahikshith97@gmail.com`.
+- GitHub: `https://github.com/mahikshith/dottie` (this repo folder is the root).
+- **Active branch: `design-v2`** (all redesign work; `main` untouched). Owner email
+  `mahikshith97@gmail.com`. **The live redesign plan is `docs/REDESIGN-PLAN-R2.md` (START HERE)**;
+  the on-device feedback that drives it is `docs/testing.md`.
 
 ## Design system (use these tokens — never hardcode ad-hoc values)
 - `src/constants/colors.ts` — cream `#FFF8F2`, coral `#FF6B6B`, peach `#FFA07A`; phases:

@@ -5,12 +5,73 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-30 (deep-screen aurora theming COMPLETE — community + onboarding +
-doctor-report + all sisterhood screens; ready for the Node/device verification pass)
-**Updated by:** Claude (Opus 4.8) — aurora theming phase (screen-by-screen)
-**Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/FEATURES-AND-RESEARCH.md`
-(the COMPLETE picture: predictor math, features, aurora system, research)**,
-`docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
+**Last updated:** 2026-08-31 (on-device test #1 → big redesign from `docs/testing.md`: Batch 1 +
+Theme A + alert-theming + Batch 4 Learn overhaul — all pushed to `design-v2` with `[skip ci]`)
+**Updated by:** Claude (Opus 4.8) — post-device redesign phase
+**Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/REDESIGN-PLAN-R2.md`
+(THE live redesign plan — START HERE)**, **`docs/FEATURES-AND-RESEARCH.md` (predictor math,
+features, aurora system, research)**, `docs/SESSION-CONTEXT.md` (original brief),
+`docs/BETA-TESTING-GUIDE.md`.
+
+## ⚡ CURRENT STATE (2026-08-31) — post on-device test #1
+Node IS available now (24.19.0 via winget — prepend `C:\Program Files\nodejs` to PATH). Device
+builds run on **GitHub Actions** (`.github/workflows/android-preview.yml`) — push to `design-v2`
+builds an installable release APK (free, public repo). **Backup rule:** commit locally freely; to
+back up WITHOUT a build put `[skip ci]` on the TIP commit before `git push origin design-v2`
+(verified to skip the build; confirm via `gh run list`). Push WITHOUT `[skip ci]` only when the
+owner OKs a preview. Verify with `npx tsc --noEmit` (expect 0) + `npx expo export --platform
+android --output-dir <tmp> --no-minify` (bundle check).
+
+**Owner tested the APK (test #1) and filed 18 annotated screenshots → `docs/testing.md`.** The
+full execution plan + live status is **`docs/REDESIGN-PLAN-R2.md`**. Shipped so far (all on
+`design-v2`, pushed with `[skip ci]`, origin tip `2c6995c`, ⚠️ NOT re-tested on device since #1):
+- **P0 crash fixed** — Circle/You white-screen "Maximum update depth exceeded" = Zustand selectors
+  returning fresh `[]`/objects each render (infinite re-render). Fixed with stable module-level
+  EMPTY constants + memoized `selectLevelProgress`. Root `src/components/ErrorBoundary.tsx` added.
+- **Batch 1** (quick wins): streak/gems moved off Home onto a minimal Learn header; frosted
+  borderless tab bar; calendar day-sheet real backdrop blur (expo-blur `dimezisBlurView`); Home
+  shows the real question text.
+- **Theme A "don't fake a phase"** — Home + calendar gate ALL phase-derived content behind
+  `selectHasCycleData` (`= lastPeriodStart != null`); honest "log your period" get-started when
+  there's no data, instead of assuming follicular/Day 1.
+- **Alert-theming** — every native `Alert.alert` app-wide (~30) → a global themed dialog:
+  `src/components/ui/appDialog.tsx` (`showAppDialog(config)`, Zustand host `AppDialogHost` mounted
+  once at root) rendering `CelebrationDialog` (warm palette; `danger` action variant for destructive
+  confirms). **0 OS-white popups remain.**
+- **Batch 4 — Learn overhaul (E1–E7)** — see `## 0.10` below.
+
+**NEXT (owner picks):** (a) preview APK to test all the above on device; or keep building —
+**Batch 3** (mood/check-in: obvious severity slider, mood radial reveal + more moods, more
+body/energy options), **Batch 5** (Community: space grid + sort filters, personalized feed), or
+Learn **E8** (phase-aware / skill-level content tiering) / **E9** (opaque lesson pane — "later").
+
+## 0.10 Batch 4 — Learn overhaul (DONE, design-v2, ⚠️ UNVERIFIED on device)
+From `docs/testing.md` (screenshots 3,4,5 + 183339/183500/183547/183615/183655/184117). Files:
+`app/(tabs)/learn.tsx`, `app/lesson/[id].tsx`, `app/quiz/[id].tsx`, `src/components/learn/
+ExercisePlayer.tsx`, `src/engine/content/exercise-engine.ts`, new `src/components/learn/
+CompanionScoreReaction.tsx`.
+- **E3 (the "can't advance past completed lessons" BUG):** the Learn tab never re-read
+  `lesson_progress` on focus, so a finished lesson stayed "current" + the next stayed locked. Fixed
+  with `useFocusEffect` reloading progress (+ re-syncing the saved pace) on every focus.
+- **E1/E4 path:** connector is a glossy TUBE (wide casing + lit core + gloss), wider meander to use
+  the empty side space, a pulsing "you're here" glow ring, one-word pace labels (New/Basics/Deep),
+  locked nodes = soft dashed accent ring + dimmed emoji + tiny lock badge (no glass), and
+  **auto-scroll** to the current lesson on focus (best-effort `measureLayout` vs the scroll inner
+  node; degrades to no-scroll).
+- **E2:** the spirit companion HOPS in place on the current node; lesson reader intro now uses the
+  animated `CompanionLottie` (was a static emoji).
+- **E7:** `CompanionScoreReaction` — the companion reacts to the score (🤯 mind-blown at 100 → 🫂
+  warm hug on a low score, never punishing) with a spring pop-in + expression badge + headline,
+  replacing the generic leaf/star. Wired into the quiz result hero. Upgrades to illustrated Lottie
+  automatically when art lands (score→`CompanionAnim` state).
+- **E5:** quiz answer-review + explanation cards were LIGHT panes on the dark ground (+ near-white
+  low-contrast text) → retinted translucent success/error. Lesson reader's bulky "✓ Already
+  Complete" → a compact done-pill + a small Practice/Quiz next chip.
+- **E6:** exercises now REVEAL the correct answer on a wrong/partial attempt — `describeSolution()`
+  in the engine + `ExerciseFeedback.solution`, shown as an "ANSWER" card (was just "Almost — 1/4").
+- **Remaining:** E8 (phase-aware / skill-level content TIERING — the pace chip toggles locks, not
+  depth; there ARE 19 exercises across 7 lessons already) and E9 (opaque lesson pane + more
+  content) — both owner-flagged "later".
 
 ## Session-end snapshot (engine/features phase)
 On **`design-v2`** (all committed + pushed; `main` untouched; everything ⚠️ UNVERIFIED — no Node):
