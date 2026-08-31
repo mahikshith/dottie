@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
+import { A } from '../../src/theme';
 
 /**
  * Sisterhood Route Group Layout
@@ -32,18 +32,21 @@ export default function SisterhoodLayout() {
   return (
     <Stack
       screenOptions={{
+        // Aurora-native chrome: a solid dark ground behind the native header
+        // and screen surface. Was cream, which flashed a white bar over the
+        // status area on aurora-themed screens.
         headerStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
-        headerTintColor: Colors.text.primary,
+        headerTintColor: A.ink,
         headerTitleStyle: {
           ...Typography.preset.h4,
-          color: Colors.text.primary,
+          color: A.ink,
         },
         headerShadowVisible: false,
         headerBackTitle: 'Back',
         contentStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
         animation: 'slide_from_right',
       }}

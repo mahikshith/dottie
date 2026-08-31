@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
+import { A } from '../../src/theme';
 
 /**
  * Profile Route Group Layout
@@ -24,18 +24,21 @@ export default function ProfileLayout() {
   return (
     <Stack
       screenOptions={{
+        // Aurora-native chrome (was cream Colors.surface.background — that
+        // painted a white bar over the notch/status area on ghost-mode /
+        // reminders / privacy). Deep profile screens themselves stay themed.
         headerStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
-        headerTintColor: Colors.text.primary,
+        headerTintColor: A.ink,
         headerTitleStyle: {
           ...Typography.preset.h4,
-          color: Colors.text.primary,
+          color: A.ink,
         },
         headerShadowVisible: false,
         headerBackTitle: 'Back',
         contentStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
         animation: 'slide_from_right',
       }}

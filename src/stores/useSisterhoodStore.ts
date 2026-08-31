@@ -448,11 +448,38 @@ export const selectCircle = (s: SisterhoodStoreState) => s.circle;
 export const selectMemberCount = (s: SisterhoodStoreState) =>
   s.memberOrder.length;
 
-export const selectMembersOrdered = (s: SisterhoodStoreState) =>
-  s.memberOrder.map(id => s.membersById[id]).filter(Boolean) as SisterhoodMember[];
+// Zustand v5 subscribes via useSyncExternalStore, which requires the selector
+// to return referentially-stable snapshots. `.map(...).filter(...)` produces
+// a fresh array on every call → React thinks the snapshot changed each render
+// → "Maximum update depth exceeded". Cache per input-triple so callers see a
+// stable reference until the underlying maps or order actually change.
+let _mOrder: string[] | null = null;
+let _mById: Record<string, SisterhoodMember> | null = null;
+let _mCache: SisterhoodMember[] = [];
+export const selectMembersOrdered = (s: SisterhoodStoreState): SisterhoodMember[] => {
+  if (s.memberOrder !== _mOrder || s.membersById !== _mById) {
+    _mOrder = s.memberOrder;
+    _mById = s.membersById;
+    _mCache = s.memberOrder
+      .map(id => s.membersById[id])
+      .filter(Boolean) as SisterhoodMember[];
+  }
+  return _mCache;
+};
 
-export const selectMemberViewsOrdered = (s: SisterhoodStoreState) =>
-  s.memberOrder.map(id => s.viewsById[id]).filter(Boolean) as MemberView[];
+let _vOrder: string[] | null = null;
+let _vById: Record<string, MemberView> | null = null;
+let _vCache: MemberView[] = [];
+export const selectMemberViewsOrdered = (s: SisterhoodStoreState): MemberView[] => {
+  if (s.memberOrder !== _vOrder || s.viewsById !== _vById) {
+    _vOrder = s.memberOrder;
+    _vById = s.viewsById;
+    _vCache = s.memberOrder
+      .map(id => s.viewsById[id])
+      .filter(Boolean) as MemberView[];
+  }
+  return _vCache;
+};
 
 export const selectMemberById =
   (memberId: string) =>

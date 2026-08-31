@@ -37,7 +37,7 @@
  *  No dark patterns. No false confidence.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -55,7 +55,7 @@ import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { Shadows } from '../../src/constants/shadows';
 import { PinPad } from '../../src/components/safety/PinPad';
-import { useGhostModeStore } from '../../src/security/ghost-mode-store';
+import { useGhostModeStore, selectConfigVersion } from '../../src/security/ghost-mode-store';
 import {
   GhostModeConfig,
   MIN_PIN_LENGTH,
@@ -76,17 +76,24 @@ export default function GhostModeSettingsScreen() {
   const [pin, setPin] = useState('');
   const [errorKey, setErrorKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [configVersion, setConfigVersion] = useState(0); // forces re-render after updateConfig
 
-  const config: GhostModeConfig = useGhostModeStore((s) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    configVersion; // touch so React picks up our manual bumps
-    return s.getConfig();
-  });
+  // Subscribe to the store's own configVersion beacon (a plain number, stable
+  // snapshot) and recompute the config OBJECT via useMemo. Prior code called
+  // `s.getConfig()` directly in the selector — that returns a fresh object
+  // each render, which under Zustand v5 / useSyncExternalStore trips the
+  // "getSnapshot should be cached" guard → "Maximum update depth exceeded".
+  const configVersion = useGhostModeStore(selectConfigVersion);
+  const config: GhostModeConfig = useMemo(
+    () => useGhostModeStore.getState().getConfig(),
+    [configVersion]
+  );
 
   // ─── Step machine for set-pin flows ─────────────────────────────
 
-  const bumpConfig = () => setConfigVersion((v) => v + 1);
+  // Every mutation (setPin / disable / updateConfig / setPanicPin) already
+  // bumps `configVersion` inside the store, which re-runs the memo above.
+  // No local bump needed — bumpConfig() is a no-op kept for call-site clarity.
+  const bumpConfig = () => {};
 
   const startSetMain = () => {
     setPin('');

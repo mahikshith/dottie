@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
-import { Colors } from '../../src/constants/colors';
 import { Typography } from '../../src/constants/typography';
+import { A } from '../../src/theme';
 
 /**
  * Community Route Group Layout — "The Circle"
@@ -25,18 +25,21 @@ export default function CommunityLayout() {
   return (
     <Stack
       screenOptions={{
+        // Aurora-native chrome (was cream Colors.surface.background — that
+        // painted a white bar over the notch/status-bar on the aurora
+        // new-post / post-detail screens, hiding time + battery).
         headerStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
-        headerTintColor: Colors.text.primary,
+        headerTintColor: A.ink,
         headerTitleStyle: {
           ...Typography.preset.h4,
-          color: Colors.text.primary,
+          color: A.ink,
         },
         headerShadowVisible: false,
         headerBackTitle: 'Back',
         contentStyle: {
-          backgroundColor: Colors.surface.background,
+          backgroundColor: A.ground,
         },
         animation: 'slide_from_right',
       }}

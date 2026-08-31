@@ -408,52 +408,79 @@ export default function PostDetailScreen() {
         <View style={{ height: Spacing['4xl'] }} />
       </ScrollView>
 
-      {/* Reply composer (sticky bottom) */}
+      {/* Reply composer (sticky bottom)
+       *
+       * Layout: mode chip in a small header row, then a wide input row with a
+       * compact circular send button. The old single-row layout put the
+       * big "Reply" GradientButton next to the input, which pushed the
+       * placeholder off-screen and made the whole composer feel bulky —
+       * user feedback: "reply is occupying too much space" + "'Share a kind
+       * word' isn't trying to fit in the circle". */}
       <View
-        style={[styles.composer, { paddingBottom: insets.bottom + Spacing.md }]}
+        style={[styles.composer, { paddingBottom: insets.bottom + Spacing.sm }]}
       >
-        <PressableScale
-          onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
-            setReplyMode(replyMode === 'named' ? 'anonymous' : 'named');
-          }}
-          haptic="none"
-          scaleTo={0.94}
-          style={[
-            styles.composerModeChip,
-            replyMode === 'anonymous' && styles.composerModeChipAnon,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            replyMode === 'anonymous'
-              ? 'Reply anonymously'
-              : 'Reply as yourself'
-          }
-        >
-          <Text style={styles.composerModeChipText}>
-            {replyMode === 'anonymous' ? '🎭 Anon' : '💛 You'}
-          </Text>
-        </PressableScale>
+        <View style={styles.composerHeader}>
+          <PressableScale
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              setReplyMode(replyMode === 'named' ? 'anonymous' : 'named');
+            }}
+            haptic="none"
+            scaleTo={0.94}
+            style={[
+              styles.composerModeChip,
+              replyMode === 'anonymous' && styles.composerModeChipAnon,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              replyMode === 'anonymous'
+                ? 'Reply anonymously — tap for as yourself'
+                : 'Reply as yourself — tap for anonymous'
+            }
+          >
+            <Text style={styles.composerModeChipText}>
+              {replyMode === 'anonymous' ? '🎭 Anonymous' : '💛 As yourself'}
+            </Text>
+          </PressableScale>
+        </View>
 
-        <TextInput
-          value={replyText}
-          onChangeText={setReplyText}
-          placeholder="Share a kind word..."
-          placeholderTextColor={A.ink3}
-          style={styles.composerInput}
-          maxLength={REPLY_BODY_MAX + 100}
-          multiline
-        />
+        <View style={styles.composerRow}>
+          <TextInput
+            value={replyText}
+            onChangeText={setReplyText}
+            placeholder="Share a kind word..."
+            placeholderTextColor={A.ink3}
+            style={styles.composerInput}
+            maxLength={REPLY_BODY_MAX + 100}
+            multiline
+          />
 
-        <GradientButton
-          label="Reply"
-          onPress={handleSubmitReply}
-          loading={isSubmittingReply}
-          disabled={
-            replyText.trim().length < REPLY_BODY_MIN ||
-            replyText.trim().length > REPLY_BODY_MAX
-          }
-        />
+          <PressableScale
+            onPress={handleSubmitReply}
+            haptic="none"
+            scaleTo={0.94}
+            disabled={
+              isSubmittingReply ||
+              replyText.trim().length < REPLY_BODY_MIN ||
+              replyText.trim().length > REPLY_BODY_MAX
+            }
+            style={[
+              styles.composerSend,
+              (isSubmittingReply ||
+                replyText.trim().length < REPLY_BODY_MIN ||
+                replyText.trim().length > REPLY_BODY_MAX) &&
+                styles.composerSendDim,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Send reply"
+          >
+            {isSubmittingReply ? (
+              <ActivityIndicator color={A.ground} />
+            ) : (
+              <Text style={styles.composerSendGlyph}>↑</Text>
+            )}
+          </PressableScale>
+        </View>
       </View>
       </KeyboardAvoidingView>
     </AuroraBackground>
@@ -797,24 +824,32 @@ const styles = StyleSheet.create({
   replyActionTextActive: {
     color: A.accent,
   },
-  // Composer (sticky bottom)
+  // Composer (sticky bottom) — stacked: [mode chip row] over [input + send]
   composer: {
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.sm,
+    backgroundColor: A.glass2,
+    borderTopWidth: 1,
+    borderTopColor: A.edge,
+    gap: Spacing.xs,
+  },
+  composerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  composerRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: Spacing.sm,
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: Spacing.md,
-    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-    borderTopWidth: 1,
-    borderTopColor: A.edge,
   },
   composerModeChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
+    paddingVertical: 4,
+    backgroundColor: A.glass,
+    borderWidth: 1,
+    borderColor: A.edge,
     borderRadius: Spacing.radius.full,
-    height: 40,
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
   composerModeChipAnon: {
     backgroundColor: `${A.accent2}22`,
@@ -824,6 +859,7 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     color: A.ink2,
     fontWeight: '600',
+    fontSize: 11,
   },
   composerInput: {
     flex: 1,
@@ -834,9 +870,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
-    minHeight: 40,
+    minHeight: 44,
     maxHeight: 120,
     borderWidth: 1,
     borderColor: A.edge,
+  },
+  // Compact circular send — tucks next to the input so the placeholder gets
+  // the full row width. Was a full-size GradientButton pill.
+  composerSend: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: A.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  composerSendDim: {
+    opacity: 0.45,
+  },
+  composerSendGlyph: {
+    fontSize: 22,
+    lineHeight: 24,
+    color: A.ground,
+    fontWeight: '800',
+    // Tiny upward baseline nudge so the arrow sits visually centered.
+    marginTop: -2,
   },
 });
