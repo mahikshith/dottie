@@ -3,7 +3,10 @@
 Auto-loaded every session. **Read `docs/HANDOFF.md` first** — it is the live status
 log (what's done, what's next, decisions). For the *complete picture* of features +
 algorithms (the Bayesian predictor math, the two new engine features, the aurora
-system, and the research), read **`docs/FEATURES-AND-RESEARCH.md`**. This file is the
+system, and the research), read **`docs/FEATURES-AND-RESEARCH.md`**. For the daily
+calendar-narrative engine (competitor scan + sub-phases + personal signals) read
+**`docs/DAY-SUGGESTIONS.md`**. For the onboarding + walkthrough redesign proposal
+(awaiting owner OK) read **`docs/ONBOARDING-AND-WALKTHROUGH.md`**. This file is the
 stable how-we-work guide.
 
 ## Engine/feature state (design-v2, ⚠️ UNVERIFIED — no Node here)

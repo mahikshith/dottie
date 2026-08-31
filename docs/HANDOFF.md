@@ -5,13 +5,66 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-31 (on-device test #1 → big redesign from `docs/testing.md`: Batch 1 +
-Theme A + alert-theming + Batch 4 Learn overhaul — all pushed to `design-v2` with `[skip ci]`)
-**Updated by:** Claude (Opus 4.8) — post-device redesign phase
+**Last updated:** 2026-08-31 (device-test #2 fixes + day-suggestions v2 + Home "Today at a
+glance" + tab-bar rectangle removal + Sisterhood explainer + Hormones 101 lessons — all
+LOCAL commits on `design-v2`, unpushed by owner's standing order until they OK a preview)
+**Updated by:** Claude (Opus 4.7) — post device-test #2 iteration
 **Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/REDESIGN-PLAN-R2.md`
-(THE live redesign plan — START HERE)**, **`docs/FEATURES-AND-RESEARCH.md` (predictor math,
-features, aurora system, research)**, `docs/SESSION-CONTEXT.md` (original brief),
-`docs/BETA-TESTING-GUIDE.md`.
+(the earlier redesign plan)**, **`docs/DAY-SUGGESTIONS.md` (competitor scan + engine v2 —
+new)**, **`docs/ONBOARDING-AND-WALKTHROUGH.md` (audit + proposal for next round — new)**,
+**`docs/FEATURES-AND-RESEARCH.md` (predictor math, features, aurora system, research)**,
+`docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
+
+## 🔄 THIS SESSION (2026-08-31, LOCAL on `design-v2` — 5 commits, NOT PUSHED)
+Order: b21c14a → f083ef0 → cd1e0b3 → 3d91d25 → [pending: Hormones 101 lessons].
+All `[skip ci]`. Owner instruction: hold commits locally, push only on explicit OK.
+- **Device-test #2 crashes fixed** — Sisterhood Circle + Ghost Mode "Maximum update depth
+  exceeded" (Zustand v5 selectors returning fresh arrays / fresh `getConfig()` objects trip
+  useSyncExternalStore's snapshot guard). Cached selectors + swapped Ghost Mode to a
+  version-beacon + useMemo. See `src/stores/useSisterhoodStore.ts:459-483` and
+  `app/(profile)/ghost-mode.tsx:80-95`.
+- **Nav chrome cream → aurora** — `(sisterhood)/_layout`, `(community)/_layout`,
+  `(profile)/_layout` were painting cream over the notch/status bar on aurora screens.
+  Swapped to `A.ground` so time/battery are readable.
+- **Community reply composer** — was one row of `[chip][input][big Reply pill]`. Split to
+  small mode-chip row + wide input + compact circular send. `"Anon"` → `"Anonymous"`.
+- **Tab bar rectangle removed** — `AuroraTabBar` stripped of BlurView + ground overlay +
+  moving pill. Icons + labels only, active = `palette.accent` with a tiny underline dot.
+- **Profile mode label** — `"Endocrine Mode"` (reads clinical / like an app default) →
+  `"Irregular Cycles"` (matches onboarding).
+- **Sisterhood explainer** — first tap on "Sisterhood Circle" from Profile now shows a
+  themed dialog telling the user what it's for; once-only via new MMKV flag
+  `Storage.sisterhoodExplainerSeen`.
+- **Calendar ↔ Sisterhood bridge** — new "Care for a loved one →" glass card below the
+  legend, adapts to sister count.
+- **Day-suggestions v2** — the calendar day sheet + Home "Today at a glance" card. See
+  `docs/DAY-SUGGESTIONS.md` for the competitor scan + engine design:
+    - `resolveSubPhase()` — 9 sub-phases across the 4 classical phases.
+    - Hormone story + culture line per sub-phase.
+    - `why` tag on every suggestion.
+    - `PersonalSignal[]` from last-7d symptom cluster + today's check-in.
+    - `TrackPrompt[]` chips per sub-phase, wired to open the daily check-in.
+    - Backward-compatible: all new fields are OPTIONAL on both input + output.
+- **Home "Today at a glance"** (`src/components/home/TodayAtAGlanceCard.tsx`) — same
+  engine on the home tab, above Phase Weather. Sub-phase chip + hormone story +
+  personal signal + top tip + track chips + "See today ›".
+- **Hormones 101 path imported** — 7 lessons + 7 quizzes from
+  `docs/dottie questions/dottie_curriculum.json` added to `src/content/learning-paths.ts`
+  and `src/content/quizzes.ts`. Curriculum has 24 paths / 93 lessons / 279 exercises /
+  558 quiz questions — this is our first slice. UI/UX for the Learn tab is a later pass.
+
+## 📋 NEXT (proposed — awaiting owner OK)
+- **Onboarding audit + walkthrough** — full plan in
+  **`docs/ONBOARDING-AND-WALKTHROUGH.md`**. Two headline fixes: (1) onboarding
+  never fills `healthConditions`, so PCOS/endo/thyroid engine paths silently no-op
+  for most users; (2) users are dropped on Home cold with no orientation. Plan is
+  2 new onboarding screens (why-you're-here, conditions), a smarter cycle-setup, an
+  optional reminders opt-in, and a 7-step coach-mark walkthrough (skip + revisit from
+  Profile). Wait for owner call on the open questions before building.
+- **Predictor simulation harness** — a tiny Node script that seeds fake cycle
+  histories and prints what the engine predicts across N days. Answers the
+  "how do we know it works?" question without a device.
+- **Push the 5 waiting local commits** for a device preview when owner OKs.
 
 ## ⚡ CURRENT STATE (2026-08-31) — post on-device test #1
 Node IS available now (24.19.0 via winget — prepend `C:\Program Files\nodejs` to PATH). Device

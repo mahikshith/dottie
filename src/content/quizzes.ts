@@ -306,6 +306,126 @@ export const QUIZZES: Quiz[] = [
   },
 ];
 
+// ─── HORMONES 101 QUIZZES (imported from the curriculum) ─────────────
+//
+// Verbatim from docs/dottie questions/dottie_curriculum.json. Curriculum's
+// per-question `level` field is dropped (our Question type doesn't carry
+// it). One quiz per lesson in path_hormones_101, 6 questions each.
+QUIZZES.push(
+  {
+    id: 'quiz_estrogen_the_rising_star',
+    title: 'Estrogen: The Rising Star',
+    lessonId: 'lesson_estrogen_the_rising_star',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_estrogen_the_rising_star_1', text: 'Estrogen is mainly made by your…', options: ['Liver', 'Ovaries', 'Lungs', 'Skin'], correctIndex: 1, explanation: 'Your ovaries are the main source.', explanationEmoji: '🧬' },
+      { id: 'q_estrogen_the_rising_star_2', text: 'Estrogen rises during the…', options: ['Luteal phase', 'First half of the cycle', 'Period only', 'Menopause'], correctIndex: 1, explanation: 'It rises through the follicular half.', explanationEmoji: '🌱' },
+      { id: 'q_estrogen_the_rising_star_3', text: 'Estrogen helps build…', options: ['Muscle only', 'A thick lining and fertile mucus', 'Nothing', 'Bones only'], correctIndex: 1, explanation: 'It thickens the lining and creates fertile mucus.', explanationEmoji: '💧' },
+      { id: 'q_estrogen_the_rising_star_4', text: 'Why feel most social and sharp mid-cycle?', options: ['Less sleep', 'Estrogen peaks near ovulation', 'Progesterone peaks', 'Low iron'], correctIndex: 1, explanation: 'Peak estrogen near ovulation lifts mood and clarity.', explanationEmoji: '✨' },
+      { id: 'q_estrogen_the_rising_star_5', text: 'Why is estrogen important beyond reproduction?', options: ["It isn't", 'It supports bone and heart health', 'Only skin', 'It causes disease'], correctIndex: 1, explanation: 'Estrogen supports bones and cardiovascular health.', explanationEmoji: '🦴' },
+      { id: 'q_estrogen_the_rising_star_6', text: 'If estrogen stays very low long-term (as after menopause), what needs attention?', options: ['Nothing', 'Bone density', 'Hair color', 'Eye color'], correctIndex: 1, explanation: 'Low estrogen long-term can reduce bone density.', explanationEmoji: '🦴' },
+    ],
+  },
+  {
+    id: 'quiz_progesterone_the_calming_hormone',
+    title: 'Progesterone: The Calming Hormone',
+    lessonId: 'lesson_progesterone_the_calming_hormone',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_progesterone_the_calming_hormone_1', text: 'Progesterone rises…', options: ['Before ovulation', 'After ovulation', 'During your period', 'Never'], correctIndex: 1, explanation: 'It rises in the luteal phase.', explanationEmoji: '🌙' },
+      { id: 'q_progesterone_the_calming_hormone_2', text: 'What makes progesterone after ovulation?', options: ['The ovary shell', 'The corpus luteum', 'The liver', 'The cervix'], correctIndex: 1, explanation: 'The corpus luteum produces it.', explanationEmoji: '🧬' },
+      { id: 'q_progesterone_the_calming_hormone_3', text: "Progesterone's effect on temperature?", options: ['Lowers it', 'Raises it slightly', 'No effect', 'Freezes it'], correctIndex: 1, explanation: 'It slightly raises basal body temperature.', explanationEmoji: '🌡️' },
+      { id: 'q_progesterone_the_calming_hormone_4', text: 'Why can the luteal phase feel restful or sleepy?', options: ['Low iron', "Progesterone's calming effect", 'High estrogen', 'Dehydration'], correctIndex: 1, explanation: 'Progesterone has a calming, sedating quality.', explanationEmoji: '💤' },
+      { id: 'q_progesterone_the_calming_hormone_5', text: 'Why does your period start when it does?', options: ['Estrogen surges', 'Progesterone drops', 'You exercise', 'Random'], correctIndex: 1, explanation: 'The fall in progesterone triggers shedding.', explanationEmoji: '🩸' },
+      { id: 'q_progesterone_the_calming_hormone_6', text: 'Progesterone stays high and no period comes after ovulation. Reasonable thought?', options: ['Impossible', 'Pregnancy is possible', "They're sick", 'Ovaries stopped'], correctIndex: 1, explanation: "In pregnancy, progesterone stays high and the period doesn't come.", explanationEmoji: '🤰' },
+    ],
+  },
+  {
+    id: 'quiz_lh_fsh_your_cycle_s_starters',
+    title: "LH & FSH: Your Cycle's Starters",
+    lessonId: 'lesson_lh_fsh_your_cycle_s_starters',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_lh_fsh_your_cycle_s_starters_1', text: 'FSH and LH come from the…', options: ['Ovaries', 'Pituitary gland', 'Uterus', 'Liver'], correctIndex: 1, explanation: 'The pituitary releases them.', explanationEmoji: '🧠' },
+      { id: 'q_lh_fsh_your_cycle_s_starters_2', text: 'FSH tells the ovaries to…', options: ['Release progesterone', 'Grow follicles', 'Shed the lining', 'Stop'], correctIndex: 1, explanation: 'It stimulates follicle growth.', explanationEmoji: '🧫' },
+      { id: 'q_lh_fsh_your_cycle_s_starters_3', text: 'The LH surge triggers…', options: ['Your period', 'Ovulation', 'Sleep', 'Cramps'], correctIndex: 1, explanation: 'A sharp LH spike triggers ovulation.', explanationEmoji: '⚡' },
+      { id: 'q_lh_fsh_your_cycle_s_starters_4', text: "Why does a positive LH test mean 'fertile soon'?", options: ['Ovulation passed', 'The surge precedes ovulation by ~a day', 'It means pregnancy', 'Random'], correctIndex: 1, explanation: 'The surge comes before release, predicting upcoming ovulation.', explanationEmoji: '🔮' },
+      { id: 'q_lh_fsh_your_cycle_s_starters_5', text: "Why does usually only one follicle 'win'?", options: ['Luck', 'Rising estrogen lowers FSH so others fade', 'They all win', 'FSH rises forever'], correctIndex: 1, explanation: 'Estrogen feedback drops FSH, so smaller follicles stop.', explanationEmoji: '🔁' },
+      { id: 'q_lh_fsh_your_cycle_s_starters_6', text: 'Repeated positive LH tests but never a temperature rise may mean…', options: ['Definitely pregnant', 'Ovulation may not be completing; discuss with a provider', 'All normal', 'Ovulating daily'], correctIndex: 1, explanation: "LH surges without a confirming BBT rise can suggest ovulation isn't completing.", explanationEmoji: '🩺' },
+    ],
+  },
+  {
+    id: 'quiz_prostaglandins_your_cramps',
+    title: 'Prostaglandins & Your Cramps',
+    lessonId: 'lesson_prostaglandins_your_cramps',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_prostaglandins_your_cramps_1', text: 'Prostaglandins help the uterus…', options: ['Grow hair', 'Contract and shed its lining', 'Make estrogen', 'Sleep'], correctIndex: 1, explanation: 'They drive uterine contractions.', explanationEmoji: '🌊' },
+      { id: 'q_prostaglandins_your_cramps_2', text: 'Higher prostaglandins often mean…', options: ['Less pain', 'More cramping', 'No effect', 'More energy'], correctIndex: 1, explanation: 'More prostaglandins tend to mean stronger cramps.', explanationEmoji: '💥' },
+      { id: 'q_prostaglandins_your_cramps_3', text: 'Prostaglandins reaching the gut can cause…', options: ['Better digestion', 'Diarrhea or nausea', 'Hunger', 'Nothing'], correctIndex: 1, explanation: 'They can loosen stools and cause nausea.', explanationEmoji: '🌿' },
+      { id: 'q_prostaglandins_your_cramps_4', text: 'Why do NSAIDs help cramps?', options: ['They add iron', 'They lower prostaglandin production', 'They raise estrogen', 'Placebo'], correctIndex: 1, explanation: 'NSAIDs reduce prostaglandins, easing contractions.', explanationEmoji: '💊' },
+      { id: 'q_prostaglandins_your_cramps_5', text: "Why might cramps and 'period poops' happen together?", options: ['Coincidence', 'Both can be driven by prostaglandins', 'Different hormones', 'Diet'], correctIndex: 1, explanation: 'Prostaglandins affect both the uterus and gut.', explanationEmoji: '🌿' },
+      { id: 'q_prostaglandins_your_cramps_6', text: "Cramps that don't respond to NSAIDs or rest and stop you monthly may point to…", options: ['Nothing', 'Conditions like endometriosis worth evaluating', 'Dehydration only', 'Too much sleep'], correctIndex: 1, explanation: 'NSAID-resistant, disabling pain warrants evaluation.', explanationEmoji: '🚩' },
+    ],
+  },
+  {
+    id: 'quiz_the_brain_ovary_team_hpo_axis',
+    title: 'The Brain-Ovary Team (HPO Axis)',
+    lessonId: 'lesson_the_brain_ovary_team_hpo_axis',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_the_brain_ovary_team_hpo_axis_1', text: 'HPO stands for…', options: ['Heart-Pancreas-Ovary', 'Hypothalamus-Pituitary-Ovary', 'Hormone-Protein-Oxygen', 'None'], correctIndex: 1, explanation: 'Hypothalamus, Pituitary, Ovary.', explanationEmoji: '🧠' },
+      { id: 'q_the_brain_ovary_team_hpo_axis_2', text: 'The pituitary releases…', options: ['Estrogen', 'FSH and LH', 'Progesterone', 'Insulin'], correctIndex: 1, explanation: 'The pituitary sends FSH and LH.', explanationEmoji: '🧫' },
+      { id: 'q_the_brain_ovary_team_hpo_axis_3', text: 'Ovarian hormones feed back to…', options: ['The stomach', 'The brain', 'The skin', 'Nowhere'], correctIndex: 1, explanation: 'They feed back to the brain.', explanationEmoji: '🔁' },
+      { id: 'q_the_brain_ovary_team_hpo_axis_4', text: 'Why can stress and sleep change your cycle?', options: ["They don't", 'They act on the brain that runs the axis', 'Change blood type', 'Random'], correctIndex: 1, explanation: 'Brain-affecting factors ripple to the cycle.', explanationEmoji: '🔗' },
+      { id: 'q_the_brain_ovary_team_hpo_axis_5', text: 'Why do extreme dieting or overtraining stop periods?', options: ['More estrogen', 'The brain pauses the axis to conserve energy', 'Too much iron', "It doesn't"], correctIndex: 1, explanation: 'Low energy availability can suppress the axis.', explanationEmoji: '⏸️' },
+      { id: 'q_the_brain_ovary_team_hpo_axis_6', text: 'An athlete training hard with very low body fat loses her period. Best framing?', options: ['Healthy, ignore it', 'May be hypothalamic amenorrhea, worth support', 'Train more', "It's permanent"], correctIndex: 1, explanation: 'This pattern can be hypothalamic amenorrhea and deserves care.', explanationEmoji: '🚩' },
+    ],
+  },
+  {
+    id: 'quiz_testosterone_in_your_body',
+    title: 'Testosterone in Your Body',
+    lessonId: 'lesson_testosterone_in_your_body',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_testosterone_in_your_body_1', text: 'Do people with ovaries make testosterone?', options: ['No', 'Yes, in smaller amounts', 'Only in pregnancy', 'Only after 40'], correctIndex: 1, explanation: 'Everyone makes testosterone.', explanationEmoji: '💪' },
+      { id: 'q_testosterone_in_your_body_2', text: 'Testosterone supports…', options: ['Only muscles', 'Libido, energy, muscle, and mood', 'Nothing', 'Only hair'], correctIndex: 1, explanation: 'It contributes to several functions.', explanationEmoji: '💪' },
+      { id: 'q_testosterone_in_your_body_3', text: 'Testosterone rises slightly around…', options: ['Your period', 'Ovulation', 'Bedtime', 'Never'], correctIndex: 1, explanation: 'It nudges up near ovulation.', explanationEmoji: '☀️' },
+      { id: 'q_testosterone_in_your_body_4', text: 'Why might desire feel higher mid-cycle?', options: ['Low sleep', 'Testosterone and estrogen both rise near ovulation', 'Progesterone peaks', 'Random'], correctIndex: 1, explanation: 'Rising testosterone and estrogen boost desire.', explanationEmoji: '💞' },
+      { id: 'q_testosterone_in_your_body_5', text: 'Why can very high testosterone cause acne or extra hair?', options: ["It can't", 'Excess androgens affect skin and hair follicles', 'It lowers estrogen only', 'Myth'], correctIndex: 1, explanation: 'High androgens stimulate oil glands and hair growth.', explanationEmoji: '🔬' },
+      { id: 'q_testosterone_in_your_body_6', text: 'Acne, irregular periods, and extra facial hair together most warrant…', options: ['Ignoring it', 'A provider visit to explore causes like PCOS', 'More makeup', 'A haircut'], correctIndex: 1, explanation: 'That cluster suggests exploring androgen conditions.', explanationEmoji: '🔬' },
+    ],
+  },
+  {
+    id: 'quiz_serotonin_mood_your_cycle',
+    title: 'Serotonin, Mood & Your Cycle',
+    lessonId: 'lesson_serotonin_mood_your_cycle',
+    totalQuestions: 6,
+    questionsPerAttempt: 6,
+    passingScore: 0.67,
+    questions: [
+      { id: 'q_serotonin_mood_your_cycle_1', text: 'Serotonin affects…', options: ['Only muscles', 'Mood, sleep, and appetite', 'Bone length', 'Eye color'], correctIndex: 1, explanation: 'It shapes mood, sleep, and appetite.', explanationEmoji: '💛' },
+      { id: 'q_serotonin_mood_your_cycle_2', text: 'Before your period, serotonin can…', options: ['Spike', 'Dip', 'Vanish forever', 'Turn to iron'], correctIndex: 1, explanation: 'It can dip as hormones fall.', explanationEmoji: '📉' },
+      { id: 'q_serotonin_mood_your_cycle_3', text: 'Premenstrual carb cravings are linked to…', options: ['Boredom', 'A serotonin nudge from carbs', 'Low water', 'Nothing'], correctIndex: 1, explanation: 'Carbs can raise serotonin.', explanationEmoji: '🍞' },
+      { id: 'q_serotonin_mood_your_cycle_4', text: 'Why can mood dip in the late luteal phase?', options: ['More estrogen', 'Falling hormones lower serotonin', 'Too much iron', 'Random'], correctIndex: 1, explanation: 'The hormone drop pulls serotonin down.', explanationEmoji: '📉' },
+      { id: 'q_serotonin_mood_your_cycle_5', text: 'Why do some cravings feel almost automatic premenstrually?', options: ['Willpower failure', "There's a physiological serotonin basis", 'Bad habits only', 'Dehydration'], correctIndex: 1, explanation: 'Cravings have a real serotonin-linked basis.', explanationEmoji: '🧬' },
+      { id: 'q_serotonin_mood_your_cycle_6', text: 'Severe monthly depression that lifts when the period starts may be…', options: ['Laziness', 'PMDD, which is treatable', 'Normal and untreatable', 'Imaginary'], correctIndex: 1, explanation: 'Cyclical severe mood symptoms can be PMDD.', explanationEmoji: '🩺' },
+    ],
+  },
+);
+
 // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
 
 /** Get a quiz by ID. Returns null if not found. */

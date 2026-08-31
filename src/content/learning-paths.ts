@@ -70,6 +70,24 @@ export const LEARNING_PATHS: LearningPath[] = [
     completionGems: 20,
     gradient: Colors.phase.ovulatory.gradient,
   },
+  {
+    // Imported from docs/dottie questions/dottie_curriculum.json (path_hormones_101).
+    // 7 lessons covering estrogen, progesterone, LH/FSH, prostaglandins, the HPO
+    // axis, testosterone, and serotonin. Curriculum's exerciseIds are skipped for
+    // now (each lesson still routes into its quiz — exercise seed lands later).
+    id: 'path_hormones_101',
+    title: 'Hormones 101',
+    description: 'Meet the hormones that run your cycle.',
+    emoji: '🧬',
+    tier: 'free',
+    mode: 'all',
+    totalLessons: 7,
+    estimatedMinutes: 42,
+    completionBadgeId: 'badge_hormones_101',
+    completionXP: 200,
+    completionGems: 50,
+    gradient: Colors.phase.luteal.gradient,
+  },
 ];
 
 // ─── LESSON DEFINITIONS ──────────────────────────────────────────────
@@ -385,3 +403,146 @@ export function getLesson(lessonId: string): Lesson | null {
 export function getTotalLessonCount(): number {
   return LESSONS.length;
 }
+
+// ─── HORMONES 101 LESSONS (imported from the curriculum) ─────────────
+//
+// These 7 lessons come verbatim from `docs/dottie questions/dottie_curriculum.json`
+// (path_hormones_101). Curriculum-only fields (`difficulty`, `exerciseIds`) are
+// stripped to match our Lesson shape. Each lesson still points at its quiz.
+LESSONS.push(
+  {
+    id: 'lesson_estrogen_the_rising_star',
+    pathId: 'path_hormones_101',
+    order: 1,
+    title: 'Estrogen: The Rising Star',
+    emoji: '🌟',
+    estimatedMinutes: 5,
+    xpReward: 25,
+    gemReward: 12,
+    quizId: 'quiz_estrogen_the_rising_star',
+    sections: [
+      { type: 'heading', content: 'What Estrogen Does' },
+      { type: 'paragraph', content: 'Estrogen is a key hormone your ovaries make. It rises through the first half of your cycle and shapes how you feel and function.' },
+      { type: 'fact', emoji: '🧬', highlight: 'warm', content: 'Estrogen thickens your uterine lining and helps build fertile cervical mucus.' },
+      { type: 'fact', emoji: '✨', highlight: 'warm', content: 'It peaks just before ovulation, when many people feel most energetic, social, and clear-headed.' },
+      { type: 'tip', emoji: '🌟', content: "If you feel your brightest mid-cycle, rising estrogen is a big reason why." },
+      { type: 'callout', emoji: '🦴', highlight: 'warm', content: "Estrogen also supports bone strength and heart health — it's not just a 'reproductive' hormone." },
+    ],
+  },
+  {
+    id: 'lesson_progesterone_the_calming_hormone',
+    pathId: 'path_hormones_101',
+    order: 2,
+    title: 'Progesterone: The Calming Hormone',
+    emoji: '🌙',
+    estimatedMinutes: 5,
+    xpReward: 25,
+    gemReward: 12,
+    quizId: 'quiz_progesterone_the_calming_hormone',
+    sections: [
+      { type: 'heading', content: 'What Progesterone Does' },
+      { type: 'paragraph', content: 'Progesterone rises after ovulation, made by the corpus luteum (the emptied follicle). It rules the second half of your cycle.' },
+      { type: 'fact', emoji: '🧬', highlight: 'warm', content: 'Progesterone stabilizes your uterine lining so it could support a pregnancy.' },
+      { type: 'fact', emoji: '🌡️', highlight: 'warm', content: 'It has a calming, warming effect — it slightly raises your temperature and can make rest more appealing.' },
+      { type: 'fact', emoji: '🩸', highlight: 'warm', content: "If pregnancy doesn't happen, progesterone drops, which triggers your period." },
+      { type: 'tip', emoji: '💤', content: 'Craving cozy rest in the luteal phase? Progesterone is part of the reason.' },
+      { type: 'callout', emoji: '💛', highlight: 'warm', content: "The natural progesterone drop before your period is a normal trigger for menstruation, not a sign something's wrong." },
+    ],
+  },
+  {
+    id: 'lesson_lh_fsh_your_cycle_s_starters',
+    pathId: 'path_hormones_101',
+    order: 3,
+    title: "LH & FSH: Your Cycle's Starters",
+    emoji: '🧫',
+    estimatedMinutes: 6,
+    xpReward: 30,
+    gemReward: 15,
+    quizId: 'quiz_lh_fsh_your_cycle_s_starters',
+    sections: [
+      { type: 'heading', content: 'Signals from the Brain' },
+      { type: 'paragraph', content: 'FSH and LH come from your pituitary gland in the brain and drive the ovarian side of your cycle.' },
+      { type: 'fact', emoji: '🧫', highlight: 'warm', content: 'FSH (follicle-stimulating hormone) starts each cycle by prompting follicles to grow.' },
+      { type: 'fact', emoji: '⚡', highlight: 'warm', content: 'A sharp LH (luteinizing hormone) surge triggers ovulation, about 24–36 hours before the egg is released.' },
+      { type: 'fact', emoji: '🧪', highlight: 'warm', content: 'Ovulation predictor kits work by detecting the LH surge in your urine.' },
+      { type: 'tip', emoji: '🌼', content: 'A positive ovulation test means your fertile peak is likely within a day or two.' },
+      { type: 'callout', emoji: '🔮', highlight: 'warm', content: 'Because the LH surge happens before release, LH tests help you predict ovulation ahead of time.' },
+    ],
+  },
+  {
+    id: 'lesson_prostaglandins_your_cramps',
+    pathId: 'path_hormones_101',
+    order: 4,
+    title: 'Prostaglandins & Your Cramps',
+    emoji: '🌊',
+    estimatedMinutes: 6,
+    xpReward: 30,
+    gemReward: 15,
+    quizId: 'quiz_prostaglandins_your_cramps',
+    sections: [
+      { type: 'heading', content: 'The Chemistry of Cramps' },
+      { type: 'paragraph', content: 'Prostaglandins are hormone-like compounds your uterus makes to help it contract and shed its lining during your period.' },
+      { type: 'fact', emoji: '🌊', highlight: 'warm', content: 'Higher prostaglandin levels mean stronger contractions — and often more cramping.' },
+      { type: 'fact', emoji: '🌿', highlight: 'warm', content: 'Prostaglandins can also reach your gut, which is why periods sometimes bring diarrhea or nausea.' },
+      { type: 'tip', emoji: '💊', content: "Anti-inflammatory pain relievers (NSAIDs) work partly by lowering prostaglandins — that's why they help cramps." },
+      { type: 'callout', emoji: '🚩', highlight: 'warm', content: "Cramps so severe they stop your daily life aren't something to just endure; they're worth discussing with a provider." },
+    ],
+  },
+  {
+    id: 'lesson_the_brain_ovary_team_hpo_axis',
+    pathId: 'path_hormones_101',
+    order: 5,
+    title: 'The Brain-Ovary Team (HPO Axis)',
+    emoji: '🧠',
+    estimatedMinutes: 7,
+    xpReward: 35,
+    gemReward: 18,
+    quizId: 'quiz_the_brain_ovary_team_hpo_axis',
+    sections: [
+      { type: 'heading', content: 'A Conversation Between Brain and Ovaries' },
+      { type: 'paragraph', content: 'Your cycle is run by a feedback loop called the HPO axis: hypothalamus, pituitary, and ovaries, all talking to each other.' },
+      { type: 'fact', emoji: '🧠', highlight: 'warm', content: 'The hypothalamus signals the pituitary, which releases FSH and LH to the ovaries.' },
+      { type: 'fact', emoji: '🔁', highlight: 'warm', content: 'The ovaries make estrogen and progesterone, which feed back to the brain to adjust the next signals.' },
+      { type: 'tip', emoji: '🔗', content: 'This is why stress, sleep, and nutrition — which act on the brain — can change your cycle.' },
+      { type: 'callout', emoji: '🚩', highlight: 'warm', content: 'When the brain senses too little energy (from extreme dieting or overtraining), it can pause the whole axis and stop periods.' },
+    ],
+  },
+  {
+    id: 'lesson_testosterone_in_your_body',
+    pathId: 'path_hormones_101',
+    order: 6,
+    title: 'Testosterone in Your Body',
+    emoji: '💪',
+    estimatedMinutes: 6,
+    xpReward: 30,
+    gemReward: 15,
+    quizId: 'quiz_testosterone_in_your_body',
+    sections: [
+      { type: 'heading', content: 'Yes, You Have It Too' },
+      { type: 'paragraph', content: "Testosterone is often called a 'male' hormone, but everyone makes it. In smaller amounts, it plays real roles in your body." },
+      { type: 'fact', emoji: '💪', highlight: 'warm', content: 'Testosterone contributes to libido, energy, muscle, and mood.' },
+      { type: 'fact', emoji: '☀️', highlight: 'warm', content: 'It tends to rise slightly around ovulation, which can boost desire and confidence.' },
+      { type: 'tip', emoji: '💞', content: 'A little extra drive mid-cycle is normal and healthy.' },
+      { type: 'callout', emoji: '🔬', highlight: 'warm', content: 'Very high testosterone can cause acne or extra hair growth and is a feature of conditions like PCOS — worth exploring with a provider.' },
+    ],
+  },
+  {
+    id: 'lesson_serotonin_mood_your_cycle',
+    pathId: 'path_hormones_101',
+    order: 7,
+    title: 'Serotonin, Mood & Your Cycle',
+    emoji: '💛',
+    estimatedMinutes: 6,
+    xpReward: 30,
+    gemReward: 15,
+    quizId: 'quiz_serotonin_mood_your_cycle',
+    sections: [
+      { type: 'heading', content: 'Hormones Talk to Your Mood' },
+      { type: 'paragraph', content: 'Serotonin is a brain chemical that shapes mood, sleep, and appetite. Its levels shift alongside your cycle hormones.' },
+      { type: 'fact', emoji: '💛', highlight: 'warm', content: 'When estrogen and progesterone drop before your period, serotonin can dip too, which may lower mood.' },
+      { type: 'fact', emoji: '🍞', highlight: 'warm', content: 'This serotonin link is one reason carbohydrate cravings rise premenstrually — carbs can nudge serotonin up.' },
+      { type: 'tip', emoji: '🌤️', content: 'Gentle movement, daylight, and steady meals can support serotonin during the luteal phase.' },
+      { type: 'callout', emoji: '🩺', highlight: 'warm', content: 'For some, this serotonin sensitivity is intense enough to cause PMDD — a treatable condition, not a personal failing.' },
+    ],
+  },
+);
