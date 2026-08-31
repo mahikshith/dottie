@@ -1,30 +1,22 @@
-import { Pressable, Text, StyleSheet, View } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { useAurora, PHASE_AURORA } from '../../theme';
+import { useAurora } from '../../theme';
 
 /**
  * SymptomChip
  *
- * A single tappable symptom pill used inside SymptomPicker. Tap once to
- * select (default severity = 5), tap again to cycle severity levels,
- * long-press handled by parent if needed. We deliberately keep severity
- * tied to a simple "mild → moderate → strong" three-stop visual so the
- * user never feels they need to dial in a precise 1-10 number for a
- * daily check-in.
+ * A single tappable symptom pill used inside SymptomPicker. It is now a plain
+ * TOGGLE — tap to add, tap to remove.
  *
- * ─── WHY THIS DESIGN ────────────────────────────────────────────────
+ * ─── WHY THIS CHANGED ───────────────────────────────────────────────
  *
- *  Daily check-ins must be FAST. Forcing a slider per symptom would
- *  destroy the ritual. Instead:
- *    - First tap   → selected at "moderate" (severity 5)
- *    - Second tap  → "mild" (severity 3)
- *    - Third tap   → "strong" (severity 8)
- *    - Fourth tap  → unselected
- *
- *  Three meaningful intensity levels covers 95% of journaling needs
- *  without overwhelming the user. The 1-10 scale lives in the engine
- *  layer for future medication/PMDD analytics — UI stays cheerful.
+ *  It used to cycle severity on repeated taps (tap = moderate, tap again =
+ *  mild, again = strong, again = off) shown only as three tiny dots. On device
+ *  that was undiscoverable — you couldn't tell you were meant to tap again, or
+ *  what a tap would do (owner feedback). Severity now lives in an explicit
+ *  labelled control that appears in SymptomPicker once a symptom is selected, so
+ *  the chip only has one job: in or out.
  */
 export type SymptomSeverity = 'mild' | 'moderate' | 'strong';
 
@@ -32,53 +24,35 @@ export function SymptomChip({
   label,
   emoji,
   selected,
-  severity,
   onToggle,
 }: {
   label: string;
   emoji: string;
   selected: boolean;
-  severity: SymptomSeverity | null;
   onToggle: () => void;
 }) {
   const { palette } = useAurora();
-  const dotOn = { backgroundColor: palette.ink };
-  const dotOff = { backgroundColor: palette.glass.edge };
   return (
     <Pressable
       onPress={onToggle}
       style={({ pressed }) => [
         styles.chip,
         { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
-        selected && { borderColor: palette.accent },
-        selected && severity && severityStyles[severity],
+        selected && { backgroundColor: `${palette.accent}26`, borderColor: palette.accent },
         pressed && { transform: [{ scale: 0.96 }] },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${label}${selected ? `, selected, ${severity}` : ''}`}
+      accessibilityState={{ selected }}
+      accessibilityLabel={label}
     >
       <Text style={styles.emoji}>{emoji}</Text>
       <Text style={[styles.label, { color: selected ? palette.ink : palette.ink2 }]}>
         {label}
       </Text>
-      {selected && severity && (
-        <View style={styles.severityRow}>
-          <View style={[styles.severityDot, dotOn]} />
-          <View style={[styles.severityDot, severity === 'moderate' || severity === 'strong' ? dotOn : dotOff]} />
-          <View style={[styles.severityDot, severity === 'strong' ? dotOn : dotOff]} />
-        </View>
-      )}
+      {selected && <Text style={[styles.check, { color: palette.accent }]}>✓</Text>}
     </Pressable>
   );
 }
-
-// Severity uses the constant aurora phase hues (mild→teal, moderate→amber,
-// strong→rose), tinted; these are palette-independent so they can stay static.
-const severityStyles = StyleSheet.create({
-  mild: { backgroundColor: `${PHASE_AURORA.follicular}22`, borderColor: PHASE_AURORA.follicular },
-  moderate: { backgroundColor: `${PHASE_AURORA.ovulatory}22`, borderColor: PHASE_AURORA.ovulatory },
-  strong: { backgroundColor: `${PHASE_AURORA.menstrual}22`, borderColor: PHASE_AURORA.menstrual },
-});
 
 const styles = StyleSheet.create({
   chip: {
@@ -97,14 +71,9 @@ const styles = StyleSheet.create({
     ...Typography.preset.bodySemibold,
     fontSize: 14,
   },
-  severityRow: {
-    flexDirection: 'row',
-    gap: 3,
-    marginLeft: Spacing.xs,
-  },
-  severityDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  check: {
+    ...Typography.preset.bodySemibold,
+    fontSize: 13,
+    marginLeft: 2,
   },
 });
