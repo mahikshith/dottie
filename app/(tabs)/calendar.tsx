@@ -370,8 +370,9 @@ export default function CalendarScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Week-ahead strip */}
-        {weekAhead.length > 0 && (
+        {/* Week-ahead strip — only once there's real cycle data, else every day
+            would show the same assumed phase (the repeated-placeholder feel). */}
+        {lastPeriodStart != null && weekAhead.length > 0 && (
           <Animated.View entering={rise(230)} style={styles.weekAhead}>
             <WeekAheadStrip items={weekAhead} onDayPress={onWeekDayPress} />
           </Animated.View>

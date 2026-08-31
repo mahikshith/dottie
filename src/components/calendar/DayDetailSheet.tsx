@@ -217,26 +217,9 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {props.hasCycleData ? (
-            <>
-              {/* Companion line */}
-              <Text style={[styles.companion, { color: palette.ink2 }]}>{set.companionLine}</Text>
-
-              {/* Suggestions */}
-              {set.suggestions.map((s) => (
-                <SuggestionRow key={s.id} s={s} />
-              ))}
-
-              <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
-            </>
-          ) : (
-            <Text style={[styles.companion, { color: palette.ink2 }]}>
-              Once you log your period, this is where your phase, gentle suggestions, and
-              predictions appear — personalized, never guessed. 🌙
-            </Text>
-          )}
-
-          {/* Quick actions */}
+          {/* YOUR DAY FIRST — most people open a day to log a period fast; that
+              shouldn't sit under a wall of suggestions (owner feedback). The
+              phase context + gentle tips are pushed below. */}
           <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>YOUR DAY</Text>
 
           {!props.isFuture && (
@@ -246,7 +229,8 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
               haptic="none"
               style={[
                 styles.action,
-                { borderColor: showLogged ? PHASE_AURORA.menstrual : palette.glass.edge, backgroundColor: showLogged ? `${PHASE_AURORA.menstrual}1F` : palette.glass.bg },
+                styles.actionPrimary,
+                { borderColor: PHASE_AURORA.menstrual, backgroundColor: showLogged ? `${PHASE_AURORA.menstrual}2E` : `${PHASE_AURORA.menstrual}18` },
               ]}
               accessibilityRole="button"
               accessibilityLabel={showLogged ? 'Period logged' : 'Mark as period'}
@@ -285,6 +269,23 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
             style={[styles.note, { color: palette.ink, backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}
             accessibilityLabel="Day note"
           />
+
+          {/* Phase context + gentle suggestions — BELOW the actions now. */}
+          {props.hasCycleData ? (
+            <>
+              <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
+              <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>FOR THIS PHASE</Text>
+              <Text style={[styles.companion, { color: palette.ink2 }]}>{set.companionLine}</Text>
+              {set.suggestions.map((s) => (
+                <SuggestionRow key={s.id} s={s} />
+              ))}
+            </>
+          ) : (
+            <Text style={[styles.companion, { color: palette.ink2 }]}>
+              Once you log your period, this is where your phase, gentle suggestions, and
+              predictions appear — personalized, never guessed. 🌙
+            </Text>
+          )}
 
           {/* Google Calendar — later */}
           <View style={[styles.gcal, { borderColor: palette.glass.edge }]}>
@@ -385,6 +386,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.lg,
     padding: Spacing.md,
   },
+  actionPrimary: { borderWidth: 2 },
   actionEmoji: { fontSize: 18 },
   actionText: { ...Typography.preset.bodySemibold, flex: 1 },
   note: {
