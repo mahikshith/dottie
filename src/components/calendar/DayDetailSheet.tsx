@@ -45,7 +45,14 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { PressableScale } from '../ui';
 import { useAurora, PHASE_AURORA } from '../../theme';
-import { buildDaySuggestions, type DaySuggestion } from '../../engine/calendar/day-suggestions';
+import {
+  buildDaySuggestions,
+  type DaySuggestion,
+  type DaySuggestionCheckIn,
+  type DaySuggestionSymptom,
+  type PersonalSignal,
+  type TrackPrompt,
+} from '../../engine/calendar/day-suggestions';
 import type { Phase, UserMode, HealthCondition } from '../../types/cycle.types';
 import type { DayPlan } from '../../database/storage';
 
@@ -69,9 +76,21 @@ export interface DayDetailSheetProps {
   isPeriodDay: boolean;
   isFuture: boolean;
   daysUntilPredictedPeriod: number | null;
+  /** Optional day-in-cycle (1-indexed) — feeds sub-phase resolution. */
+  dayInCycle?: number | null;
   mode: UserMode;
   conditions: HealthCondition[];
   initialPlan: DayPlan | null;
+  /**
+   * Today's check-in — powers personal signals ("mood low → be gentle").
+   * Optional; when absent the engine skips the check-in signals cleanly.
+   */
+  todayCheckIn?: DaySuggestionCheckIn | null;
+  /**
+   * Last ~7d of symptom logs — feeds the dominant-symptom signal ("you've
+   * been logging headaches — pack a painkiller"). Optional; empty is fine.
+   */
+  recentSymptoms?: DaySuggestionSymptom[];
   /** Log this day as a period day (past/today only). Parent persists + reloads. */
   onLogPeriod: () => void;
   /** Close — parent saves the note/planned flag and refreshes dots. */
@@ -96,8 +115,21 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
         conditions: props.conditions,
         // day-of-month seed → suggestions rotate day to day, deterministically.
         daySeed: parseInt(props.dateISO.slice(8, 10), 10) || 0,
+        dayInCycle: props.dayInCycle ?? null,
+        todayCheckIn: props.todayCheckIn ?? null,
+        recentSymptoms: props.recentSymptoms ?? [],
       }),
-    [props.dateISO, props.phase, props.daysUntilPredictedPeriod, props.isPeriodDay, props.mode, props.conditions]
+    [
+      props.dateISO,
+      props.phase,
+      props.daysUntilPredictedPeriod,
+      props.isPeriodDay,
+      props.mode,
+      props.conditions,
+      props.dayInCycle,
+      props.todayCheckIn,
+      props.recentSymptoms,
+    ]
   );
 
   // ── Enter / exit animation ──────────────────────────────────────
@@ -191,9 +223,12 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
           <View style={styles.chips}>
             {props.hasCycleData ? (
               <>
+                {/* Chip now shows the fine SUB-PHASE (e.g. "Late luteal · PMS
+                    window") — same phase for 12+ days would otherwise say the
+                    same thing every day. */}
                 <View style={[styles.chip, { backgroundColor: `${phaseHue}26`, borderColor: `${phaseHue}80` }]}>
                   <View style={[styles.chipDot, { backgroundColor: phaseHue }]} />
-                  <Text style={[styles.chipText, { color: palette.ink }]}>{set.phaseLabel} · {set.headline}</Text>
+                  <Text style={[styles.chipText, { color: palette.ink }]}>{set.subphaseLabel} · {set.headline}</Text>
                 </View>
                 {set.prediction && (
                   <View style={[styles.chip, { backgroundColor: `${palette.accent2}22`, borderColor: `${palette.accent2}80` }]}>
@@ -209,6 +244,12 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
               </View>
             )}
           </View>
+          {/* Sub-phase hormone story — a single non-diagnostic "what's
+              happening" line ("Progesterone tends to peak — sleep helps"),
+              the piece Clue leans on that gives the day meaning. */}
+          {props.hasCycleData && set.hormoneStory ? (
+            <Text style={[styles.hormone, { color: palette.ink2 }]}>{set.hormoneStory}</Text>
+          ) : null}
         </View>
 
         <ScrollView
@@ -270,15 +311,47 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
             accessibilityLabel="Day note"
           />
 
+          {/* Personal signals — "For you today". Skipped if none. This is
+              the layer Flo/Clue lean on: patterns from the user's OWN logs,
+              framed non-diagnostically. Shown BEFORE the phase content so
+              the user sees themselves before the general narrative. */}
+          {props.hasCycleData && set.personalSignals.length > 0 ? (
+            <>
+              <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
+              <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>FOR YOU TODAY</Text>
+              {set.personalSignals.map((sig) => (
+                <PersonalSignalRow key={sig.id} sig={sig} />
+              ))}
+            </>
+          ) : null}
+
           {/* Phase context + gentle suggestions — BELOW the actions now. */}
           {props.hasCycleData ? (
             <>
               <View style={[styles.divide, { backgroundColor: palette.glass.edge }]} />
               <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>FOR THIS PHASE</Text>
               <Text style={[styles.companion, { color: palette.ink2 }]}>{set.companionLine}</Text>
+              {set.cultureLine ? (
+                <Text style={[styles.culture, { color: palette.ink3 }]}>{set.cultureLine}</Text>
+              ) : null}
               {set.suggestions.map((s) => (
                 <SuggestionRow key={s.id} s={s} />
               ))}
+
+              {/* Track-today chips — mirrors Clue's "here's what others in
+                  this sub-phase are tracking" prompt. Non-interactive today
+                  (they're hints); tapping them to jump into a log flow is a
+                  follow-up. */}
+              {set.trackPrompts.length > 0 ? (
+                <View style={styles.trackWrap}>
+                  <Text style={[styles.trackLabel, { color: palette.ink3 }]}>WORTH TRACKING</Text>
+                  <View style={styles.trackRow}>
+                    {set.trackPrompts.map((t) => (
+                      <TrackChip key={t.id} t={t} />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
             </>
           ) : (
             <Text style={[styles.companion, { color: palette.ink2 }]}>
@@ -325,7 +398,45 @@ function SuggestionRow({ s }: { s: DaySuggestion }): JSX.Element {
       <View style={styles.sugBody}>
         <Text style={[styles.sugTitle, { color: palette.ink }]}>{s.title}</Text>
         <Text style={[styles.sugDetail, { color: palette.ink2 }]}>{s.detail}</Text>
+        {/* Why-tag — the "reasoning receipt" competitors add so a suggestion
+            doesn't read as arbitrary. Rendered as a tiny caption. */}
+        {s.why ? (
+          <Text style={[styles.sugWhy, { color: palette.accent }]}>· {s.why}</Text>
+        ) : null}
       </View>
+    </View>
+  );
+}
+
+function PersonalSignalRow({ sig }: { sig: PersonalSignal }): JSX.Element {
+  const { palette } = useAurora();
+  return (
+    <View
+      style={[
+        styles.personal,
+        { backgroundColor: `${palette.accent}12`, borderColor: `${palette.accent}55` },
+      ]}
+    >
+      <Text style={styles.personalEmoji}>{sig.emoji}</Text>
+      <View style={styles.personalBody}>
+        <Text style={[styles.personalTitle, { color: palette.ink }]}>{sig.title}</Text>
+        <Text style={[styles.personalDetail, { color: palette.ink2 }]}>{sig.detail}</Text>
+      </View>
+    </View>
+  );
+}
+
+function TrackChip({ t }: { t: TrackPrompt }): JSX.Element {
+  const { palette } = useAurora();
+  return (
+    <View
+      style={[
+        styles.trackChip,
+        { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+      ]}
+    >
+      <Text style={styles.trackChipEmoji}>{t.emoji}</Text>
+      <Text style={[styles.trackChipText, { color: palette.ink2 }]}>{t.label}</Text>
     </View>
   );
 }
@@ -375,6 +486,46 @@ const styles = StyleSheet.create({
   sugBody: { flex: 1 },
   sugTitle: { ...Typography.preset.bodySemibold },
   sugDetail: { ...Typography.preset.caption, lineHeight: 19, marginTop: 1 },
+  sugWhy: { ...Typography.preset.caption, fontSize: 10, marginTop: 2, letterSpacing: 0.3 },
+
+  // "For you today" personal-signal card — highlighted (accent tint) so it
+  // stands out from the general phase suggestions below.
+  personal: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+  },
+  personalEmoji: { fontSize: 20 },
+  personalBody: { flex: 1 },
+  personalTitle: { ...Typography.preset.bodySemibold },
+  personalDetail: { ...Typography.preset.caption, lineHeight: 19, marginTop: 1 },
+
+  // "Worth tracking" hint chips — inert visuals for now (log flows can be
+  // wired to onPress later so tapping a chip jumps into that log form).
+  trackWrap: { gap: Spacing.xs, marginTop: Spacing.xs },
+  trackLabel: { ...Typography.preset.overline, letterSpacing: 1 },
+  trackRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  trackChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.full,
+  },
+  trackChipEmoji: { fontSize: 11 },
+  trackChipText: { ...Typography.preset.caption, fontSize: 11, fontWeight: '700' },
+
+  // Culture line under the companion — the soft "many report…" normalising
+  // signal.
+  culture: { ...Typography.preset.caption, fontStyle: 'italic', lineHeight: 18, marginTop: -Spacing.xs },
+
+  // Hormone story — one line under the sub-phase chip.
+  hormone: { ...Typography.preset.caption, lineHeight: 19, marginTop: Spacing.sm },
 
   divide: { height: 1, marginVertical: Spacing.xs },
   sectionLabel: { ...Typography.preset.overline, letterSpacing: 1 },

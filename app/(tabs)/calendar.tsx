@@ -52,6 +52,7 @@ import {
   selectDayInCycle,
   selectLastPeriodStart,
   selectPredictionMessage,
+  selectRecentSymptoms,
   selectUserMode,
   selectMemberCount,
 } from '../../src/stores';
@@ -71,6 +72,8 @@ const EMPTY_CONDITIONS: HealthCondition[] = [];
 interface SelectedDay {
   iso: string;
   phase: Phase;
+  /** 1-indexed day within the cycle for THIS date; null when no cycle data. */
+  dayInCycle: number | null;
   isPeriodDay: boolean;
   isFuture: boolean;
   daysUntilPredictedPeriod: number | null;
@@ -94,6 +97,11 @@ export default function CalendarScreen() {
   const userId = useUserStore((s) => s.userId);
   const mode = useUserStore(selectUserMode);
   const conditions = useUserStore((s) => s.user?.healthProfile.conditions) ?? EMPTY_CONDITIONS;
+  // Personalisation inputs for the day-suggestion engine v2 — today's
+  // check-in surfaces mood/energy/sleep/stress signals, and the recent
+  // symptoms feed the dominant-symptom pattern nudge. Both are safe if empty.
+  const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
+  const recentSymptoms = useCycleStore(selectRecentSymptoms);
 
   // ─── Month navigation state ─────────────────────────────────────
   const [viewedMonth, setViewedMonth] = useState<Date>(startOfMonth(new Date()));
@@ -189,6 +197,7 @@ export default function CalendarScreen() {
   const buildSelected = (iso: string, isFuture: boolean, e: GestureResponderEvent): SelectedDay => ({
     iso,
     phase: phaseForDate(iso, lastPeriodStart, userHealth) ?? phase,
+    dayInCycle: dayInCycleForDate(iso, lastPeriodStart, userHealth),
     isPeriodDay: periodDays.has(iso),
     isFuture,
     daysUntilPredictedPeriod: daysUntil(iso, latestPrediction?.predictedNextPeriod ?? null),
@@ -449,9 +458,12 @@ export default function CalendarScreen() {
           isPeriodDay={selected.isPeriodDay}
           isFuture={selected.isFuture}
           daysUntilPredictedPeriod={selected.daysUntilPredictedPeriod}
+          dayInCycle={selected.dayInCycle}
           mode={mode}
           conditions={conditions}
           initialPlan={Storage.dayPlans.get(selected.iso)}
+          todayCheckIn={selected.iso === todayIso ? todayCheckIn : null}
+          recentSymptoms={recentSymptoms}
           onLogPeriod={onLogSelectedPeriod}
           onClose={onSheetClose}
         />
@@ -719,6 +731,28 @@ function phaseForDate(
     health?.averageCycleLength ?? 28,
     health?.averagePeriodLength ?? 5
   ).phase;
+}
+
+/**
+ * Day-in-cycle projection for any date. Powers the sub-phase resolution in
+ * the day-suggestion engine so that (for example) day-25 shows "Late luteal ·
+ * PMS window" instead of the generic "Luteal". Returns null when there is no
+ * cycle data yet.
+ */
+function dayInCycleForDate(
+  iso: string,
+  lastPeriodStart: string | null,
+  health: { averageCycleLength: number | null; averagePeriodLength: number | null } | null | undefined
+): number | null {
+  if (!lastPeriodStart) return null;
+  const last = new Date(lastPeriodStart + 'T00:00:00');
+  const target = new Date(iso + 'T00:00:00');
+  return calculateCurrentPhase(
+    last,
+    target,
+    health?.averageCycleLength ?? 28,
+    health?.averagePeriodLength ?? 5
+  ).dayInCycle;
 }
 
 /**
