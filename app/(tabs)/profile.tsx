@@ -37,6 +37,7 @@ import { PressableScale, PopOnChange, BreathingView, AuroraBackground, GlassCard
 import { showAppDialog } from '../../src/components/ui/appDialog';
 import { Storage } from '../../src/database/storage';
 import { useAurora } from '../../src/theme';
+import { useWalkthroughStore } from '../../src/walkthrough/store';
 import {
   useUserStore,
   useGamificationStore,
@@ -270,6 +271,20 @@ export default function ProfileScreen() {
               title="Reminders"
               subtitle="Gentle local nudges, your way"
               onPress={handleRemindersTap}
+            />
+          </Animated.View>
+          {/* Replay the coach-mark tour on demand — clears the "seen" flag
+              and starts step 0 again. */}
+          <Animated.View entering={rise(675)}>
+            <SettingsItem
+              emoji="🧭"
+              title="Show me around again"
+              subtitle="Replay the 7-step tour of the app"
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                useWalkthroughStore.getState().restart();
+                router.push('/(tabs)/home');
+              }}
             />
           </Animated.View>
           <Animated.View entering={rise(710)}>

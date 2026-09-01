@@ -22,48 +22,56 @@ import { UserMode } from '../../src/types/cycle.types';
  *  - Soft haptic on selection.
  */
 
-interface ModeOption {
-  id: UserMode;
-  emoji: string;
-  title: string;
-  description: string;
-  ageHint: string;
-}
+// Extra option: 'unsure'. Not a persisted UserMode — when picked we
+// default the draft to 'adult' (the widest fit) and note it so the
+// user can change later from Profile without losing anything.
+type ModeChoice = UserMode | 'unsure';
 
-const modes: ModeOption[] = [
+const modes: { id: ModeChoice; emoji: string; title: string; description: string; ageHint: string }[] = [
   {
     id: 'teen',
     emoji: '🌸',
-    title: 'Teen',
+    title: 'Just started',
     description: "New to periods? I'll keep things simple and supportive.",
     ageHint: 'Ages 11-18',
   },
   {
     id: 'adult',
     emoji: '🌿',
-    title: 'Adult',
-    description: 'Full cycle tracking with detailed insights and predictions.',
+    title: 'Regular',
+    description: 'My cycle mostly shows up around the same time each month.',
     ageHint: 'Ages 18+',
   },
   {
     id: 'endocrine',
     emoji: '🦋',
-    title: 'Irregular Cycles',
-    description: 'PCOS, thyroid, or irregular periods? I adapt to you.',
+    title: 'Irregular',
+    description: 'PCOS, thyroid, or my cycle just varies a lot.',
     ageHint: 'Any age',
+  },
+  {
+    id: 'unsure',
+    emoji: '✨',
+    title: "Not sure",
+    description: "That's okay — I'll start with a good default and learn as we go.",
+    ageHint: '',
   },
 ];
 
 export default function ModeSelectScreen() {
   const router = useRouter();
 
-  const handleModeSelect = (mode: UserMode) => {
+  const handleModeSelect = (choice: ModeChoice) => {
     Haptics.selectionAsync().catch(() => {});
 
-    // Merge into existing draft (doesn't wipe other fields if user goes back)
+    // "Not sure" → default to Adult (widest fit) but still let the user
+    // adjust later from Profile. Every other choice maps 1:1.
+    const mode: UserMode = choice === 'unsure' ? 'adult' : choice;
     Storage.onboardingDraft.merge({ mode });
 
-    router.push('/(onboarding)/companion-select');
+    // Next screen: gentle conditions multi-select. Everything on it is
+    // skippable, so this doesn't add friction for users who don't know.
+    router.push('/(onboarding)/conditions');
   };
 
   return (

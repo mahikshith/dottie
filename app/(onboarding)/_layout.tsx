@@ -45,8 +45,12 @@ export default function OnboardingLayout() {
     >
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="mode-select" />
+      {/* Multi-select conditions (design-v2 audit fix — was missing entirely). */}
+      <Stack.Screen name="conditions" />
       <Stack.Screen name="companion-select" />
       <Stack.Screen name="cycle-setup" />
+      {/* Optional reminders opt-in — Flo does this up front, we do too. */}
+      <Stack.Screen name="reminders" />
       <Stack.Screen name="ready" options={{ gestureEnabled: false }} />
     </Stack>
   );

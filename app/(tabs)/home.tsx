@@ -43,6 +43,7 @@ import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
 import { TodayAtAGlanceCard } from '../../src/components/home/TodayAtAGlanceCard';
 import { todayISO } from '../../src/utils/date.utils';
+import { useWalkthroughStore } from '../../src/walkthrough/store';
 import type { HealthCondition } from '../../src/types/cycle.types';
 
 // Stable empty fallback so a null health profile doesn't return a fresh []
@@ -115,6 +116,16 @@ export default function HomeScreen() {
       applyMood(todayCheckIn.moodScore); // no origin = instant swap
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── First-run walkthrough auto-launch ──────────────────────────
+  // Guarded inside startTour() via Storage.walkthroughSeen — no-op for
+  // returning users. Small delay so the entrance animations finish first.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      useWalkthroughStore.getState().startTour();
+    }, 500);
+    return () => clearTimeout(t);
   }, []);
 
   // ─── Compose greeting (time + companion + phase) ────────────────

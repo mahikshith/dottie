@@ -130,6 +130,11 @@ const Keys = {
   // One-shot "seen the explainer" flags — surface a gentle first-time popup
   // so a new feature isn't a mystery on the first tap, then never again.
   SISTERHOOD_EXPLAINER_SEEN: 'ux.sisterhood_explainer_seen',
+
+  // First-run walkthrough — the coach-mark tour launched on first Home
+  // landing. Seen = true suppresses auto-launch; the Profile "Show me
+  // around again" row clears it to replay.
+  WALKTHROUGH_SEEN: 'ux.walkthrough_seen',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -446,6 +451,12 @@ export const Storage = {
     clear: (): void => mmkv.delete(Keys.SISTERHOOD_EXPLAINER_SEEN),
   },
 
+  walkthroughSeen: {
+    get: (): boolean => mmkv.getBoolean(Keys.WALKTHROUGH_SEEN) === true,
+    set: (): void => mmkv.set(Keys.WALKTHROUGH_SEEN, true),
+    clear: (): void => mmkv.delete(Keys.WALKTHROUGH_SEEN),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -563,5 +574,18 @@ export interface OnboardingDraft {
   averageCycleLength?: number;
   averagePeriodLength?: number;
   healthConditions?: string[];
+  /**
+   * Optional reminder preferences the user opted into during onboarding.
+   * When present, `completeOnboarding` persists them AND runs the scheduler
+   * so notifications start firing without needing a trip to settings.
+   * When absent, reminders stay off (the default) — the user can always
+   * enable them later from Profile → Reminders.
+   */
+  reminderPrefs?: {
+    checkIn: boolean;
+    checkInTime: 'morning' | 'midday' | 'evening';
+    periodHeadsUp: boolean;
+    hydration: boolean;
+  };
   startedAt?: string; // ISO timestamp
 }

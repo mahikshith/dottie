@@ -53,18 +53,68 @@ All `[skip ci]`. Owner instruction: hold commits locally, push only on explicit 
   and `src/content/quizzes.ts`. Curriculum has 24 paths / 93 lessons / 279 exercises /
   558 quiz questions — this is our first slice. UI/UX for the Learn tab is a later pass.
 
-## 📋 NEXT (proposed — awaiting owner OK)
-- **Onboarding audit + walkthrough** — full plan in
-  **`docs/ONBOARDING-AND-WALKTHROUGH.md`**. Two headline fixes: (1) onboarding
-  never fills `healthConditions`, so PCOS/endo/thyroid engine paths silently no-op
-  for most users; (2) users are dropped on Home cold with no orientation. Plan is
-  2 new onboarding screens (why-you're-here, conditions), a smarter cycle-setup, an
-  optional reminders opt-in, and a 7-step coach-mark walkthrough (skip + revisit from
-  Profile). Wait for owner call on the open questions before building.
+## 🔄 THIS SESSION #2 (2026-08-31, LOCAL on `design-v2`) — onboarding v2 + walkthrough
+Owner answered the open questions in `docs/ONBOARDING-AND-WALKTHROUGH.md`:
+reminders opt-in during onboarding = YES; coach-mark = step-through with Next
+(not auto-advance); perimenopause / birth-control modes = TODO (below).
+
+Shipped (all `[skip ci]`, one commit — pushed once GitHub App access is granted):
+- **Onboarding v2 funnel** — welcome → mode-select → **conditions (NEW)** →
+  companion-select → cycle-setup (rewritten) → **reminders (NEW)** → ready.
+  - `conditions.tsx` — multi-select for PCOS / Endometriosis / Thyroid / PMDD /
+    On the pill / Nothing diagnosed yet / Prefer not to say. Only PCOS/endo/
+    thyroid map into `draft.healthConditions` today (that's what engines act
+    on); the rest are captured as soft flags for future condition-aware paths.
+    "Nothing" + "Prefer not to say" are exclusive selections. Skip is
+    first-class. **This is THE fix for the "engines silently no-op" gap.**
+  - `mode-select.tsx` — added a fourth "Not sure" option (defaults draft to
+    'adult'). Copy tightened: "Just started" / "Regular" / "Irregular" / "Not
+    sure". Now routes to conditions, not companion-select.
+  - `cycle-setup.tsx` — the raw number field is now an escape hatch under
+    bucket chips: "A few days ago" / "A week or two" / "About a month" /
+    "Longer than that" / "Not sure at all". "Longer" and "Not sure" leave
+    `lastPeriodStart` unset — the app boots into the honest get-started
+    state on Home. Cycle-length buckets unchanged.
+  - `reminders.tsx` (NEW) — three toggles (daily check-in with time
+    preset, period heads-up, hydration). Skippable. When any are on,
+    `completeOnboarding` persists them and runs `syncAllReminders` so
+    notifications start firing without a second trip to Profile.
+  - `useUserStore.completeOnboarding` — dynamic-imports the scheduler and
+    applies reminderPrefs from the draft. Non-fatal if it fails.
+  - `OnboardingDraft` extended with optional `reminderPrefs` field.
+- **Walkthrough** — a 7-step coach-mark tour (per owner: step-through with
+  Next / Skip / Done — the overlay drives navigation to each tab).
+  - `src/walkthrough/store.ts` — a tiny Zustand store + `STEPS` list.
+    `startTour()` is gated on `Storage.walkthroughSeen` so returning users
+    are never nagged. `skip()` and finishing both set the flag.
+  - `src/walkthrough/WalkthroughOverlay.tsx` — dark scrim + bottom
+    coach-mark card (aurora-native, Reanimated FadeIn/FadeInDown). No
+    spotlight (measure-layout is brittle across screen sizes and the
+    target may live on another tab); instead the overlay ROUTES to the
+    target tab so the copy makes sense in context.
+  - Mounted once at `app/_layout.tsx` alongside `AppDialogHost`. Auto-
+    launches on first Home mount via a 500ms delayed `startTour()`.
+  - `Storage.walkthroughSeen` — new MMKV flag.
+  - Profile → **"Show me around again"** row (below Reminders) — clears
+    the flag and re-routes to Home so step 0 fires.
+
+## 📋 NEXT (roadmap)
 - **Predictor simulation harness** — a tiny Node script that seeds fake cycle
   histories and prints what the engine predicts across N days. Answers the
   "how do we know it works?" question without a device.
-- **Push the 5 waiting local commits** for a device preview when owner OKs.
+- **Perimenopause mode** — dedicated mode with hot-flash / HRT tracking,
+  cycle-drift-aware predictor tolerances, "perimenopause score" surface.
+  UI: add to `mode-select.tsx` as a first-class option once the engine paths
+  land. Owner asked to keep this on the TODO — do NOT ship a mode that only
+  half-works.
+- **Birth-control / hormonal-pill mode** — dedicated tracking (pack days,
+  placebo week, restart nudge). We already have `medications.tsx` for the
+  reminder side; a proper mode with cycle-suppression awareness is the next
+  layer. Onboarding's conditions screen already captures `birth_control` as
+  a soft flag — wire it into `updateMode()` when the mode lands.
+- **Push the local commits** for a device preview when owner OKs.
+
+## 📎 SESSION LOG (superseded blocks below preserved for grep)
 
 ## ⚡ CURRENT STATE (2026-08-31) — post on-device test #1
 Node IS available now (24.19.0 via winget — prepend `C:\Program Files\nodejs` to PATH). Device

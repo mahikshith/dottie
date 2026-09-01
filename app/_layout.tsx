@@ -11,6 +11,7 @@ import { hydrateAppState } from '../src/stores';
 import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppDialogHost } from '../src/components/ui/appDialog';
+import { WalkthroughOverlay } from '../src/walkthrough/WalkthroughOverlay';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
@@ -273,6 +274,12 @@ export default function RootLayout() {
           the user is unlocked. */}
       <AppLockGate />
       <AppDialogHost />
+      {/* First-run coach-mark tour. Renders null unless the walkthrough
+          store has an active step, so it costs nothing for returning users.
+          Auto-launch is triggered from the Home tab's mount effect, gated
+          on Storage.walkthroughSeen; users can replay it any time from
+          Profile → "Show me around again". */}
+      <WalkthroughOverlay />
     </AuroraProvider>
   );
 }

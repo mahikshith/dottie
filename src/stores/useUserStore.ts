@@ -163,6 +163,26 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
     Storage.companionType.set(companionType);
     Storage.hasOnboarded.set(true);
     Storage.onboardedAt.set(new Date().toISOString());
+
+    // If the onboarding funnel captured a reminder-prefs choice, persist it
+    // and kick off the scheduler so notifications start firing without a
+    // second trip to Profile → Reminders. Errors here are non-fatal — the
+    // user can always toggle reminders from Profile later.
+    if (draft.reminderPrefs) {
+      try {
+        Storage.reminderPrefs.set({ ...draft.reminderPrefs });
+        // Dynamic import — the scheduler pulls in expo-notifications, which
+        // we don't want to load during the general user-store path.
+        const { syncAllReminders } = await import('../notifications/scheduler');
+        await syncAllReminders({
+          discrete: Storage.discreteNotifications.get() ?? false,
+          predictedNextPeriod: null, // first-run: no prediction yet
+        });
+      } catch (err) {
+        if (__DEV__) console.warn('[UserStore] onboarding reminder sync failed:', err);
+      }
+    }
+
     Storage.onboardingDraft.clear();
 
     // Populate store
