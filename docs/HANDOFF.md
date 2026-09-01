@@ -99,9 +99,13 @@ Shipped (all `[skip ci]`, one commit — pushed once GitHub App access is grante
     the flag and re-routes to Home so step 0 fires.
 
 ## 📋 NEXT (roadmap)
-- **Predictor simulation harness** — a tiny Node script that seeds fake cycle
-  histories and prints what the engine predicts across N days. Answers the
-  "how do we know it works?" question without a device.
+- **Predictor simulation harness — ✅ SHIPPED** (`scripts/predictor-simulation.ts`,
+  runnable via `npm run simulate`). Feeds fake cycle histories through the
+  Bayesian predictor + v2 day-suggestion engine and prints a readable report
+  across 8 scenarios (regular, PCOS irregular, cold-start, teen sparse,
+  thyroid, endo, stressful week, perimenopause drift). `--learning` shows the
+  cycle-by-cycle prediction error / confidence curve so you can see the
+  posterior actually learn. See `scripts/README.md`. `tsx` added as devDep.
 - **Perimenopause mode** — dedicated mode with hot-flash / HRT tracking,
   cycle-drift-aware predictor tolerances, "perimenopause score" surface.
   UI: add to `mode-select.tsx` as a first-class option once the engine paths
