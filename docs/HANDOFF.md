@@ -5,19 +5,21 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-08-31 (device-test #2 fixes + day-suggestions v2 + Home "Today at a
-glance" + tab-bar rectangle removal + Sisterhood explainer + Hormones 101 lessons — all
-LOCAL commits on `design-v2`, unpushed by owner's standing order until they OK a preview)
-**Updated by:** Claude (Opus 4.7) — post device-test #2 iteration
+**Last updated:** 2026-09-01 (device-test #2 fixes + day-suggestions v2 + Home "Today at a
+glance" + tab-bar rectangle removal + Sisterhood explainer + Hormones 101 lessons + onboarding
+v2 + first-run walkthrough + predictor simulation harness — all PUSHED to `origin/design-v2`;
+this push drops `[skip ci]` on the tip to trigger the preview APK for device test #3)
+**Updated by:** Claude (Opus 4.7) — post device-test #2 iteration, awaiting device-test #3
 **Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/REDESIGN-PLAN-R2.md`
 (the earlier redesign plan)**, **`docs/DAY-SUGGESTIONS.md` (competitor scan + engine v2 —
 new)**, **`docs/ONBOARDING-AND-WALKTHROUGH.md` (audit + proposal for next round — new)**,
 **`docs/FEATURES-AND-RESEARCH.md` (predictor math, features, aurora system, research)**,
 `docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
 
-## 🔄 THIS SESSION (2026-08-31, LOCAL on `design-v2` — 5 commits, NOT PUSHED)
-Order: b21c14a → f083ef0 → cd1e0b3 → 3d91d25 → [pending: Hormones 101 lessons].
-All `[skip ci]`. Owner instruction: hold commits locally, push only on explicit OK.
+## 🔄 THIS SESSION (2026-08-31 → 09-01, PUSHED to `origin/design-v2` — 7 commits + this one)
+Order: b21c14a → f083ef0 → cd1e0b3 → 3d91d25 → 97f4a43 → 2ff246e → dce32e2. Previous seven
+carried `[skip ci]` per owner's standing order; THIS commit drops the flag on purpose to
+trigger the preview-APK Actions run for device-test #3.
 - **Device-test #2 crashes fixed** — Sisterhood Circle + Ghost Mode "Maximum update depth
   exceeded" (Zustand v5 selectors returning fresh arrays / fresh `getConfig()` objects trip
   useSyncExternalStore's snapshot guard). Cached selectors + swapped Ghost Mode to a
