@@ -5,11 +5,18 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-09-01 (device-test #2 fixes + day-suggestions v2 + Home "Today at a
-glance" + tab-bar rectangle removal + Sisterhood explainer + Hormones 101 lessons + onboarding
-v2 + first-run walkthrough + predictor simulation harness — all PUSHED to `origin/design-v2`;
-this push drops `[skip ci]` on the tip to trigger the preview APK for device test #3)
-**Updated by:** Claude (Opus 4.7) — post device-test #2 iteration, awaiting device-test #3
+**Last updated:** 2026-09-01 (device-test #3 FINDINGS + FIXES — status-bar aurora bleed,
+walkthrough scrim tap-blocking; Ghost Mode "Garden Notes" clarified as feature-not-bug.
+Also: Learn-tab redesign proposal + Gemini brief + full app-audit brief for Gemini deep
+analysis. All PUSHED to `origin/design-v2`.)
+**Updated by:** Claude (Opus 4.7) — post-device-test #3 fixes
+**START HERE for test-#3 fixes:** `docs/DEVICE-TEST-3.md`
+**Learn redesign track:** `docs/LEARN-REDESIGN-PROPOSAL.md` (our plan) +
+`docs/LEARN-REDESIGN-GEMINI-BRIEF.md` (Gemini research pack) +
+`docs/Dottie_Learn_Tab_Redesign__Complete_Master_Specification_&_Architectural_Blueprint.docx`
+(Gemini's returned output — Master Spec).
+**App-wide analysis track:** `docs/APP-AUDIT-FOR-GEMINI.md` (six-prompt pack for Gemini
+UX / scale / a11y / strategy / data-model / adversarial audit).
 **Companion docs:** `CLAUDE.md` (auto-loaded how-we-work guide), **`docs/REDESIGN-PLAN-R2.md`
 (the earlier redesign plan)**, **`docs/DAY-SUGGESTIONS.md` (competitor scan + engine v2 —
 new)**, **`docs/ONBOARDING-AND-WALKTHROUGH.md` (audit + proposal for next round — new)**,

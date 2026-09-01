@@ -27,6 +27,11 @@
       },
       "package": "com.dottie.app"
     },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0C0A16",
+      "translucent": false
+    },
     "plugins": [
       "expo-router",
       "expo-font",

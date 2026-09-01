@@ -24,7 +24,7 @@
  *  ⚠️ design-v2 / UNVERIFIED on device.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -68,10 +68,22 @@ export function WalkthroughOverlay(): JSX.Element | null {
       style={styles.root}
       pointerEvents="box-none"
     >
-      {/* Scrim — blocks taps on the app below the card, but the app is
-          still visible and the tab bar remains tappable at the very
-          bottom (the card doesn't cover it). */}
-      <View style={styles.scrim} pointerEvents="auto" />
+      {/* Scrim — dark tint so the coach-mark card stands out, but taps
+          pass through to whatever's underneath (the tour has explicit
+          Skip / Next controls; if the user is navigating around
+          mid-tour it should NEVER lock the whole app). Device-test #3
+          finding #3: previously pointerEvents="auto" here blocked
+          Practice / Quiz taps on the lesson reader when the tour was
+          left active. Fixed. */}
+      <Pressable
+        style={styles.scrim}
+        onPress={() => {
+          Haptics.selectionAsync().catch(() => {});
+          skip();
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss walkthrough"
+      />
 
       {/* Coach-mark card — bottom-of-screen, above safe-area + tab bar */}
       <Animated.View
