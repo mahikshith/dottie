@@ -69,8 +69,11 @@ export default function MedicationsScreen() {
   };
 
   const addMed = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
+    // Device-test feedback: users picked Type + Time and tapped Add without
+    // typing a name — the disabled button did nothing, which reads as broken.
+    // Fall back to the kind's label as the reminder name so the tap always
+    // does something. They can rename via remove-and-readd if it matters.
+    const trimmed = name.trim() || kindMeta(kind).label;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const plan: MedicationPlan = {
       id: `med_${Date.now().toString(36)}_${Math.floor(Math.random() * 0xffff).toString(36)}`,
@@ -212,15 +215,13 @@ export default function MedicationsScreen() {
 
           <PressableScale
             onPress={addMed}
-            disabled={!name.trim()}
-            haptic={name.trim() ? 'light' : 'none'}
+            haptic="light"
             scaleTo={0.97}
-            style={[styles.addBtn, { backgroundColor: name.trim() ? palette.accent : palette.glass.bg }]}
+            style={[styles.addBtn, { backgroundColor: palette.accent }]}
             accessibilityRole="button"
             accessibilityLabel="Add reminder"
-            accessibilityState={{ disabled: !name.trim() }}
           >
-            <Text style={[styles.addBtnText, { color: name.trim() ? palette.ground : palette.ink3 }]}>Add reminder</Text>
+            <Text style={[styles.addBtnText, { color: palette.ground }]}>Add reminder</Text>
           </PressableScale>
         </GlassCard>
 

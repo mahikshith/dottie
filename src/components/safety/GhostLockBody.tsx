@@ -54,6 +54,8 @@ import {
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+import { AuroraBackground } from '../ui';
+import { A } from '../../theme';
 import { PinPad } from './PinPad';
 import {
   useGhostModeStore,
@@ -145,58 +147,88 @@ export function GhostLockBody() {
   const isInCooldown = cooldownRemainingMs > 0;
   const cooldownSeconds = Math.ceil(cooldownRemainingMs / 1000);
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerEmoji}>{headerEmoji}</Text>
-          <Text style={styles.headerTitle}>{headerTitle}</Text>
-          <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
-        </View>
-
-        {/* PIN Pad */}
-        <View style={styles.pinSection}>
-          <PinPad
-            value={pin}
-            onChange={setPin}
-            onSubmit={handleSubmit}
-            length={MIN_PIN_LENGTH}
-            errorKey={errorKey}
-            disabled={isInCooldown}
-            errorMessage={
-              isInCooldown
-                ? `Wait ${cooldownSeconds}s before trying again`
-                : errorMessage ?? undefined
-            }
-            helperText={
-              failedAttempts > 0 && !errorMessage && !isInCooldown
-                ? undefined
-                : undefined
-            }
-          />
-        </View>
-
-        {/* Footer — disguised "forgot?" link.
-            Tapping this drops the user into the decoy app so a snooper
-            never sees a "this is a locked Dottie" reveal. */}
-        <View style={styles.footer}>
-          <Pressable
-            onPress={() => useGhostModeStore.getState().enterDecoy()}
-            hitSlop={12}
-            style={({ pressed }) => [pressed && styles.footerLinkPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={
-              disguise ? 'Skip and view plant journal' : 'Forgot PIN'
-            }
-          >
-            <Text style={styles.footerLink}>
-              {disguise ? 'Skip · view notes' : 'Forgot PIN?'}
-            </Text>
-          </Pressable>
-        </View>
+  // Device-test feedback: the non-disguise 'Welcome back, friend' PIN
+  // screen was still using the classic cream palette — jarring against
+  // the rest of the aurora-themed app. When disguise is OFF we render
+  // over an AuroraBackground with dark tokens; when disguise is ON we
+  // KEEP the cream Garden Notes look (a snooper must NOT see anything
+  // hinting at Dottie's real aesthetic).
+  const inner = (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerEmoji}>{headerEmoji}</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: disguise ? Colors.text.primary : A.ink },
+          ]}
+        >
+          {headerTitle}
+        </Text>
+        <Text
+          style={[
+            styles.headerSubtitle,
+            { color: disguise ? Colors.text.secondary : A.ink2 },
+          ]}
+        >
+          {headerSubtitle}
+        </Text>
       </View>
-    </SafeAreaView>
+
+      <View style={styles.pinSection}>
+        <PinPad
+          value={pin}
+          onChange={setPin}
+          onSubmit={handleSubmit}
+          length={MIN_PIN_LENGTH}
+          errorKey={errorKey}
+          disabled={isInCooldown}
+          theme={disguise ? 'cream' : 'aurora'}
+          errorMessage={
+            isInCooldown
+              ? `Wait ${cooldownSeconds}s before trying again`
+              : errorMessage ?? undefined
+          }
+          helperText={
+            failedAttempts > 0 && !errorMessage && !isInCooldown
+              ? undefined
+              : undefined
+          }
+        />
+      </View>
+
+      <View style={styles.footer}>
+        <Pressable
+          onPress={() => useGhostModeStore.getState().enterDecoy()}
+          hitSlop={12}
+          style={({ pressed }) => [pressed && styles.footerLinkPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            disguise ? 'Skip and view plant journal' : 'Forgot PIN'
+          }
+        >
+          <Text
+            style={[
+              styles.footerLink,
+              { color: disguise ? Colors.text.tertiary : A.ink3 },
+            ]}
+          >
+            {disguise ? 'Skip · view notes' : 'Forgot PIN?'}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+
+  if (disguise) {
+    return <SafeAreaView style={styles.safeArea}>{inner}</SafeAreaView>;
+  }
+  return (
+    <AuroraBackground>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: 'transparent' }]}>
+        {inner}
+      </SafeAreaView>
+    </AuroraBackground>
   );
 }
 

@@ -48,7 +48,42 @@ import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
+import { A } from '../../theme';
 import { MAX_PIN_LENGTH, MIN_PIN_LENGTH } from '../../types/ghost-mode.types';
+
+// Theme presets — 'cream' is the classic Garden Notes disguise (bright,
+// friendly notes-app look); 'aurora' matches the rest of the Dottie app
+// (dark glass) and is used when disguise mode is OFF.
+type PinPadTheme = 'cream' | 'aurora';
+interface PinPadColors {
+  helper: string;
+  error: string;
+  dotBorder: string;
+  dotFill: string;
+  keyBg: string;
+  keyBgPressed: string;
+  keyText: string;
+}
+const THEME_COLORS: Record<PinPadTheme, PinPadColors> = {
+  cream: {
+    helper: Colors.text.secondary,
+    error: Colors.semantic.error,
+    dotBorder: Colors.border.medium,
+    dotFill: Colors.primary.coral,
+    keyBg: Colors.surface.card,
+    keyBgPressed: Colors.surface.cardElevated,
+    keyText: Colors.text.primary,
+  },
+  aurora: {
+    helper: A.ink2,
+    error: A.error,
+    dotBorder: A.edge,
+    dotFill: A.accent,
+    keyBg: A.glass2,
+    keyBgPressed: A.edge,
+    keyText: A.ink,
+  },
+};
 
 // ─── PROPS ───────────────────────────────────────────────────────────
 
@@ -88,6 +123,13 @@ interface PinPadProps {
   helperText?: string;
   /** Optional inline error message shown below the dots. */
   errorMessage?: string;
+  /**
+   * Colour scheme. 'cream' (default) is the classic Garden Notes disguise
+   * (light background, coral accents). 'aurora' matches the rest of the
+   * app (dark glass, mint accent) — used when the lock screen shows
+   * Dottie branding rather than the disguise.
+   */
+  theme?: PinPadTheme;
 }
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
@@ -103,7 +145,9 @@ export function PinPad({
   disabled = false,
   helperText,
   errorMessage,
+  theme = 'cream',
 }: PinPadProps) {
+  const c = THEME_COLORS[theme];
   // ─── Shake animation ────────────────────────────────────────────
   const shakeX = useRef(new Animated.Value(0)).current;
 
@@ -162,7 +206,7 @@ export function PinPad({
     <View style={styles.container}>
       {/* Helper text (above dots) */}
       {helperText ? (
-        <Text style={styles.helperText}>{helperText}</Text>
+        <Text style={[styles.helperText, { color: c.helper }]}>{helperText}</Text>
       ) : null}
 
       {/* Dots indicator */}
@@ -178,7 +222,9 @@ export function PinPad({
               key={`dot_${i}`}
               style={[
                 styles.dot,
-                filled ? styles.dotFilled : styles.dotEmpty,
+                filled
+                  ? { backgroundColor: c.dotFill, borderColor: c.dotFill }
+                  : { backgroundColor: 'transparent', borderColor: c.dotBorder },
                 disabled && styles.dotDimmed,
               ]}
             />
@@ -188,7 +234,7 @@ export function PinPad({
 
       {/* Error message (below dots) */}
       {errorMessage ? (
-        <Text style={styles.errorText}>{errorMessage}</Text>
+        <Text style={[styles.errorText, { color: c.error }]}>{errorMessage}</Text>
       ) : (
         <View style={styles.errorPlaceholder} />
       )}
@@ -205,6 +251,7 @@ export function PinPad({
                     digit={cell.value}
                     onPress={handleDigit}
                     disabled={disabled}
+                    colors={c}
                   />
                 );
               }
@@ -216,6 +263,7 @@ export function PinPad({
                     a11yLabel="Delete last digit"
                     onPress={handleDelete}
                     disabled={disabled || value.length === 0}
+                    colors={c}
                   />
                 );
               }
@@ -227,6 +275,7 @@ export function PinPad({
                     a11yLabel="Cancel PIN entry"
                     onPress={handleCancel}
                     disabled={disabled}
+                    colors={c}
                   />
                 );
               }
@@ -245,10 +294,12 @@ function DigitKey({
   digit,
   onPress,
   disabled,
+  colors,
 }: {
   digit: string;
   onPress: (digit: string) => void;
   disabled: boolean;
+  colors: PinPadColors;
 }) {
   return (
     <Pressable
@@ -258,10 +309,11 @@ function DigitKey({
       accessibilityLabel={`Number ${digit}`}
       style={({ pressed }) => [
         styles.key,
-        pressed && styles.keyPressed,
+        { backgroundColor: colors.keyBg },
+        pressed && [styles.keyPressed, { backgroundColor: colors.keyBgPressed }],
       ]}
     >
-      <Text style={styles.keyDigit}>{digit}</Text>
+      <Text style={[styles.keyDigit, { color: colors.keyText }]}>{digit}</Text>
     </Pressable>
   );
 }
@@ -271,11 +323,13 @@ function ActionKey({
   a11yLabel,
   onPress,
   disabled,
+  colors,
 }: {
   label: string;
   a11yLabel: string;
   onPress: () => void;
   disabled: boolean;
+  colors: PinPadColors;
 }) {
   return (
     <Pressable
@@ -286,11 +340,12 @@ function ActionKey({
       style={({ pressed }) => [
         styles.key,
         styles.keyAction,
-        pressed && styles.keyPressed,
+        { backgroundColor: colors.keyBg },
+        pressed && [styles.keyPressed, { backgroundColor: colors.keyBgPressed }],
         disabled && styles.keyDisabled,
       ]}
     >
-      <Text style={styles.keyAction_label}>{label}</Text>
+      <Text style={[styles.keyAction_label, { color: colors.keyText }]}>{label}</Text>
     </Pressable>
   );
 }

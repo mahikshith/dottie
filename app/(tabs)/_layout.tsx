@@ -54,7 +54,20 @@ export default function TabLayout() {
   return (
     <View style={styles.root}>
       <Tabs
-        screenOptions={{ headerShown: false }}
+        screenOptions={{
+          headerShown: false,
+          // AuroraTabBar draws no background of its own on purpose. The
+          // default react-navigation tab-bar container is white/cream on
+          // Android — that's the "white rectangle at the bottom" the owner
+          // asked us to kill. Force the container transparent + strip its
+          // top border + Android elevation shadow so the aurora ground
+          // shows straight through and only the icons/labels are visible.
+          tabBarStyle: {
+            backgroundColor: 'transparent',
+            borderTopWidth: 0,
+            elevation: 0,
+          },
+        }}
         tabBar={(props) => <AuroraTabBar {...props} />}
       >
         <Tabs.Screen name="home" options={{ title: 'Today' }} />

@@ -289,10 +289,17 @@ export const selectCurrentPhase = (s: CycleStoreState): Phase => {
 };
 
 export const selectDayInCycle = (s: CycleStoreState): number => {
+  // Owner ask (device-test): "default it to zero and once the user logs
+  // in their period, we should see the day number." No lastPeriodStart =
+  // no cycle to count, so return 0 rather than a fabricated day. Every
+  // UI that renders this should ALSO gate on `hasCycleData`, but this
+  // makes stale predictions or renders during a data-clear safe too.
+  if (s.lastPeriodStart == null) return 0;
   return s.latestPrediction?.dayInCycle ?? deriveCurrentPhase(s)?.dayInCycle ?? 1;
 };
 
 export const selectDayInPhase = (s: CycleStoreState): number => {
+  if (s.lastPeriodStart == null) return 0;
   return s.latestPrediction?.dayInPhase ?? deriveCurrentPhase(s)?.dayInPhase ?? 1;
 };
 
