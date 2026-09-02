@@ -5,10 +5,12 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-09-01 (device-test #3 FINDINGS + FIXES — status-bar aurora bleed,
-walkthrough scrim tap-blocking; Ghost Mode "Garden Notes" clarified as feature-not-bug.
-Also: Learn-tab redesign proposal + Gemini brief + full app-audit brief for Gemini deep
-analysis. All PUSHED to `origin/design-v2`.)
+**Last updated:** 2026-09-01 (device-test #3 ROUND 2 fixes: quiz spinner never resolved
+because useEffect deps missed quizEngine, Garden Notes now shows a "PREVIEW" banner from
+the modal route, walkthrough skip shows a one-time "find it in Profile" hint, status bar
+strip enforced at root layout so per-screen tags can't override it. Also: Learn-tab
+redesign proposal + Gemini brief + full app-audit brief for Gemini deep analysis. All
+PUSHED to `origin/design-v2`.)
 **Updated by:** Claude (Opus 4.7) — post-device-test #3 fixes
 **START HERE for test-#3 fixes:** `docs/DEVICE-TEST-3.md`
 **Learn redesign track:** `docs/LEARN-REDESIGN-PROPOSAL.md` (our plan) +

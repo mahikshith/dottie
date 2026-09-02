@@ -94,12 +94,23 @@ export default function QuizScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ─── Start the attempt on mount ─────────────────────────────────
+  // Device-test #3 finding: this used to have `[id]` deps only, so if
+  // `quizEngine` was still null when the effect first ran (hydration
+  // still in flight), it would set phase='error' and never re-fire when
+  // the engine became ready — the user was stuck on the loading spinner
+  // (the "white circle at top-left" reported in test #3). Adding
+  // quizEngine to the deps means the effect re-runs when hydration
+  // finishes. Also: don't flip to error while the engine is missing —
+  // keep the spinner and try again once it lands, so a race no longer
+  // shows a scary error.
   useEffect(() => {
-    if (!id || !quizEngine) {
+    if (!id) {
       setPhase('error');
-      setErrorMessage(
-        !id ? 'No quiz ID provided' : 'Quiz engine not ready — try again in a moment.'
-      );
+      setErrorMessage('No quiz ID provided');
+      return;
+    }
+    if (!quizEngine) {
+      // Stay in 'starting' — spinner is fine, engine hydration is fast.
       return;
     }
 
@@ -119,10 +130,8 @@ export default function QuizScreen() {
 
     setSession(attempt);
     setPhase('asking');
-    // We intentionally only run this on mount — the engine session is
-    // stable for the lifetime of the screen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, quizEngine]);
 
   // ─── Current question ───────────────────────────────────────────
   const currentQuestion: RenderedQuizQuestion | null = useMemo(() => {

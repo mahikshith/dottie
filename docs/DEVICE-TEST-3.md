@@ -139,3 +139,84 @@ minimal for the test-#3 build.
 
 The two fixes above are committed on `design-v2`. Push without
 `[skip ci]` when owner wants the next preview build.
+
+---
+
+# ROUND 2 — device-test #3 follow-ups (after first fix build)
+
+Owner tested the first-round APK and reported three of the four
+findings **still visible**. Second-round fixes:
+
+## Round-2 Finding A — White circle at top-left DURING QUIZ was a real bug (not the status bar)
+
+The "white circle" wasn't the punch-hole camera or the aurora bloom —
+it was an actual `<ActivityIndicator size="large" />` on the quiz
+screen that never went away. Root cause: `app/quiz/[id].tsx`'s
+"start-attempt" `useEffect` had `[id]` as its only dep. If
+`quizEngine` (from `useContentStore`) was still hydrating when the
+effect ran (which happens on cold-start quiz taps), the effect took
+the "engine not ready" bail path and never re-ran when hydration
+finished. User was stuck on the spinner forever.
+
+**Fix.** `app/quiz/[id].tsx` — deps now `[id, quizEngine]`; when
+engine is missing the effect stays in `starting` phase (spinner is
+appropriate) instead of setting error; when hydration lands the
+effect re-runs and starts the attempt. Also stops flipping to a
+scary error state during a benign race.
+
+## Round-2 Finding B — Garden Notes preview label
+
+When a user navigates to `/(modals)/decoy-home` from Ghost Mode
+settings, they now see a coral banner:
+
+> 🔒  PREVIEW · This is the fake app a snooper sees on wrong PIN
+
+The real trigger (via AppLockGate on wrong PIN) does NOT show the
+banner — a snooper still sees just Garden Notes with no giveaway.
+
+**Fix.** `DecoyHomeBody` now takes an optional `preview?: boolean`
+prop. The modal route passes `preview={true}`; AppLockGate stays as
+`<DecoyHomeBody />` for the real trigger.
+
+## Round-2 Finding C — Post-skip walkthrough hint
+
+Users skipping the tour didn't know how to find it again. Now,
+whenever the user taps Skip (either the button or the scrim), a
+themed dialog fires:
+
+> 🧭  Want the tour later?
+> You can always replay it from Profile → 'Show me around again'.
+> No pressure.
+
+**Fix.** `WalkthroughOverlay.tsx` — both Skip paths now call
+`showReplayHint()` after `skip()`, which shows a one-off
+`showAppDialog`.
+
+## Round-2 Finding D — Status bar strip enforcement
+
+The `app.json` `androidStatusBar` config from round-1 was correct
+but per-screen `<StatusBar style="light" />` from expo-status-bar
+was overriding the backgroundColor to transparent on every screen
+that set its own tag. Root layout now also declares
+`<StatusBar style="light" backgroundColor="#0C0A16" translucent={false} />`.
+Per-screen tags can still tweak the TINT (light/dark icons) but the
+solid dark strip stays under them — punch-hole cameras and
+notches hide against it.
+
+**Fix.** `app/_layout.tsx` — root StatusBar upgraded from
+`style="dark"` (which itself was probably wrong for the dark aurora
+world — dark icons on dark ground) to `style="light"
+backgroundColor="#0C0A16" translucent={false}`.
+
+## Round-2: what's still not addressed
+
+- Owner's "pull down to reveal the status bar" gesture — requires
+  Android immersive mode + SystemUI hide + touch listeners. Not
+  standard on iOS. Skipped in favour of the always-visible solid
+  strip. Can revisit if the owner wants the more Apple-style
+  hide-on-scroll behaviour.
+- Per-screen "try the tutorial for THIS screen" pointer — the
+  current walkthrough is a single 7-step tour, not context-sensitive
+  per-tab help. Adding a per-screen (?) icon is a bigger scope
+  (needs a shorter local tour per tab). Tracked for a later session.
+

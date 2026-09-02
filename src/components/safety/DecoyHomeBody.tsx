@@ -43,7 +43,14 @@ import { DecoyPlantNote } from '../../types/ghost-mode.types';
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
-export function DecoyHomeBody() {
+/**
+ * Optional preview banner — pass `preview={true}` when this body is
+ * rendered as a MODAL PREVIEW (e.g. from Ghost Mode settings so the
+ * user can see what a snooper sees) rather than the real decoy trigger.
+ * The banner is deliberately Dottie-branded, not Garden-Notes-styled,
+ * so nobody mistakes the preview for the real disguise.
+ */
+export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
   const [tapCount, setTapCount] = useState(0);
   const lastTapAt = useRef<number>(0);
 
@@ -77,6 +84,17 @@ export function DecoyHomeBody() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Preview banner — only shown when someone opens this as a
+          preview from Ghost Mode settings. When Ghost Mode fires the
+          decoy for real, `preview` is false and nothing appears. */}
+      {preview && (
+        <View style={styles.previewBanner}>
+          <Text style={styles.previewBannerText}>
+            🔒  PREVIEW · This is the fake app a snooper sees on wrong PIN
+          </Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerLogo}>🌿</Text>
@@ -249,6 +267,22 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: SAGE_BG,
+  },
+  // Preview banner — only rendered when preview=true (via the modal
+  // route). Intentionally Dottie coral so it can't be mistaken for the
+  // Garden Notes chrome. Sits above the fake header.
+  previewBanner: {
+    backgroundColor: '#2D1B12',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FF6B6B',
+  },
+  previewBannerText: {
+    color: '#FFE7DE',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',

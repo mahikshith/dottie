@@ -240,7 +240,15 @@ export default function RootLayout() {
     // don't call useAurora() are unaffected, so this is safe to wrap now while
     // screens are themed one by one.
     <AuroraProvider>
-      <StatusBar style="dark" />
+      {/* Force a SOLID dark strip under the OS status bar on Android.
+          Device-test #3 kept reporting the time/battery icons + the
+          punch-hole camera cutout showing through the aurora bloom.
+          `translucent={false}` + a solid `backgroundColor` gives the
+          status bar its own opaque region that camera holes hide
+          against and per-screen `<StatusBar style="light" />` overrides
+          can only tweak the icon TINT — not the background. iOS
+          ignores backgroundColor/translucent gracefully. */}
+      <StatusBar style="light" backgroundColor="#0C0A16" translucent={false} />
       <ErrorBoundary>
       <Stack
         screenOptions={{

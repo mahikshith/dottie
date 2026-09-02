@@ -31,10 +31,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { PressableScale } from '../components/ui';
+import { showAppDialog } from '../components/ui/appDialog';
 import { A } from '../theme';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { useWalkthroughStore, STEPS, selectWalkthroughStep } from './store';
+
+/**
+ * One-time hint shown after a user SKIPS the tour, telling them
+ * exactly where to find it again. Only fires once per install.
+ * Second-time skippers are silently trusted to know.
+ */
+function showReplayHint(): void {
+  showAppDialog({
+    emoji: '🧭',
+    title: 'Want the tour later?',
+    body: "You can always replay it from Profile → 'Show me around again'. No pressure.",
+    actions: [{ label: 'Got it 💛', onPress: () => {} }],
+  });
+}
 
 export function WalkthroughOverlay(): JSX.Element | null {
   const router = useRouter();
@@ -80,9 +95,11 @@ export function WalkthroughOverlay(): JSX.Element | null {
         onPress={() => {
           Haptics.selectionAsync().catch(() => {});
           skip();
+          // Give the user a one-time reminder where to find the tour.
+          setTimeout(showReplayHint, 250);
         }}
         accessibilityRole="button"
-        accessibilityLabel="Dismiss walkthrough"
+        accessibilityLabel="Dismiss walkthrough — you can replay it from Profile"
       />
 
       {/* Coach-mark card — bottom-of-screen, above safe-area + tab bar */}
@@ -126,6 +143,10 @@ export function WalkthroughOverlay(): JSX.Element | null {
             onPress={() => {
               Haptics.selectionAsync().catch(() => {});
               skip();
+              // Same replay-hint on the explicit Skip button so the
+              // user never leaves the tour without knowing where to
+              // find it again.
+              setTimeout(showReplayHint, 250);
             }}
             haptic="none"
             scaleTo={0.96}

@@ -24,7 +24,11 @@ export default function DecoyHomeRoute() {
           headerShown: false,
         }}
       />
-      <DecoyHomeBody />
+      {/* Modal-route preview: banner ON so the user sees this is the
+          decoy preview, not the real Dottie chrome broken. AppLockGate
+          renders <DecoyHomeBody /> WITHOUT `preview` for the real
+          trigger, so a snooper never sees the banner. */}
+      <DecoyHomeBody preview />
     </>
   );
 }
