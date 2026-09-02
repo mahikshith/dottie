@@ -60,6 +60,15 @@ jobs:
       - name: Gentle Rhythm harness (Phase 4, 22 invariants)
         run: npm run --if-present test:rhythm
 
+      - name: Predictor scenarios harness (~60 assertions across 14 real user scenarios)
+        run: npm run --if-present test:predictor
+
+      - name: App journey harness (10 pure-engine journeys, all combos)
+        run: npm run --if-present test:journey
+
+      - name: UI onPress audit (every Pressable / Button has a handler)
+        run: npm run --if-present audit:ui
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:

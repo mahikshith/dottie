@@ -33,13 +33,17 @@ non-diagnostic voice throughout.
   `workflow_dispatch` works. Don't touch `main` for anything else.
 - **Every commit ends with the Claude co-author + Claude-Session trailer.**
 
-## Test scripts (all must stay green)
+## Test scripts (all must stay green — CI runs `test:all`)
 
+- `npm run type-check` — `tsc --noEmit`
 - `npm run validate:content` — schema R1–R4 (lessons + quizzes)
 - `npm run test:adaptive` — Phase 3 quiz engine, 17 invariants
 - `npm run test:rhythm` — Phase 4 rhythm layer, 22 invariants
-- `npm run simulate` — Bayesian predictor sim
-- `npm run type-check` — alias for `tsc --noEmit`
+- `npm run test:predictor` — 14 real-user predictor scenarios, ~60 assertions
+- `npm run test:journey` — 10 pure-engine end-to-end journeys
+- `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (154 tappables)
+- `npm run test:all` — runs all of the above, non-zero exit on any failure
+- `npm run simulate` — non-assertive eyeball predictor simulation
 
 ## Design system (never hardcode ad-hoc values)
 

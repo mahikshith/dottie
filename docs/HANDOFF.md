@@ -25,11 +25,19 @@ new APK from that commit and verify.
 - **On-device runtime** = GitHub Actions build (`.github/workflows/android-preview.yml`,
   registered on `main`). Push to `gemini-learn-redesign` without `[skip ci]` →
   builds an APK. With `[skip ci]` → just backs up.
-- **Test scripts** (all pure Node via tsx, must stay green):
-  - `npm run validate:content` — 4 schema rules
+- **Test scripts** (all pure Node via tsx, must stay green — CI runs them all
+  before the APK build):
+  - `npm run type-check` — `tsc --noEmit`
+  - `npm run validate:content` — 4 schema rules (26 lessons / 23 quizzes / 121 questions)
   - `npm run test:adaptive` — Phase 3 quiz engine, 17 invariants
   - `npm run test:rhythm` — Phase 4 rhythm, 22 invariants
-  - `npm run simulate` — predictor Bayesian sim
+  - `npm run test:predictor` — 14 real-user predictor scenarios, ~60 assertions
+  - `npm run test:journey` — 10 pure-engine end-to-end journeys, phase × condition
+    combinations, spotlight/quiz/rhythm cross-cutting
+  - `npm run audit:ui` — static onPress audit over 154 tappables (Pressable /
+    PressableScale / GradientButton / GradientFab)
+  - `npm run test:all` — runs every one of the above, exits non-zero on any failure
+  - `npm run simulate` — eyeball predictor sim (non-assertive; for visual review)
 - **CelebrationDialog rule** (post-fix): NEVER wrap the dialog card in a
   Reanimated `entering` animation — the Modal's own `animationType="fade"` is
   enough. Adding Reanimated back would re-introduce the white-circle bug.
@@ -66,10 +74,30 @@ tap-outside dismiss or verify `Storage.walkthroughSeen` guard is working. My
 `e8f1335` fix hits every `showAppDialog` call site, which is the most likely
 source given owner's "on Save/Done/Next in Learn, Profile, period log."
 
-**Priority 1 — end-to-end button simulation.** Owner asked for every button,
-every screen, every edge case simulated + tested. A pragmatic path: write a
-Detox / Maestro e2e suite (Maestro is lighter, uses YAML flows) hitting the
-main journeys. There is NO test infra today besides the pure-TS harnesses.
+**Priority 1 — end-to-end button simulation.** _Partial: engine + UI-static
+layer done, on-device layer still open._ Three new harnesses shipped this
+session (all wired into CI, all green as of `test:all`):
+
+- `scripts/predictor-scenarios-harness.ts` — 14 scenarios: cold start, first
+  period logged, regular mature, PCOS irregular, perimenopause drift, teen
+  sparse, stress+low-sleep shift, learning curve (1→12 cycles), condition
+  stacking, edge inputs (1-day / 200-day cycles), NaN guards. **Caught 3
+  fixture bugs before shipping.**
+- `scripts/app-journey-harness.ts` — 10 pure-engine journeys: onboarding→
+  first-period→prediction, 6-month mature, PCOS, teen-mode `adultOnly`
+  filter, adaptive quiz progression, gentle-rhythm 14-day cadence, spotlight
+  adapts as lessons complete, perimenopause drift, every phase × condition
+  combo (20 combos), garbage-input tolerance.
+- `scripts/ui-onpress-audit.ts` — regex scan of 97 .tsx files, 154 tappables,
+  verifies every `<Pressable>` / `<PressableScale>` / `<GradientButton>` /
+  `<GradientFab>` has an `onPress`. Currently 100% clean.
+
+**Still open for this priority:** true UI end-to-end on a running app.
+Recommended path: Maestro (YAML flows, single binary) rather than Detox
+(heavier). Add a `.maestro/` folder of flows (onboarding, log-period,
+lesson-complete, quiz, sisterhood-add, ghost-mode) and add a job to the CI
+workflow that runs them on an emulator OR a real device via BrowserStack /
+Firebase Test Lab.
 
 **Priority 2 — App-store rollout.** Preview APK currently ships as a debug-
 signed sideload. For Play Store: EAS Build (or a manual keystore + gradle
