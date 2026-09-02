@@ -249,6 +249,14 @@ export default function GhostModeSettingsScreen() {
     bumpConfig();
   };
 
+  // Decoy appearance: on → 'aurora' (dark), off → 'cream' (classic journal).
+  // The owner chooses which disguise reads as more convincing to them.
+  const handleToggleDecoyTheme = (next: boolean) => {
+    Haptics.selectionAsync().catch(() => {});
+    useGhostModeStore.getState().updateConfig({ decoyTheme: next ? 'aurora' : 'cream' });
+    bumpConfig();
+  };
+
   const handleLockNow = () => {
     Haptics.selectionAsync().catch(() => {});
     useGhostModeStore.getState().lockNow('manual_lock');
@@ -415,6 +423,25 @@ export default function GhostModeSettingsScreen() {
                 <Switch
                   value={config.routeToDecoyOnFailure}
                   onValueChange={handleToggleDecoyOnFailure}
+                  trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
+                />
+              </View>
+            </SettingCard>
+
+            {/* Decoy appearance — cream vs aurora */}
+            <SettingCard>
+              <View style={styles.settingRow}>
+                <View style={styles.settingTextWrap}>
+                  <Text style={styles.settingTitle}>Plant journal style</Text>
+                  <Text style={styles.settingSubtitle}>
+                    {config.decoyTheme === 'aurora'
+                      ? 'Dark aurora look — matches Dottie'
+                      : 'Classic cream look — a warm notebook'}
+                  </Text>
+                </View>
+                <Switch
+                  value={config.decoyTheme === 'aurora'}
+                  onValueChange={handleToggleDecoyTheme}
                   trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
                 />
               </View>

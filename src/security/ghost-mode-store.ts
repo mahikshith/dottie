@@ -40,6 +40,7 @@
 
 import { create } from 'zustand';
 import {
+  DecoyTheme,
   GhostModeConfig,
   LockReason,
   LockState,
@@ -122,6 +123,19 @@ export interface GhostModeStoreState {
   enterDecoy: () => void;
 
   /**
+   * Leave the decoy "Garden Notes" view. This is the escape hatch the
+   * hardware back button (Android) and the secret triple-tap use so the
+   * owner is NEVER trapped in the decoy:
+   *   - If Ghost Mode is still configured (PIN present) → back to the
+   *     locked PIN screen, so the owner can type their PIN and get in.
+   *   - If Ghost Mode is no longer configured (e.g. after a panic wipe
+   *     cleared the PIN) → unlock straight through to the (now fresh) app,
+   *     because there is nothing left to protect and staying in the decoy
+   *     would be the trap all over again.
+   */
+  exitDecoy: () => void;
+
+  /**
    * Disable Ghost Mode entirely. Clears PIN hash, salt, panic hash,
    * and all related flags. Used when the user opts out from settings.
    */
@@ -137,7 +151,7 @@ export interface GhostModeStoreState {
    * Update panic-wipe and disguise toggles. Lightweight settings,
    * persisted to MMKV.
    */
-  updateConfig: (patch: Partial<Pick<GhostModeConfig, 'panicWipeEnabled' | 'disguiseAppName' | 'routeToDecoyOnFailure'>>) => void;
+  updateConfig: (patch: Partial<Pick<GhostModeConfig, 'panicWipeEnabled' | 'disguiseAppName' | 'routeToDecoyOnFailure' | 'decoyTheme'>>) => void;
 
   /** Reset everything (called by user.deleteAccount()). */
   reset: () => void;
@@ -208,6 +222,11 @@ export const useGhostModeStore = create<GhostModeStoreState>((set, get) => ({
     }
     if (Storage.ghostPanicWipeEnabled.get() === undefined) {
       Storage.ghostPanicWipeEnabled.set(false);
+    }
+    if (Storage.ghostDecoyTheme.get() === undefined) {
+      // Default to the aurora look so the decoy matches the rest of the
+      // app out of the box; the user can switch to cream in settings.
+      Storage.ghostDecoyTheme.set('aurora');
     }
 
     // Once a PIN is set, the app should be unlocked for the rest of
@@ -375,6 +394,28 @@ export const useGhostModeStore = create<GhostModeStoreState>((set, get) => ({
     set({ lockState: { kind: 'decoy' } });
   },
 
+  // ─── exitDecoy ──────────────────────────────────────────────────
+
+  exitDecoy: () => {
+    const enabled = Storage.ghostModeActive.get();
+    const hasPin = Boolean(Storage.ghostPinHash.get());
+    if (enabled && hasPin) {
+      // Back to the PIN screen so the owner can unlock. This is the fix
+      // for the "trapped in the garden with no way back" report — the
+      // hardware back button and the secret triple-tap both land here.
+      set({
+        lockState: { kind: 'locked' },
+        failedAttempts: 0,
+        cooldownEndsAt: null,
+        lastLockReason: 'manual_lock',
+      });
+    } else {
+      // Nothing left to protect (e.g. a panic wipe already cleared the
+      // PIN) — reveal the app rather than keep the user stuck in the decoy.
+      set({ lockState: { kind: 'unlocked' } });
+    }
+  },
+
   // ─── disable ────────────────────────────────────────────────────
 
   disable: () => {
@@ -404,6 +445,7 @@ export const useGhostModeStore = create<GhostModeStoreState>((set, get) => ({
       panicWipeEnabled: Storage.ghostPanicWipeEnabled.get() ?? false,
       disguiseAppName: Storage.ghostDisguiseAppName.get() ?? true,
       routeToDecoyOnFailure: Storage.ghostRouteToDecoyOnFailure.get() ?? true,
+      decoyTheme: coerceDecoyTheme(Storage.ghostDecoyTheme.get()),
       failedAttemptsInARow: get().failedAttempts,
       cooldownStartedAt:
         get().cooldownEndsAt !== null
@@ -424,6 +466,9 @@ export const useGhostModeStore = create<GhostModeStoreState>((set, get) => ({
     if (patch.routeToDecoyOnFailure !== undefined) {
       Storage.ghostRouteToDecoyOnFailure.set(patch.routeToDecoyOnFailure);
     }
+    if (patch.decoyTheme !== undefined) {
+      Storage.ghostDecoyTheme.set(patch.decoyTheme);
+    }
     // Bump config version so React subscribers (Profile tab, settings
     // toggles) re-read the underlying MMKV flags. Without this, the
     // toggle in settings flips visually but other screens stay stale
@@ -441,6 +486,7 @@ export const useGhostModeStore = create<GhostModeStoreState>((set, get) => ({
     Storage.ghostPanicWipeEnabled.clear();
     Storage.ghostDisguiseAppName.clear();
     Storage.ghostRouteToDecoyOnFailure.clear();
+    Storage.ghostDecoyTheme.clear();
     set(initialState);
   },
 }));
@@ -485,8 +531,30 @@ export const selectDisguiseAppName = (s: GhostModeStoreState): boolean => {
   return Storage.ghostDisguiseAppName.get() ?? true;
 };
 
+/**
+ * Which skin the decoy wears ('aurora' | 'cream'). Reads MMKV through the
+ * configVersion beacon so the decoy re-skins the instant the user flips the
+ * appearance toggle in settings.
+ */
+export const selectDecoyTheme = (s: GhostModeStoreState): DecoyTheme => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  s.configVersion;
+  return coerceDecoyTheme(Storage.ghostDecoyTheme.get());
+};
+
 /** Cheap counter for "config changed" change-detection. */
 export const selectConfigVersion = (s: GhostModeStoreState): number => s.configVersion;
+
+// ─── INTERNAL: DECOY THEME COERCION ──────────────────────────────────
+
+/**
+ * Coerce the loosely-typed MMKV string into the DecoyTheme union.
+ * Anything that isn't exactly 'cream' resolves to 'aurora' (the default),
+ * so a missing key or a corrupted value can never crash the decoy.
+ */
+function coerceDecoyTheme(raw: string | undefined): DecoyTheme {
+  return raw === 'cream' ? 'cream' : 'aurora';
+}
 
 // ─── INTERNAL: PANIC WIPE ────────────────────────────────────────────
 

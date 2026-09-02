@@ -81,6 +81,7 @@ const Keys = {
   GHOST_PANIC_WIPE_ENABLED: 'ghost.panic_wipe_enabled',
   GHOST_DISGUISE_APP_NAME: 'ghost.disguise_app_name',
   GHOST_ROUTE_TO_DECOY_ON_FAILURE: 'ghost.route_to_decoy_on_failure',
+  GHOST_DECOY_THEME: 'ghost.decoy_theme',
 
   // Beta tester pack (chunk 12)
   BETA_PIONEER_AWARDED: 'beta.pioneer_awarded',
@@ -275,6 +276,17 @@ export const Storage = {
     get: (): boolean | undefined => mmkv.getBoolean(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
     set: (value: boolean): void => mmkv.set(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE, value),
     clear: (): void => mmkv.delete(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
+  },
+
+  // Which look the "Garden Notes" decoy wears: 'aurora' (dark glass, the
+  // default that matches the rest of the app) or 'cream' (the classic warm
+  // plant-journal palette). Stored as a plain string; the store coerces it
+  // to the DecoyTheme union and defaults to 'aurora' when unset. Owner asked
+  // for a user-facing toggle so THEY choose the disguise's appearance.
+  ghostDecoyTheme: {
+    get: (): string | undefined => mmkv.getString(Keys.GHOST_DECOY_THEME),
+    set: (value: string): void => mmkv.set(Keys.GHOST_DECOY_THEME, value),
+    clear: (): void => mmkv.delete(Keys.GHOST_DECOY_THEME),
   },
 
   // ─── Beta tester pack (chunk 12) ────────────────────────────────

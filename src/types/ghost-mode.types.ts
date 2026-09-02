@@ -80,6 +80,14 @@ export type VerifyPinResult =
       cooldownUntil: string | null;
     };
 
+/**
+ * Which visual skin the "Garden Notes" decoy (and its lock screen) wears.
+ *  - 'aurora' → dark liquid-glass, matches the rest of Dottie (default)
+ *  - 'cream'  → the classic warm plant-journal palette
+ * The owner picks this in Ghost Mode settings — "give the control to the user."
+ */
+export type DecoyTheme = 'aurora' | 'cream';
+
 /** Snapshot of Ghost Mode's current configuration. */
 export interface GhostModeConfig {
   /** True when the user has enabled Ghost Mode (PIN is set). */
@@ -99,6 +107,12 @@ export interface GhostModeConfig {
    * showing an error. Default: true.
    */
   routeToDecoyOnFailure: boolean;
+  /**
+   * Which look the decoy "Garden Notes" app wears. Default: 'aurora'.
+   * The user toggles this in settings so they control the disguise's
+   * appearance (some prefer the classic cream journal, some the dark app).
+   */
+  decoyTheme: DecoyTheme;
   /** Total failed attempts since the last successful unlock. */
   failedAttemptsInARow: number;
   /** ISO timestamp of the most recent cooldown start, if any. */

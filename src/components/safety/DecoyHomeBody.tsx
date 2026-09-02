@@ -7,21 +7,36 @@
  *
  * ─── DESIGN ─────────────────────────────────────────────────────────
  *
- *  - Looks like a real notes app. Header, search-y greeting, list of
- *    plant notes with dates. Calm sage green palette.
- *  - Notes are deterministic from a small seed → same plants appear
- *    every time so it feels lived-in, not random.
- *  - Tapping a plant card produces a soft haptic + does nothing
- *    visible. To a snooper it looks like a fully working app.
- *  - There IS a secret way out: a tiny "Refresh garden" link at the
- *    very bottom, tapped 3 times in 2 seconds, returns to the real
- *    Dottie lock screen. Discoverable only to the owner.
+ *  - Looks like a real notes app. Header, greeting, list of plant notes
+ *    with dates. Tapping a plant card produces a soft haptic + does
+ *    nothing visible. To a snooper it looks like a fully working app.
+ *  - TWO skins, chosen by the owner in Ghost Mode settings and read
+ *    live from `selectDecoyTheme`:
+ *      • 'aurora' → dark liquid glass (default, matches the rest of Dottie)
+ *      • 'cream'  → the classic warm plant-journal palette
+ *    "Give the control to the user" — the owner decides which disguise
+ *    they find more convincing.
+ *
+ * ─── ESCAPE HATCHES (the owner must NEVER be trapped) ────────────────
+ *
+ *  Earlier the ONLY way out was an obscure triple-tap, and the Android
+ *  hardware back button did nothing — so the owner had to force-quit and
+ *  re-enter their PIN. That was the "trapped in the garden" report. Now:
+ *
+ *   1. Android hardware BACK button → leaves the decoy (via the store's
+ *      exitDecoy(), which returns to the PIN screen so the owner can
+ *      unlock, or reveals the app if a panic wipe already cleared the
+ *      PIN). This is the primary fix for the trap.
+ *   2. Secret triple-tap on the "Refresh garden" footer within 2s →
+ *      same exitDecoy(). Kept as the escape hatch on platforms with no
+ *      hardware back button (iOS) and as belt-and-braces.
+ *
+ *  Neither escape reveals the real app directly — both drop to the PIN
+ *  lock, so the disguise still requires the PIN to actually get in.
  *
  * ─── NAVIGATION ─────────────────────────────────────────────────────
  *
  *  Rendered as a full-screen overlay when lockState.kind === 'decoy'.
- *  Cannot be dismissed by swipe — the only way back to the real app
- *  is the secret triple-tap.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -29,17 +44,76 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Pressable,
+  BackHandler,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { Shadows } from '../../constants/shadows';
-import { useGhostModeStore } from '../../security/ghost-mode-store';
-import { DecoyPlantNote } from '../../types/ghost-mode.types';
+import { A } from '../../theme';
+import { AuroraBackground } from '../ui';
+import { useGhostModeStore, selectDecoyTheme } from '../../security/ghost-mode-store';
+import { DecoyPlantNote, DecoyTheme } from '../../types/ghost-mode.types';
+
+// ─── PALETTE ─────────────────────────────────────────────────────────
+//
+// Colors live here (not baked into StyleSheet) so the same structural
+// styles serve both skins. Layout stays in `styles`; every color comes
+// from the palette the owner selected.
+
+interface DecoyPalette {
+  /** true → wrap in AuroraBackground; false → plain cream ground. */
+  aurora: boolean;
+  screenBg: string;
+  headerBorder: string;
+  ink: string;
+  ink2: string;
+  ink3: string;
+  cardBg: string;
+  cardBgPressed: string;
+  cardBorder: string;
+  accent: string;
+  previewBannerBg: string;
+  previewBannerBorder: string;
+}
+
+const AURORA_PALETTE: DecoyPalette = {
+  aurora: true,
+  screenBg: 'transparent',
+  headerBorder: A.edge,
+  ink: A.ink,
+  ink2: A.ink2,
+  ink3: A.ink3,
+  cardBg: A.glass,
+  cardBgPressed: A.glass2,
+  cardBorder: A.edge,
+  accent: A.accent,
+  previewBannerBg: `${A.accent}22`,
+  previewBannerBorder: A.accent,
+};
+
+// Warm "notebook on a linen desk" palette — a fully plausible standalone
+// plant-journal app that looks nothing like Dottie's aurora surfaces.
+const CREAM_PALETTE: DecoyPalette = {
+  aurora: false,
+  screenBg: '#FBF6ED',
+  headerBorder: '#E7DECF',
+  ink: '#3E3A34',
+  ink2: '#6E655A',
+  ink3: '#A3988A',
+  cardBg: '#FFFFFF',
+  cardBgPressed: '#F4EEE3',
+  cardBorder: '#ECE3D5',
+  accent: '#5E8C6A', // sage green
+  previewBannerBg: '#EAF3EC',
+  previewBannerBorder: '#5E8C6A',
+};
+
+function paletteFor(theme: DecoyTheme): DecoyPalette {
+  return theme === 'cream' ? CREAM_PALETTE : AURORA_PALETTE;
+}
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
@@ -47,10 +121,12 @@ import { DecoyPlantNote } from '../../types/ghost-mode.types';
  * Optional preview banner — pass `preview={true}` when this body is
  * rendered as a MODAL PREVIEW (e.g. from Ghost Mode settings so the
  * user can see what a snooper sees) rather than the real decoy trigger.
- * The banner is deliberately Dottie-branded, not Garden-Notes-styled,
- * so nobody mistakes the preview for the real disguise.
  */
 export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
+  const insets = useSafeAreaInsets();
+  const theme = useGhostModeStore(selectDecoyTheme);
+  const c = paletteFor(theme);
+
   const [tapCount, setTapCount] = useState(0);
   const lastTapAt = useRef<number>(0);
 
@@ -59,15 +135,27 @@ export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
   const greeting = useMemo(() => buildDecoyGreeting(plants), [plants]);
   const lastSaved = useMemo(() => buildLastSavedLabel(), []);
 
-  // ─── Secret exit gesture: triple-tap "Refresh garden" ───────────
+  // ─── Hardware BACK → leave the decoy ────────────────────────────
   //
-  // Implemented as an effect rather than inline state-update-during-
-  // render so React stays happy and the unlock transition runs after
-  // the press animation completes.
+  // In preview mode the settings screen owns navigation, so we DON'T
+  // hijack back there. In the real decoy overlay we consume back and
+  // route through exitDecoy() so the owner is never trapped.
+  useEffect(() => {
+    if (preview) return;
+    const onBack = () => {
+      Haptics.selectionAsync().catch(() => {});
+      useGhostModeStore.getState().exitDecoy();
+      return true; // consume — never let back close the app from the decoy
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => sub.remove();
+  }, [preview]);
+
+  // ─── Secret exit gesture: triple-tap "Refresh garden" ───────────
   useEffect(() => {
     if (tapCount < 3) return;
     setTapCount(0);
-    useGhostModeStore.getState().lockNow('manual_lock');
+    useGhostModeStore.getState().exitDecoy();
   }, [tapCount]);
 
   const handleSecretTap = () => {
@@ -77,30 +165,35 @@ export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
       // Window expired — restart count
       setTapCount(1);
     } else {
-      setTapCount((c) => c + 1);
+      setTapCount((count) => count + 1);
     }
     lastTapAt.current = now;
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Preview banner — only shown when someone opens this as a
-          preview from Ghost Mode settings. When Ghost Mode fires the
-          decoy for real, `preview` is false and nothing appears. */}
+  const body = (
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+      {/* Preview banner — only shown when opened as a preview from Ghost
+          Mode settings. When Ghost Mode fires the decoy for real,
+          `preview` is false and nothing appears. */}
       {preview && (
-        <View style={styles.previewBanner}>
-          <Text style={styles.previewBannerText}>
+        <View
+          style={[
+            styles.previewBanner,
+            { backgroundColor: c.previewBannerBg, borderBottomColor: c.previewBannerBorder },
+          ]}
+        >
+          <Text style={[styles.previewBannerText, { color: c.ink }]}>
             🔒  PREVIEW · This is the fake app a snooper sees on wrong PIN
           </Text>
         </View>
       )}
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.headerBorder }]}>
         <Text style={styles.headerLogo}>🌿</Text>
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>Garden Notes</Text>
-          <Text style={styles.headerSubtitle}>{greeting}</Text>
+          <Text style={[styles.headerTitle, { color: c.ink }]}>Garden Notes</Text>
+          <Text style={[styles.headerSubtitle, { color: c.ink2 }]}>{greeting}</Text>
         </View>
       </View>
 
@@ -111,7 +204,7 @@ export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
         showsVerticalScrollIndicator={false}
       >
         {plants.map((plant) => (
-          <PlantCard key={plant.id} plant={plant} />
+          <PlantCard key={plant.id} plant={plant} palette={c} />
         ))}
 
         {/* Footer — the secret exit. Looks like a boring utility link. */}
@@ -125,17 +218,25 @@ export function DecoyHomeBody({ preview = false }: { preview?: boolean } = {}) {
           accessibilityRole="button"
           accessibilityLabel="Refresh garden"
         >
-          <Text style={styles.footerLink}>Refresh garden</Text>
-          <Text style={styles.footerHint}>{lastSaved}</Text>
+          <Text style={[styles.footerLink, { color: c.ink3 }]}>Refresh garden</Text>
+          <Text style={[styles.footerHint, { color: c.ink3 }]}>{lastSaved}</Text>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </View>
+  );
+
+  // Aurora skin gets the animated aurora ground; cream skin gets a flat
+  // warm ground so it reads as a different, self-contained app.
+  return c.aurora ? (
+    <AuroraBackground>{body}</AuroraBackground>
+  ) : (
+    <View style={[styles.creamRoot, { backgroundColor: c.screenBg }]}>{body}</View>
   );
 }
 
 // ─── PLANT CARD ──────────────────────────────────────────────────────
 
-function PlantCard({ plant }: { plant: DecoyPlantNote }) {
+function PlantCard({ plant, palette }: { plant: DecoyPlantNote; palette: DecoyPalette }) {
   const handlePress = () => {
     // Silent — looks "active" to a snooper but does nothing meaningful
     Haptics.selectionAsync().catch(() => {});
@@ -146,21 +247,24 @@ function PlantCard({ plant }: { plant: DecoyPlantNote }) {
       onPress={handlePress}
       style={({ pressed }) => [
         styles.card,
-        pressed && styles.cardPressed,
+        { backgroundColor: palette.cardBg, borderColor: palette.cardBorder },
+        pressed && { transform: [{ scale: 0.99 }], backgroundColor: palette.cardBgPressed },
       ]}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardEmoji}>{plant.emoji}</Text>
         <View style={styles.cardTitleWrap}>
-          <Text style={styles.cardName}>{plant.name}</Text>
-          <Text style={styles.cardSubtitle}>
+          <Text style={[styles.cardName, { color: palette.ink }]}>{plant.name}</Text>
+          <Text style={[styles.cardSubtitle, { color: palette.ink2 }]}>
             Last watered · {formatPretty(plant.lastWatered)}
           </Text>
         </View>
       </View>
-      <Text style={styles.cardNote}>{plant.note}</Text>
+      <Text style={[styles.cardNote, { color: palette.ink }]}>{plant.note}</Text>
       <View style={styles.cardFooter}>
-        <Text style={styles.cardNext}>Next: {formatPretty(plant.nextWatering)}</Text>
+        <Text style={[styles.cardNext, { color: palette.accent }]}>
+          Next: {formatPretty(plant.nextWatering)}
+        </Text>
       </View>
     </Pressable>
   );
@@ -254,32 +358,23 @@ function formatPretty(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-// ─── STYLES ──────────────────────────────────────────────────────────
-
-// Deliberately uses a sage-green palette derived from existing tokens
-// so the decoy looks like a completely different app from Dottie.
-const SAGE_BG = '#F2F8F4';
-const SAGE_PRIMARY = Colors.primary.sage;
-const SAGE_TEXT_PRIMARY = '#2D3A2E';
-const SAGE_TEXT_SECONDARY = '#5C6E5E';
+// ─── STYLES (structure only — colors come from the palette) ──────────
 
 const styles = StyleSheet.create({
+  creamRoot: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: SAGE_BG,
   },
-  // Preview banner — only rendered when preview=true (via the modal
-  // route). Intentionally Dottie coral so it can't be mistaken for the
-  // Garden Notes chrome. Sits above the fake header.
+  // Preview banner — only rendered when preview=true (via the settings
+  // preview). Sits above the fake header.
   previewBanner: {
-    backgroundColor: '#2D1B12',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#FF6B6B',
   },
   previewBannerText: {
-    color: '#FFE7DE',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
@@ -292,7 +387,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.base,
     gap: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(107, 203, 119, 0.15)',
   },
   headerLogo: {
     fontSize: 32,
@@ -302,11 +396,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.preset.h3,
-    color: SAGE_TEXT_PRIMARY,
   },
   headerSubtitle: {
     ...Typography.preset.caption,
-    color: SAGE_TEXT_SECONDARY,
     marginTop: 2,
   },
   scroll: {
@@ -321,15 +413,10 @@ const styles = StyleSheet.create({
 
   // Plant card
   card: {
-    backgroundColor: '#FFFFFF',
     borderRadius: Spacing.radius.xl,
+    borderWidth: 1,
     padding: Spacing.cardPadding,
     gap: Spacing.sm,
-    ...Shadows.sm,
-  },
-  cardPressed: {
-    transform: [{ scale: 0.99 }],
-    backgroundColor: '#F8FBF9',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -344,16 +431,13 @@ const styles = StyleSheet.create({
   },
   cardName: {
     ...Typography.preset.bodySemibold,
-    color: SAGE_TEXT_PRIMARY,
   },
   cardSubtitle: {
     ...Typography.preset.caption,
-    color: SAGE_TEXT_SECONDARY,
     marginTop: 2,
   },
   cardNote: {
     ...Typography.preset.body,
-    color: SAGE_TEXT_PRIMARY,
     lineHeight: 22,
   },
   cardFooter: {
@@ -362,7 +446,6 @@ const styles = StyleSheet.create({
   },
   cardNext: {
     ...Typography.preset.captionBold,
-    color: SAGE_PRIMARY,
   },
 
   // Footer (secret exit)
@@ -376,11 +459,9 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     ...Typography.preset.captionBold,
-    color: SAGE_TEXT_SECONDARY,
   },
   footerHint: {
     ...Typography.preset.caption,
-    color: SAGE_TEXT_SECONDARY,
     opacity: 0.6,
     fontSize: 11,
   },

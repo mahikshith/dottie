@@ -48,10 +48,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Pressable,
+  BackHandler,
 } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { AuroraBackground } from '../ui';
@@ -72,6 +72,7 @@ import {
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
 export function GhostLockBody() {
+  const insets = useSafeAreaInsets();
   // Disguise: is the lock screen pretending to be Garden Notes?
   // Subscribe via the store selector so this refreshes the instant
   // the user flips the toggle in settings.
@@ -84,6 +85,17 @@ export function GhostLockBody() {
   const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
   const cooldownEndsAt = useGhostModeStore(selectCooldownEndsAt);
   const failedAttempts = useGhostModeStore(selectFailedAttempts);
+
+  // ─── Hardware BACK is a no-op on the lock screen ────────────────
+  //
+  // A lock screen you can dismiss with the back button isn't a lock. We
+  // consume the press (return true) so back neither closes the app nor
+  // slips past the PIN. The home gesture still backgrounds the app
+  // normally — this only swallows the in-app back action.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, []);
 
   // ─── Cooldown countdown ─────────────────────────────────────────
   useEffect(() => {
@@ -147,87 +159,60 @@ export function GhostLockBody() {
   const isInCooldown = cooldownRemainingMs > 0;
   const cooldownSeconds = Math.ceil(cooldownRemainingMs / 1000);
 
-  // Device-test feedback: the non-disguise 'Welcome back, friend' PIN
-  // screen was still using the classic cream palette — jarring against
-  // the rest of the aurora-themed app. When disguise is OFF we render
-  // over an AuroraBackground with dark tokens; when disguise is ON we
-  // KEEP the cream Garden Notes look (a snooper must NOT see anything
-  // hinting at Dottie's real aesthetic).
-  const inner = (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerEmoji}>{headerEmoji}</Text>
-        <Text
-          style={[
-            styles.headerTitle,
-            { color: disguise ? Colors.text.primary : A.ink },
-          ]}
-        >
-          {headerTitle}
-        </Text>
-        <Text
-          style={[
-            styles.headerSubtitle,
-            { color: disguise ? Colors.text.secondary : A.ink2 },
-          ]}
-        >
-          {headerSubtitle}
-        </Text>
-      </View>
-
-      <View style={styles.pinSection}>
-        <PinPad
-          value={pin}
-          onChange={setPin}
-          onSubmit={handleSubmit}
-          length={MIN_PIN_LENGTH}
-          errorKey={errorKey}
-          disabled={isInCooldown}
-          theme={disguise ? 'cream' : 'aurora'}
-          errorMessage={
-            isInCooldown
-              ? `Wait ${cooldownSeconds}s before trying again`
-              : errorMessage ?? undefined
-          }
-          helperText={
-            failedAttempts > 0 && !errorMessage && !isInCooldown
-              ? undefined
-              : undefined
-          }
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <Pressable
-          onPress={() => useGhostModeStore.getState().enterDecoy()}
-          hitSlop={12}
-          style={({ pressed }) => [pressed && styles.footerLinkPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            disguise ? 'Skip and view plant journal' : 'Forgot PIN'
-          }
-        >
-          <Text
-            style={[
-              styles.footerLink,
-              { color: disguise ? Colors.text.tertiary : A.ink3 },
-            ]}
-          >
-            {disguise ? 'Skip · view notes' : 'Forgot PIN?'}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-
-  if (disguise) {
-    return <SafeAreaView style={styles.safeArea}>{inner}</SafeAreaView>;
-  }
+  // Device-test #6: the whole lock screen is now aurora liquid glass —
+  // both the disguise ("Garden Notes") and non-disguise ("Welcome back")
+  // variants. A dark-themed plant journal is still a plausible disguise
+  // and it keeps the app visually consistent + never flashes cream.
+  // `insets.top` keeps the header clear of the status bar clock (the
+  // Android react-native <SafeAreaView> did NOT do that, which is why the
+  // title overlapped the time).
   return (
     <AuroraBackground>
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: 'transparent' }]}>
-        {inner}
-      </SafeAreaView>
+      <View style={[styles.container, { paddingTop: insets.top + Spacing['3xl'] }]}>
+        <View style={styles.header}>
+          <Text style={styles.headerEmoji}>{headerEmoji}</Text>
+          <Text style={[styles.headerTitle, { color: A.ink }]}>{headerTitle}</Text>
+          <Text style={[styles.headerSubtitle, { color: A.ink2 }]}>{headerSubtitle}</Text>
+        </View>
+
+        <View style={styles.pinSection}>
+          <PinPad
+            value={pin}
+            onChange={setPin}
+            onSubmit={handleSubmit}
+            length={MIN_PIN_LENGTH}
+            errorKey={errorKey}
+            disabled={isInCooldown}
+            theme="aurora"
+            errorMessage={
+              isInCooldown
+                ? `Wait ${cooldownSeconds}s before trying again`
+                : errorMessage ?? undefined
+            }
+            helperText={
+              failedAttempts > 0 && !errorMessage && !isInCooldown
+                ? undefined
+                : undefined
+            }
+          />
+        </View>
+
+        <View style={styles.footer}>
+          <Pressable
+            onPress={() => useGhostModeStore.getState().enterDecoy()}
+            hitSlop={12}
+            style={({ pressed }) => [pressed && styles.footerLinkPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              disguise ? 'Skip and view plant journal' : 'Forgot PIN'
+            }
+          >
+            <Text style={[styles.footerLink, { color: A.ink3 }]}>
+              {disguise ? 'Skip · view notes' : 'Forgot PIN?'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </AuroraBackground>
   );
 }
@@ -243,15 +228,10 @@ function formatCooldownMessage(cooldownUntilIso: string | null): string {
 // ─── STYLES ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.surface.background,
-  },
   container: {
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing['3xl'],
     paddingBottom: Spacing.xl,
   },
   header: {
@@ -264,12 +244,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.preset.h2,
-    color: Colors.text.primary,
     textAlign: 'center',
   },
   headerSubtitle: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
     textAlign: 'center',
   },
   pinSection: {
@@ -281,7 +259,6 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.tertiary,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },

@@ -37,7 +37,6 @@ import {
   Text,
   StyleSheet,
   Pressable,
-  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -122,15 +121,15 @@ export function VersionBadge({
         </Pressable>
       </View>
 
-      {/* Details modal — full-screen so users can read everything on a
-          small phone without scrolling */}
-      <Modal
-        visible={detailsOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={handleClose}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={handleClose}>
+      {/* Details overlay — in-tree (NOT a <Modal>) so it can never get
+          stuck as a floating Android window. Device-test #6: every Modal
+          in the app was converted to an in-tree overlay after the
+          persistent white-circle bug traced to a stuck Modal window. */}
+      {detailsOpen && (
+        <Pressable
+          style={[styles.modalBackdrop, StyleSheet.absoluteFillObject, { zIndex: 999, elevation: 999 }]}
+          onPress={handleClose}
+        >
           {/* Inner pressable swallows taps so tapping inside the card
               doesn't close it */}
           <Pressable style={styles.modalCardWrap} onPress={() => {}}>
@@ -177,7 +176,7 @@ export function VersionBadge({
             </SafeAreaView>
           </Pressable>
         </Pressable>
-      </Modal>
+      )}
     </>
   );
 }
