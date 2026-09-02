@@ -1,49 +1,43 @@
 /**
- * Dottie — AuroraTabBar (design-v2, device-test #4 redesign)
+ * Dottie — AuroraTabBar (design-v2, liquid-glass redesign)
  *
- * Owner-driven redesign: the bottom nav is now a CURVY GLASS PILL sitting
- * above the phone's gesture bar, with a moving GLASS HIGHLIGHT that springs
- * from tab to tab on tap. That's the "real glassmorphism" the owner asked
- * for — a glass surface that moves, not a static rectangle.
+ * Rebuild driven by the owner's reference images (Figma glass buttons,
+ * Apple Music floating bar, a real device screenshot with a Home/Folders
+ * /Clean/Settings pill). Design targets:
  *
- * ─── ANATOMY ────────────────────────────────────────────────────────
- *
- *   +──────────────────────────────────────────+
- *   │  ⏱   📅   📖   👯   👤                      │  ← glass container
- *   │       ▓▓ ← moving pill (springs)           │
- *   +──────────────────────────────────────────+
- *
- *   • Container   — big rounded pill (radius 32), semi-transparent white
- *     glass (rgba 6%), 1px light border. The aurora ground shows through.
- *   • Highlight   — separate pill absolutely-positioned INSIDE the
- *     container, tinted with palette.accent at ~28% opacity, animated
- *     translateX + width via Reanimated shared values. Springs between
- *     tab positions measured at layout time.
- *   • Icons       — active gets palette.ink (bright, high-contrast on the
- *     mint-tinted pill); inactive gets palette.ink2 (brighter than the old
- *     ink3 so they read on the dim glass, not "off").
- *   • Labels      — same colour rule. "Today / Cycle / Learn / Circle / You"
- *     stay so users see what each tab means.
+ *   1. REAL frost.  A BlurView underlay so the aurora blooms behind the
+ *      bar bleed through as diffused light instead of just tinting a
+ *      flat colour. On Android where BlurView is unsupported / expensive,
+ *      the tinted background still reads as glass — the BlurView falls
+ *      back to a translucent solid, and the border + shadow do the rest.
+ *   2. LUMINOUS edge.  A double edge — an outer bright border on the
+ *      pill and an inner highlight stroke on the moving pill — so the
+ *      glass looks lit from within (the Apple-style "liquid" quality).
+ *   3. BOLD active pill.  Not a subtle tint. The reference screenshot has
+ *      a clear light-coloured pill behind the active tab; we match with
+ *      an opaque-ish mint-glass fill + brighter border. The pill moves
+ *      via Reanimated springs between measured tab positions.
+ *   4. FLOAT.  Bigger warm shadow so the whole bar reads as elevated,
+ *      not painted on the ground.
  *
  * ─── MOTION (animate-expo · tab-indicator recipe) ───────────────────
  *
- *   Tabs are peers, so the SCREEN never slides — only the highlight moves.
- *   Positions are measured once per tab with `onLayout`; the pill animates
- *   transform+width (it's absolutely positioned with no interactive
- *   children, the one sanctioned width animation). Spring form
- *   `{ dampingRatio: 0.78, duration: 340 }` for a hint of overshoot without
- *   feeling loose. Reduce Motion snaps instantly. Haptic on press, not on
- *   land. The screen never re-renders per frame — only the pill's transform.
+ *   Positions are measured once with `onLayout`; the pill absolutely
+ *   positions with no interactive children (the one sanctioned width
+ *   animation). Spring form { dampingRatio: 0.78, duration: 340 } with
+ *   a hint of overshoot. Reduce Motion snaps. Selection haptic on press.
+ *   The screen never re-renders per frame — only the pill's transform.
+ *
+ *   On the first render the pill snaps to the initially-focused tab's
+ *   measured position, so no "starts at 0 and slides to tab 3" flash.
  *
  * ─── SAFE-AREA ──────────────────────────────────────────────────────
  *
- *   The bar sits above the phone's gesture / navigation area via
- *   `insets.bottom + 8`. The bar itself is 60pt tall; the parent's
- *   `Spacing.tabBarHeight` already accounts for that in every screen's
- *   ScrollView contentContainer.
+ *   Wrapper padding = `insets.bottom + 8` so the pill floats above the
+ *   phone's gesture area. `Spacing.tabBarHeight` already accounts for
+ *   the taller bar in every screen's ScrollView contentContainer.
  *
- *  ⚠️ design-v2 / UNVERIFIED (no device here). BottomTabBarProps shape is
- *  typed locally (minimal) to avoid a fragile transitive import.
+ *  ⚠️ design-v2 / UNVERIFIED on device.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -56,6 +50,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useAurora } from '../../../theme/ThemeProvider';
 
@@ -88,13 +83,13 @@ type IconName = 'today' | 'cycle' | 'learn' | 'circle' | 'you';
 function TabIcon({ name, color }: { name: IconName; color: string }): JSX.Element {
   const p = {
     stroke: color,
-    strokeWidth: 1.9,
+    strokeWidth: 2,
     fill: 'none' as const,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
   };
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24">
+    <Svg width={22} height={22} viewBox="0 0 24 24">
       {name === 'today' && (
         <>
           <Circle cx={12} cy={12} r={4} {...p} />
@@ -134,19 +129,12 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
 
-  // Measured tab positions by route key. Populated as each tab's onLayout
-  // fires (once per mount, unless the bar resizes). We keep it in a ref
-  // so measurements don't trigger extra renders.
   const positionsRef = useRef<Record<string, { x: number; w: number }>>({});
-  // Bump this to re-run the pill-position effect once the first layout lands.
   const [layoutReady, setLayoutReady] = useState(0);
 
-  // Reanimated shared values driving the moving pill.
   const pillX = useSharedValue(0);
   const pillW = useSharedValue(0);
 
-  // Slide the pill whenever the active index changes (or the first layout
-  // lands). Spring form has a little overshoot; Reduce Motion snaps.
   useEffect(() => {
     const route = state.routes[state.index];
     if (!route) return;
@@ -177,9 +165,6 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
   const handleTabLayout = (routeKey: string, isFocused: boolean) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
     positionsRef.current[routeKey] = { x, w: width };
-    // For the currently-focused tab on the first layout, snap the pill
-    // there directly so it renders in the right place on the first paint
-    // (no "pill starts at 0 and springs to position 3" flash).
     if (isFocused && pillW.value === 0) {
       pillX.value = x;
       pillW.value = width;
@@ -196,33 +181,58 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
         style={[
           styles.bar,
           {
-            backgroundColor: palette.glass.bg,
-            borderColor: palette.glass.edge,
+            borderColor: 'rgba(255,255,255,0.22)',
             shadowColor: palette.accent,
           },
         ]}
       >
-        {/* Moving glass highlight — the "glass that moves" the owner asked for. */}
+        {/* REAL FROST — BlurView underlay. iOS renders true backdrop
+            blur; Android falls back to a translucent tint (still reads
+            as glass because of the border + shadow + luminous pill). */}
+        <BlurView
+          intensity={40}
+          tint="dark"
+          style={StyleSheet.absoluteFillObject}
+        />
+        {/* Warm tint layer over the blur so the aurora ground shows
+            through as diffused colour instead of grey. */}
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFillObject,
+            { backgroundColor: 'rgba(20,14,44,0.42)', borderRadius: RADIUS },
+          ]}
+        />
+
+        {/* MOVING LIQUID PILL — the highlight that springs between tabs.
+            Two layers: a slightly larger soft glow behind + the crisp
+            pill on top with a bright inner border. Reads as lit glass. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.pillGlow,
+            pillStyle,
+            { backgroundColor: `${palette.accent}22` },
+          ]}
+        />
         <Animated.View
           pointerEvents="none"
           style={[
             styles.pill,
             pillStyle,
             {
-              backgroundColor: `${palette.accent}33`,
-              borderColor: `${palette.accent}88`,
+              backgroundColor: `${palette.accent}3D`,
+              borderColor: 'rgba(255,255,255,0.55)',
             },
           ]}
         />
-
         {state.routes.map((route, index) => {
           const meta = TAB_META[route.name];
           if (!meta) return null;
           const focused = state.index === index;
-          // Active icon/label are BRIGHT (palette.ink) on the mint-tinted
-          // glass pill — highest contrast. Inactive stays a soft ink2 —
-          // clearly visible, but recessed. Answers owner's "opposite,
-          // contrasting colour" ask.
+          // Icon + label go BRIGHT on the active pill (palette.ink),
+          // dim on inactive tabs (palette.ink2 — one step brighter than
+          // ink3 so all five icons read). Reference-image contrast.
           const color = focused ? palette.ink : palette.ink2;
           return (
             <Pressable
@@ -249,14 +259,13 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
 
 // ─── STYLES (layout only — colours inline, palette-driven) ──────────
 
-const BAR_H = 62;
-const BAR_PAD = 6;
-const RADIUS = 32;
+const BAR_H = 64;
+const BAR_PAD = 7;
+const RADIUS = 34;
 
 const styles = StyleSheet.create({
   wrapper: {
-    // Room for the phone's gesture / nav area beneath, and side-margins so
-    // the pill floats rather than butting the screen edges.
+    // Side margins so the pill truly floats.
     paddingHorizontal: 14,
   },
   bar: {
@@ -266,14 +275,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS,
     borderWidth: 1,
     padding: BAR_PAD,
-    // A soft warm glow using the palette accent — matches the aurora
-    // vibe without becoming a hard shadow rectangle.
-    shadowOpacity: 0.22,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
-    // The container is a glass pill; the aurora ground shows through
-    // its 6% white fill, which is why we set only opacity + border.
+    overflow: 'hidden',
+    // Warm accent-tinted glow so the pill reads as elevated liquid glass.
+    shadowOpacity: 0.32,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 16,
+  },
+  // Soft outer glow that sits BEHIND the crisp pill so the highlight
+  // reads as light bleeding out of the glass (the "liquid" quality).
+  pillGlow: {
+    position: 'absolute',
+    top: BAR_PAD - 3,
+    left: -3,
+    height: BAR_H - BAR_PAD * 2 + 6,
+    borderRadius: RADIUS - BAR_PAD + 3,
   },
   pill: {
     position: 'absolute',
@@ -281,17 +297,17 @@ const styles = StyleSheet.create({
     left: 0,
     height: BAR_H - BAR_PAD * 2,
     borderRadius: RADIUS - BAR_PAD,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 3,
     height: '100%',
   },
   label: {
     fontSize: 10.5,
-    letterSpacing: 0.2,
+    letterSpacing: 0.25,
   },
 });
