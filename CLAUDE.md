@@ -69,10 +69,13 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
   already fires a haptic, pass `haptic="none"`.
 - `GradientButton`, `GradientFab`, `BreathingView`, `PopOnChange`,
   `CompanionLottie` (art with emoji fallback — never hardcode a companion emoji)
-- **`CelebrationDialog` / `showAppDialog()` global API.** DO NOT wrap the card
-  in a Reanimated `entering` animation — the Modal's own `animationType="fade"`
-  is enough. The Reanimated combo caused the persistent white-circle-at-top-left
-  bug that plagued 5 device tests (fixed in `e8f1335`).
+- **`CelebrationDialog` / `showAppDialog()` global API.** NEVER use a React
+  Native `<Modal>` for this (or any) overlay. A transparent/translucent Modal is
+  a separate Android OS window that can get stuck floating over every screen —
+  that was the persistent white-circle-at-top-left bug that plagued 5 device
+  tests. It is now an in-tree absolutely-positioned overlay at the app root that
+  returns null when hidden (fixed for real in `21d5432`; `e8f1335` was the wrong
+  diagnosis). Keep `grep -rn "<Modal" src app` empty.
 
 ## Rules baked into the code (do not undo)
 

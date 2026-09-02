@@ -13,10 +13,16 @@
 
 The Gemini Learn Redesign shipped in 4 phases + a stack of device-test fixes. The
 app runs on the owner's Nothing Phone via GitHub Actions preview APKs. Latest
-commit is `e8f1335` — fixed the **persistent top-left white circle** (Modal +
-Reanimated FadeInDown race in `CelebrationDialog`; every `showAppDialog` call
-site was misrendering the card at (0,0) with tiny bounds → white blob). Ship a
-new APK from that commit and verify.
+commit is `21d5432`. The **persistent top-left white circle** is now fixed at the
+root: it was a stuck React Native `<Modal statusBarTranslucent transparent>`
+window (a separate Android OS window that mis-measured on first paint and floated
+above every screen, intercepting touches — the card collapsed to a top-left blob
+and `visible` never flipped back). `e8f1335` (dropping Reanimated) was the wrong
+diagnosis; `21d5432` removes **every** `<Modal>` in the app — `CelebrationDialog`
+and `VersionBadge` are now in-tree absolutely-positioned overlays that return null
+when hidden. Same commit frees the **decoy trap** (hardware back + `exitDecoy()`)
+and adds the owner-requested **cream ⇄ aurora decoy toggle**. Ship the new APK and
+verify all three on device.
 
 ## 2. How to work (env + workflow)
 
@@ -38,9 +44,12 @@ new APK from that commit and verify.
     PressableScale / GradientButton / GradientFab)
   - `npm run test:all` — runs every one of the above, exits non-zero on any failure
   - `npm run simulate` — eyeball predictor sim (non-assertive; for visual review)
-- **CelebrationDialog rule** (post-fix): NEVER wrap the dialog card in a
-  Reanimated `entering` animation — the Modal's own `animationType="fade"` is
-  enough. Adding Reanimated back would re-introduce the white-circle bug.
+- **No `<Modal>` rule** (post `21d5432`): the app must contain ZERO React Native
+  `<Modal>` components. On Android a transparent/translucent Modal is a separate
+  OS window that can get stuck floating over everything (the white-circle bug).
+  Any dialog/overlay must be an in-tree absolutely-positioned View mounted at the
+  app root (see `CelebrationDialog`, `VersionBadge`), returning null when hidden,
+  with a tap-outside backdrop. `grep -rn "<Modal" src app` must stay empty.
 - **Notification permission rule** (device-test #5): `syncAllReminders` never
   prompts. Only call `requestNotificationPermission()` from an explicit user tap.
 
@@ -51,7 +60,9 @@ messages for the exact rationale.
 
 | # | Commit | What |
 |---|--------|------|
-| 15 | `e8f1335` | **White-circle root cause** — dropped Reanimated FadeInDown in `CelebrationDialog` (Modal + entering-animation race) |
+| 17 | `21d5432` | **White-circle real fix** (removed EVERY `<Modal>` → in-tree overlays) + **decoy trap freed** (hardware back + `exitDecoy()`) + **cream⇄aurora decoy toggle** (`decoyTheme` setting) |
+| 16 | `9b80d37` | Deep test harnesses — 3 new suites (predictor scenarios, app journeys, UI onPress audit), all wired into CI |
+| 15 | `e8f1335` | White-circle attempt #2 (dropped Reanimated FadeInDown) — **superseded by `21d5432`; Modal was the real cause** |
 | 14 | `3152994` | AuroraTabBar liquid-glass redesign (BlurView + luminous pill + deeper shadow) |
 | 13 | `fb8ae03` | Sisterhood period-log: multi-day rapid flow (auto-advance date, ✓ pills, "Log another" dialog) |
 | 12 | `d48e6cc` | Device-test #5 batch: splash aurora, tab-bar root bg, learn label overlap, quiz "Clos" truncation, quiz % crowding, `Notifications.request*` silent-check split |
@@ -67,12 +78,19 @@ harnesses green.
 
 ## 4. Open TODO (from owner, 2026-09-02)
 
-**Priority 0 — verify white-circle fix on the next APK.** If it's gone, close
-this out. If it persists, the next culprit is likely the WalkthroughOverlay
-scrim (a Pressable with `absoluteFillObject`); either replace it with a plain
-tap-outside dismiss or verify `Storage.walkthroughSeen` guard is working. My
-`e8f1335` fix hits every `showAppDialog` call site, which is the most likely
-source given owner's "on Save/Done/Next in Learn, Profile, period log."
+**Priority 0 — verify on the next APK (`21d5432`):**
+1. **White circle** — open a lesson, tap "Understood/Proceed", confirm NO white
+   dot at top-left and the quiz opens. Repeat across several lessons + the period
+   log + Profile dialogs. Root cause was a stuck `<Modal>` window; `21d5432`
+   removed all Modals, so if it recurs the culprit is a NEW absolutely-positioned
+   overlay, not a Modal (grep confirms zero remain).
+2. **Decoy exit** — trigger the decoy (wrong PIN, or "Skip · view notes" on the
+   lock screen), then press the Android back button → should return to the PIN
+   lock (not force-quit, not stay trapped). Triple-tap "Refresh garden" still
+   works too.
+3. **Decoy toggle** — Profile → Ghost Mode → "Plant journal style" switch. Off =
+   cream notebook, On = dark aurora. Flip it, re-enter the decoy, confirm the look
+   changed and the header clears the status-bar clock in both.
 
 **Priority 1 — end-to-end button simulation.** _Partial: engine + UI-static
 layer done, on-device layer still open._ Three new harnesses shipped this
