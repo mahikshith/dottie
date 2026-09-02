@@ -10,7 +10,6 @@
  */
 
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export interface DialogAction {
   label: string;
@@ -44,10 +43,21 @@ export function CelebrationDialog({
       onRequestClose={onRequestClose}
     >
       <View style={styles.backdrop}>
-        <Animated.View
-          entering={FadeInDown.duration(340).springify().damping(18)}
-          style={styles.card}
-        >
+        {/*
+          Device-test #6: previously wrapped in <Animated.View
+          entering={FadeInDown...}> — that combo (React Native Modal +
+          statusBarTranslucent + Reanimated FadeInDown) fires the
+          Reanimated entering animation BEFORE Android finishes mounting
+          the Modal window, painting an initial frame at (0,0) with tiny
+          measured bounds. On the aurora screens that reads as a small
+          white circle at top-left that persists until the user hits the
+          phone back button (which fires onRequestClose and dismisses
+          the Modal). Owner reported this reproducing on Learn, Profile,
+          period logging — every showAppDialog call site. The Modal's
+          own animationType="fade" already provides the entrance
+          transition; no Reanimated needed.
+        */}
+        <View style={styles.card}>
           <Text style={styles.emoji}>{emoji}</Text>
           <Text style={styles.title}>{title}</Text>
           {body ? <Text style={styles.body}>{body}</Text> : null}
@@ -77,7 +87,7 @@ export function CelebrationDialog({
               )
             )}
           </View>
-        </Animated.View>
+        </View>
       </View>
     </Modal>
   );
