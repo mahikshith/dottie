@@ -21,6 +21,14 @@ name: Learn Redesign — Checks + Android APK
 # 17 + expo prebuild + gradle assembleRelease). No EAS, no Expo account, no
 # committed android/ folder.
 
+# Human-readable run name shown in the Actions tab. Prefixes with 'manual' on
+# workflow_dispatch, otherwise the branch, and appends the first line of the
+# commit message so a scan of the tab tells you what each run represents
+# without opening any of them.
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && 'manual' || github.ref_name }}
+  · ${{ github.event.head_commit.message && github.event.head_commit.message || 'dispatch' }}
+
 on:
   workflow_dispatch:
     inputs:
