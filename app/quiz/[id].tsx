@@ -114,12 +114,17 @@ export default function QuizScreen() {
       return;
     }
 
+    // Adaptive: true enables Phase 3's tier-aware selection so a new user's
+    // first question is always beginner-tier and difficulty climbs on correct
+    // answers (promote-only, never demote). Deterministic per session id.
     const attempt = quizEngine.startAttempt(
       id,
       companionType,
       cyclePhase,
       dayInCycle,
-      streak.currentStreak
+      streak.currentStreak,
+      undefined,
+      true
     );
 
     if (!attempt) {

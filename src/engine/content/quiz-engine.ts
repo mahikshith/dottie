@@ -62,6 +62,10 @@ import {
   wrapInsight,
   buildContext,
 } from './companion-dialogue';
+import {
+  pickAdaptiveSlate,
+  seedFromSessionId,
+} from '../learn/adaptive-quiz';
 
 // ─── ATTEMPT PROVIDER INTERFACE ──────────────────────────────────────
 
@@ -265,7 +269,15 @@ export class QuizEngine {
     phase: Phase,
     dayInCycle: number,
     streakCount: number,
-    questionCount?: number
+    questionCount?: number,
+    /**
+     * Learn Redesign Phase 3 opt-in. When true, questions are picked with
+     * tier awareness (beginner → moderate → hard on optimistic promotion;
+     * nearest-tier fallback if a bank is skewed). Deterministic per session
+     * via the session id seed. Default false so existing call sites keep the
+     * random-subset behavior they had before Phase 3.
+     */
+    adaptive: boolean = false
   ): QuizAttemptSession | null {
     this.cleanupExpiredSessions();
 
@@ -275,13 +287,18 @@ export class QuizEngine {
     const count =
       questionCount ?? quiz.questionsPerAttempt ?? DEFAULT_QUESTION_COUNT;
 
-    // Randomly pick subset
-    const selected = shuffle(quiz.questions).slice(
-      0,
-      Math.min(count, quiz.questions.length)
-    );
-
     const sessionId = generateSessionId();
+
+    // Adaptive path uses the session-seeded, tier-aware selector so a first
+    // question is always beginner-tier and the staircase climbs on correct
+    // answers. Legacy path is a plain random subset (unchanged).
+    const selected = adaptive
+      ? pickAdaptiveSlate({
+          bank: quiz.questions,
+          count: Math.min(count, quiz.questions.length),
+          seed: seedFromSessionId(sessionId),
+        })
+      : shuffle(quiz.questions).slice(0, Math.min(count, quiz.questions.length));
     const startedAtMs = Date.now();
     const startedAt = new Date(startedAtMs).toISOString();
 

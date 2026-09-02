@@ -11,7 +11,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
     "simulate": "tsx scripts/predictor-simulation.ts",
-    "validate:content": "tsx scripts/validate-content.ts"
+    "validate:content": "tsx scripts/validate-content.ts",
+    "test:adaptive": "tsx scripts/adaptive-quiz-harness.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

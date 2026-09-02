@@ -5,13 +5,12 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-09-02 (Learn Redesign Phase 1 + Phase 2 landed on a NEW branch
-`gemini-learn-redesign` — spec-driven work is isolated from `design-v2` so device-test
-fixes can keep shipping independently. Phase 1 = Today's Spotlight (phase-aware picks
-via `selectSpotlightLessons`); Phase 2 = 4 per-phase paths + 12 lessons + 12 quizzes.
-Content validator green: 26 lessons / 23 quizzes / 121 questions. `[skip ci]` on both
-commits — no APK build yet, CI wiring for the new branch pending.)
-**Updated by:** Claude (Opus 4.7) — Learn Redesign Phase 1+2
+**Last updated:** 2026-09-02 (Learn Redesign Phases 1+2+3 all live on `gemini-learn-redesign`.
+Phase 1 = Today's Spotlight; Phase 2 = 4 per-phase paths (12 lessons/quizzes); Phase 3 = tier-
+aware adaptive quiz engine with 17-invariant Node harness + opt-in flag wired into
+`app/quiz/[id].tsx`. All commits `[skip ci]` — no APK build yet, CI wiring for the new branch
+still pending until a phase feels device-worthy.)
+**Updated by:** Claude (Opus 4.7) — Learn Redesign Phases 1-3
 **START HERE for test-#3 fixes:** `docs/DEVICE-TEST-3.md`
 **Learn redesign track:** `docs/LEARN-REDESIGN-PROPOSAL.md` (our plan) +
 `docs/LEARN-REDESIGN-GEMINI-BRIEF.md` (Gemini research pack) +
@@ -55,7 +54,27 @@ new branch is deferred until a phase is device-test ready.
   via `resolveSubPhase`, memoises the selector, mounts the card between pace chooser and
   path trails.
 
-**Phase 2 (per-phase curriculum — this commit)**
+**Phase 3 (adaptive quiz engine — commit lands next)**
+- `src/engine/learn/adaptive-quiz.ts` — pure module, 5 rules from Gemini Master
+  Spec §3 with 3 deliberate fixes:
+  - RULE 1: first pick always beginner.
+  - RULE 2/3: correct → PROMOTE one tier; wrong → HOLD current tier. We reject
+    Gemini's original "demote on miss" (a bad afternoon shouldn't lock a user
+    into remedial content).
+  - RULE 4: nearest-tier fallback (beg ↔ mod ↔ hard, symmetric radius walk),
+    not "any question at random". Preserves the arc when a bank is small.
+  - RULE 5: session-seeded shuffle (mulberry32 + FNV-1a on session id). Same
+    session id → same picks → reproducible harness + stable retakes.
+- `scripts/adaptive-quiz-harness.ts` — 17 invariants, all green. `npm run
+  test:adaptive` runs it in Node via tsx.
+- `QuizEngine.startAttempt` gains an opt-in `adaptive: boolean` (default
+  false — existing call sites unchanged). `app/quiz/[id].tsx` passes `true`
+  so every quiz launched from the lesson-reader flow now uses the tier-aware
+  slate.
+- Legacy questions with no `level` behave as beginner (matches Phase 0's
+  optional-field decision).
+
+**Phase 2 (per-phase curriculum — commit `a0f4774`)**
 - 4 new paths: `path_menstrual_phase`, `path_follicular_phase`, `path_ovulation`,
   `path_luteal_pms`. Each has 3 beginner-tier lessons; every lesson has a 5-question quiz
   (levels: 3× beginner / 1× moderate / 1× hard).
