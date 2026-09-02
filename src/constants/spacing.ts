@@ -65,7 +65,7 @@ export const Spacing = {
   touchTarget: 44,           // Minimum touch target (Apple HIG)
 
   // ─── TAB BAR ──────────────────────────────────────────────────
-  tabBarHeight: 85,          // Bottom tab bar height (incl. safe area)
+  tabBarHeight: 96,          // Bottom tab bar (curvy glass pill + safe area)
   tabBarPadding: 8,
 
   // ─── STATUS BAR / HEADER ──────────────────────────────────────
