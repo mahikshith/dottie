@@ -43,7 +43,6 @@ import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
 import { TodayAtAGlanceCard } from '../../src/components/home/TodayAtAGlanceCard';
 import { todayISO } from '../../src/utils/date.utils';
-import { useWalkthroughStore } from '../../src/walkthrough/store';
 import type { HealthCondition } from '../../src/types/cycle.types';
 
 // Stable empty fallback so a null health profile doesn't return a fresh []
@@ -118,15 +117,14 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── First-run walkthrough auto-launch ──────────────────────────
-  // Guarded inside startTour() via Storage.walkthroughSeen — no-op for
-  // returning users. Small delay so the entrance animations finish first.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      useWalkthroughStore.getState().startTour();
-    }, 500);
-    return () => clearTimeout(t);
-  }, []);
+  // ─── First-run walkthrough auto-launch: DISABLED ────────────────
+  // Device-test #4: owner reported the walkthrough was surfacing an
+  // artifact (a persistent white circle top-left) even when supposedly
+  // skipped, and hanging the interaction. Rather than chase the ghost
+  // in the overlay, we take the safer path: the tour is now opt-in only
+  // via Profile → "Show me around again" (which calls
+  // useWalkthroughStore.getState().restart()). No user is auto-nagged
+  // and no crashed-mid-tour state can re-surface silently.
 
   // ─── Compose greeting (time + companion + phase) ────────────────
   const greeting = useMemo(() => {

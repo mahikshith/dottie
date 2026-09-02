@@ -36,6 +36,7 @@ import { A } from '../theme';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { useWalkthroughStore, STEPS, selectWalkthroughStep } from './store';
+import { Storage } from '../database/storage';
 
 /**
  * One-time hint shown after a user SKIPS the tour, telling them
@@ -70,6 +71,13 @@ export function WalkthroughOverlay(): JSX.Element | null {
     }
   }, [step, router]);
 
+  // Hard safety (device-test #4): if the seen-flag is already set, never
+  // paint the overlay — even if the store's stepIndex somehow got left
+  // in a non-null state by a crash mid-tour or a stale hot-reload. The
+  // opt-in path via Profile → 'Show me around again' explicitly clears
+  // the seen flag first (via restart()), so this doesn't block a
+  // legitimate replay.
+  if (Storage.walkthroughSeen.get()) return null;
   if (!step || stepIndex == null) return null;
 
   const isLast = stepIndex + 1 >= STEPS.length;

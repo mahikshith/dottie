@@ -12,6 +12,7 @@ import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppDialogHost } from '../src/components/ui/appDialog';
 import { WalkthroughOverlay } from '../src/walkthrough/WalkthroughOverlay';
+import { useWalkthroughStore } from '../src/walkthrough/store';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
@@ -118,6 +119,21 @@ export default function RootLayout() {
         } catch (err) {
           // Never block app open on lock-state init failure
           if (__DEV__) console.warn('[Hydration] ghost lock init failed:', err);
+        }
+
+        // ─── Walkthrough cold-start reset (device-test #4) ──────────
+        // Defensive: ensure no crashed-mid-tour state survives a
+        // relaunch. Without this, if the app was killed while a
+        // walkthrough step was active, the overlay could re-render on
+        // cold start and appear "stuck" until the user tapped through
+        // it. The store defaults to stepIndex=null on module init, so
+        // this is only meaningful if a hot-reload / stale process left
+        // it non-null — cheap belt-and-braces.
+        try {
+          const s = useWalkthroughStore.getState();
+          if (s.stepIndex != null) s.skip();
+        } catch (err) {
+          if (__DEV__) console.warn('[Hydration] walkthrough reset failed:', err);
         }
 
         // ─── Beta Pioneer award (chunk 12) ────────────────────────
