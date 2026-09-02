@@ -12,7 +12,8 @@
     "type-check": "tsc --noEmit",
     "simulate": "tsx scripts/predictor-simulation.ts",
     "validate:content": "tsx scripts/validate-content.ts",
-    "test:adaptive": "tsx scripts/adaptive-quiz-harness.ts"
+    "test:adaptive": "tsx scripts/adaptive-quiz-harness.ts",
+    "test:rhythm": "tsx scripts/gentle-rhythm-harness.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

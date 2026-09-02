@@ -5,12 +5,13 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-09-02 (Learn Redesign Phases 1+2+3 all live on `gemini-learn-redesign`.
-Phase 1 = Today's Spotlight; Phase 2 = 4 per-phase paths (12 lessons/quizzes); Phase 3 = tier-
-aware adaptive quiz engine with 17-invariant Node harness + opt-in flag wired into
-`app/quiz/[id].tsx`. All commits `[skip ci]` — no APK build yet, CI wiring for the new branch
-still pending until a phase feels device-worthy.)
-**Updated by:** Claude (Opus 4.7) — Learn Redesign Phases 1-3
+**Last updated:** 2026-09-02 (Learn Redesign Phases 1-4 all live on `gemini-learn-redesign`.
+Phase 1 = Today's Spotlight; Phase 2 = 4 per-phase paths (12 lessons/quizzes/60 questions);
+Phase 3 = tier-aware adaptive quiz engine (17-invariant harness); Phase 4 = Gentle Rhythm
+cadence chip with 22-invariant harness (no separate Learn streak, rest days count, no punitive
+language ever). All Gemini Master Spec phases complete. All commits `[skip ci]` — no APK
+build yet, CI wiring for the new branch still pending until a preview is ready.)
+**Updated by:** Claude (Opus 4.7) — Learn Redesign Phases 1-4
 **START HERE for test-#3 fixes:** `docs/DEVICE-TEST-3.md`
 **Learn redesign track:** `docs/LEARN-REDESIGN-PROPOSAL.md` (our plan) +
 `docs/LEARN-REDESIGN-GEMINI-BRIEF.md` (Gemini research pack) +
@@ -54,7 +55,26 @@ new branch is deferred until a phase is device-test ready.
   via `resolveSubPhase`, memoises the selector, mounts the card between pace chooser and
   path trails.
 
-**Phase 3 (adaptive quiz engine — commit lands next)**
+**Phase 4 (Gentle Rhythm — commit lands next)**
+- `src/engine/learn/gentle-rhythm.ts` — pure module. Deliberately NOT a
+  streak. Records visited days in a rolling 30-day window, produces a warm
+  non-punishing summary ("A quiet week — welcome back" / "4 kind moments in
+  the last 7 days"). Rest days count; absence is silent; no "streak broken"
+  state, no red X, no wellness claim about the user.
+- `Storage.learnRhythm` — persists `{visitedDays: string[]}`. Idempotent
+  writes; prune-on-write.
+- `src/components/learn/GentleRhythmChip.tsx` — small aurora pill with an
+  emoji beat, warm label, and a 7-dot cadence row (filled = visited, hollow
+  = quiet — never red).
+- `app/(tabs)/learn.tsx` records today's visit on tab focus (idempotent),
+  memoises summary + dot map, and mounts the chip between the pace chooser
+  and Today's Spotlight.
+- `scripts/gentle-rhythm-harness.ts` — 22 invariants (idempotency, purity,
+  rest-days-count, no punitive language across 6 states, window prune,
+  window caps, tolerance of malformed / future dates). `npm run test:rhythm`
+  runs it in Node via tsx. All green.
+
+**Phase 3 (adaptive quiz engine — commit `9fa2a8d`)**
 - `src/engine/learn/adaptive-quiz.ts` — pure module, 5 rules from Gemini Master
   Spec §3 with 3 deliberate fixes:
   - RULE 1: first pick always beginner.

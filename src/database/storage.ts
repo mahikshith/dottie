@@ -113,6 +113,10 @@ const Keys = {
   // sequential locks; 'basics'/'deep' unlock the trail for self-directed learners.
   LEARN_LEVEL: 'learn.level',
 
+  // Gentle Rhythm (design-v2 Phase 4). A rolling 30-day list of visited days
+  // for the Learn tab. NOT a streak — see src/engine/learn/gentle-rhythm.ts.
+  LEARN_RHYTHM: 'learn.rhythm',
+
   // Over-the-air content bundle (design-v2 — updatable lessons). The last
   // validated ContentBundle downloaded from the network, cached so new lessons
   // survive restarts and work offline. Bundled content is always the baseline;
@@ -406,6 +410,21 @@ export const Storage = {
       (mmkv.getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
     set: (level: LearnLevel): void => mmkv.set(Keys.LEARN_LEVEL, level),
     clear: (): void => mmkv.delete(Keys.LEARN_LEVEL),
+  },
+
+  // ─── Gentle Rhythm state (design-v2 Phase 4 — Learn cadence) ────
+  //
+  // A rolling window of dates the user visited the Learn tab. Stored as
+  // { visitedDays: string[] } (YYYY-MM-DD, sorted, deduped, pruned to the
+  // last RHYTHM_WINDOW_DAYS by the engine). Deliberately NOT a streak —
+  // rest days count, absence is silent, no negative language. See
+  // src/engine/learn/gentle-rhythm.ts.
+
+  learnRhythm: {
+    get: (): { visitedDays: string[] } =>
+      getJson<{ visitedDays: string[] }>(Keys.LEARN_RHYTHM) ?? { visitedDays: [] },
+    set: (state: { visitedDays: string[] }): void => setJson(Keys.LEARN_RHYTHM, state),
+    clear: (): void => mmkv.delete(Keys.LEARN_RHYTHM),
   },
 
   // ─── OTA content bundle (design-v2 — updatable lessons) ─────────

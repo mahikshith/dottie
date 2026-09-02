@@ -81,6 +81,12 @@ import { Storage, type LearnLevel } from '../../src/database/storage';
 import { resolveSubPhase } from '../../src/engine/calendar/day-suggestions';
 import { selectSpotlightLessons } from '../../src/engine/learn/phase-aware-selector';
 import { TodaySpotlightCard } from '../../src/components/learn/TodaySpotlightCard';
+import {
+  recordVisit as recordRhythmVisit,
+  summarizeRhythm,
+  type GentleRhythmSummary,
+} from '../../src/engine/learn/gentle-rhythm';
+import { GentleRhythmChip } from '../../src/components/learn/GentleRhythmChip';
 
 // Stable empty array so a null healthProfile doesn't churn the selector.
 const EMPTY_CONDITIONS: HealthCondition[] = [];
@@ -162,6 +168,13 @@ export default function LearnScreen() {
   const [level, setLevel] = useState<LearnLevel | null>(() => Storage.learnLevel.get());
   const guided = level !== 'basics' && level !== 'deep'; // null/'new' → guided
 
+  // Gentle Rhythm (Phase 4). We hold the rolling visited-days state in local
+  // state so the chip can rerender when we record today's visit inside the
+  // focus effect below. Persistence lives in `Storage.learnRhythm`.
+  const [rhythm, setRhythm] = useState<{ visitedDays: string[] }>(() =>
+    Storage.learnRhythm.get()
+  );
+
   // Auto-scroll: bring the current lesson into view on open / after finishing one
   // (owner ask — don't make the user hunt for where they are). `armed` is reset
   // on focus so each visit re-centres; the once-guard stops multiple trails from
@@ -220,6 +233,17 @@ export default function LearnScreen() {
       const cleanup = loadProgress();
       setLevel(Storage.learnLevel.get());
       autoScrollArmed.current = true; // re-centre on the current lesson each visit
+      // Gentle Rhythm — record today's visit. Idempotent (double focus on the
+      // same day is a no-op); prunes anything older than 30 days in the same
+      // pass. Local state stays in sync so the chip re-renders.
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const current = Storage.learnRhythm.get();
+      const next = recordRhythmVisit(current, todayIso);
+      if (next.visitedDays.length !== current.visitedDays.length ||
+          next.visitedDays[next.visitedDays.length - 1] !== current.visitedDays[current.visitedDays.length - 1]) {
+        Storage.learnRhythm.set(next);
+        setRhythm(next);
+      }
       return cleanup;
     }, [loadProgress])
   );
@@ -268,6 +292,24 @@ export default function LearnScreen() {
         : null,
     [hasCycleData, phase, dayInCycle]
   );
+  // Gentle Rhythm summary + a 7-dot map ending today (oldest → today). Both
+  // derived pure from state — cheap to recompute per render.
+  const rhythmSummary: GentleRhythmSummary = useMemo(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    return summarizeRhythm(rhythm, todayIso);
+  }, [rhythm]);
+  const last7Dots: boolean[] = useMemo(() => {
+    const today = new Date();
+    const set = new Set(rhythm.visitedDays);
+    const out: boolean[] = [];
+    for (let offset = 6; offset >= 0; offset--) {
+      const d = new Date(today.getTime() - offset * 86400000);
+      const iso = d.toISOString().slice(0, 10);
+      out.push(set.has(iso));
+    }
+    return out;
+  }, [rhythm]);
+
   const spotlight = useMemo(
     () =>
       selectSpotlightLessons({
@@ -347,6 +389,11 @@ export default function LearnScreen() {
         {/* Pace chooser (hybrid placement) */}
         <Animated.View entering={rise(110)}>
           <PaceChooser level={level} guided={guided} onPick={pickLevel} />
+        </Animated.View>
+
+        {/* Gentle Rhythm — a warm, non-punishing cadence chip (Phase 4). */}
+        <Animated.View entering={rise(125)} style={{ marginBottom: Spacing.md }}>
+          <GentleRhythmChip summary={rhythmSummary} last7Dots={last7Dots} />
         </Animated.View>
 
         {/* Today's Spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) */}
