@@ -73,6 +73,13 @@ export default function PeriodLogScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [flowLevel, setFlowLevel] = useState<number>(3); // 1-5
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Track dates already logged in THIS visit so the UI can mark them
+  // "✓ logged" and the user can quickly log adjacent days in a row.
+  // Device-test #5: owner reported that after the first save, subsequent
+  // saves didn't seem to do anything — root cause was the notification
+  // permission dialog blocking the Save tap system-wide; this multi-day
+  // affordance also makes rapid period-run logging feel natural.
+  const [loggedThisVisit, setLoggedThisVisit] = useState<Set<string>>(new Set());
 
   // Build last 14 day options
   const dayOptions = useMemo(() => {
@@ -124,13 +131,35 @@ export default function PeriodLogScreen() {
         Haptics.NotificationFeedbackType.Success
       ).catch(() => {});
 
+      // Mark as logged + auto-advance to the previous day so tapping Save
+      // again logs the next backwards day (typical period-run flow). If
+      // there's no earlier day within the 14-day window, we hold on the
+      // current selection.
+      const justLogged = selectedDate;
+      setLoggedThisVisit((prev) => {
+        const next = new Set(prev);
+        next.add(justLogged);
+        return next;
+      });
+      const prevIdx = dayOptions.findIndex((d) => d.date === justLogged) + 1;
+      const prevDate = dayOptions[prevIdx]?.date;
+      if (prevDate && !loggedThisVisit.has(prevDate)) {
+        setSelectedDate(prevDate);
+      }
+
       const dayLabel =
-        selectedDate === today ? 'today' : `on ${formatFriendly(selectedDate)}`;
+        justLogged === today ? 'today' : `on ${formatFriendly(justLogged)}`;
       showAppDialog({
         emoji: '🌷',
         title: `Logged ${dayLabel}`,
-        body: `${companion.name} noted ${rawMember.displayName}'s period day. Their phase predictions will update gently.`,
-        actions: [{ label: 'Sweet 💛', onPress: () => router.back() }],
+        body:
+          prevDate && !loggedThisVisit.has(prevDate)
+            ? `${companion.name} noted ${rawMember.displayName}'s period day. Log another day, or head back when done.`
+            : `${companion.name} noted ${rawMember.displayName}'s period day.`,
+        actions: [
+          { label: 'Log another', onPress: () => {} },
+          { label: 'Done', variant: 'ghost', onPress: () => router.back() },
+        ],
       });
     } catch (err) {
       if (__DEV__) console.warn('[PeriodLog] failed:', err);
@@ -188,6 +217,7 @@ export default function PeriodLogScreen() {
         >
           {dayOptions.map((opt) => {
             const isActive = selectedDate === opt.date;
+            const wasLogged = loggedThisVisit.has(opt.date);
             return (
               <Pressable
                 key={opt.date}
@@ -195,6 +225,7 @@ export default function PeriodLogScreen() {
                 style={({ pressed }) => [
                   styles.dayCell,
                   isActive && styles.dayCellActive,
+                  wasLogged && styles.dayCellLogged,
                   pressed && { opacity: 0.85 },
                 ]}
               >
@@ -214,7 +245,10 @@ export default function PeriodLogScreen() {
                 >
                   {opt.day}
                 </Text>
-                {opt.isToday && (
+                {wasLogged && !isActive && (
+                  <Text style={styles.dayCellLoggedTick}>✓</Text>
+                )}
+                {opt.isToday && !wasLogged && (
                   <View
                     style={[
                       styles.todayDot,
@@ -367,6 +401,16 @@ const styles = StyleSheet.create({
   dayCellActive: {
     backgroundColor: A.rose,
     borderColor: A.rose,
+  },
+  dayCellLogged: {
+    borderColor: A.success,
+    backgroundColor: `${A.success}18`,
+  },
+  dayCellLoggedTick: {
+    color: A.success,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 3,
   },
   dayCellLabel: {
     ...Typography.preset.caption,
