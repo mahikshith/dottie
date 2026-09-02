@@ -502,9 +502,11 @@ function PaceChooser({
 
 // Trail geometry (px).
 const NODE = 62;
-const ROW_H = 104;
-const TOP = 48;
-const BOTTOM = 64;
+// Device-test #5: bumped 104 → 140 so a node's 2-line label doesn't run into
+// the next node's icon (the owner's "lesson head overwrites the icon" ask).
+const ROW_H = 140;
+const TOP = 52;
+const BOTTOM = 72;
 
 interface TrailNode {
   key: string;
@@ -589,7 +591,9 @@ function PathTrail({
 
   // Geometry: a wide meander so the trail actually USES the empty side space
   // (owner feedback) and reads as a winding journey, not a centred list.
-  const amp = width > 0 ? Math.min(width / 2 - 66, Math.max(44, width * 0.28)) : 0;
+  // Amplitude slightly reduced (device-test #5) so adjacent-node labels have
+  // horizontal breathing room and don't overlap when the meander goes tight.
+  const amp = width > 0 ? Math.min(width / 2 - 76, Math.max(36, width * 0.22)) : 0;
   const cx = width / 2;
   const points = nodes.map((_, i) => ({
     x: cx + amp * Math.sin(i * 0.9),

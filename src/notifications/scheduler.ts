@@ -57,10 +57,36 @@ export interface ScheduleResult {
 }
 
 /**
- * Ensure we can post notifications. Only called when the user turns a reminder
- * ON, so we never prompt unprompted. Returns whether permission is granted.
+ * Read-only permission check + channel setup. NEVER prompts. Used by the
+ * background sync path so a Save/Done tap never fires the native OS dialog
+ * as a side effect. Device-test #5: MIUI renders the permission dialog as
+ * a floating white circle at the top-left that blocks input until the user
+ * hits the back button — the "screen hang" the owner reported.
  */
-export async function ensureNotificationPermission(): Promise<boolean> {
+export async function checkNotificationPermission(): Promise<boolean> {
+  try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
+        name: 'Reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    }
+    const current = await Notifications.getPermissionsAsync();
+    return current.granted;
+  } catch (err) {
+    if (__DEV__) console.warn('[Notifications] permission check failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Explicitly prompt for notification permission. Ok to fire the native
+ * dialog — MUST only be called from a UI element the user tapped
+ * (e.g., an "Enable notifications" button on the Reminders screen).
+ * Never call from a Save/Done handler or a background sync — see
+ * checkNotificationPermission for that path.
+ */
+export async function requestNotificationPermission(): Promise<boolean> {
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL, {
@@ -74,10 +100,16 @@ export async function ensureNotificationPermission(): Promise<boolean> {
     const req = await Notifications.requestPermissionsAsync();
     return req.granted;
   } catch (err) {
-    if (__DEV__) console.warn('[Notifications] permission check failed:', err);
+    if (__DEV__) console.warn('[Notifications] permission request failed:', err);
     return false;
   }
 }
+
+/** @deprecated Use checkNotificationPermission (silent) or
+ * requestNotificationPermission (explicit) instead. Kept as an alias so
+ * older imports don't break, but points at the SILENT check to avoid
+ * the MIUI hang. */
+export const ensureNotificationPermission = checkNotificationPermission;
 
 /**
  * Reschedule EVERYTHING (reminders + medications) from what's persisted in
@@ -98,7 +130,11 @@ export async function syncAllReminders(ctx: ScheduleContext): Promise<ScheduleRe
     return { granted: true, scheduled: 0 };
   }
 
-  const granted = await ensureNotificationPermission();
+  // Never prompt from the sync path — that's the MIUI white-circle hang.
+  // If permission isn't already granted, bail silently; the UI can show
+  // an "Enable notifications" affordance that calls
+  // requestNotificationPermission from an explicit user tap.
+  const granted = await checkNotificationPermission();
   if (!granted) return { granted: false, scheduled: 0 };
 
   await cancelAll();

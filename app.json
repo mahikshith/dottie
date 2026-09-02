@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFF8F2"
+      "backgroundColor": "#0C0A16"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FFF8F2"
+        "backgroundColor": "#0C0A16"
       },
       "package": "com.dottie.app"
     },
@@ -31,6 +31,10 @@
       "barStyle": "light-content",
       "backgroundColor": "#0C0A16",
       "translucent": false
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#0C0A16"
     },
     "plugins": [
       "expo-router",
@@ -40,7 +44,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFF8F2",
+          "backgroundColor": "#0C0A16",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200
         }

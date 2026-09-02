@@ -290,8 +290,17 @@ export default function QuizScreen() {
           headerTintColor: A.ink,
           headerBackTitle: 'Exit',
           headerLeft: () => (
-            <Pressable onPress={handleAbandon} hitSlop={12} style={{ paddingHorizontal: 4 }}>
-              <Text style={{ color: A.accent, fontSize: 16 }}>Close</Text>
+            // Icon-only so the long quiz title next to it never truncates
+            // the label (device-test #5 saw "Clos"). hitSlop keeps the tap
+            // target at 44+pt without stealing header width.
+            <Pressable
+              onPress={handleAbandon}
+              hitSlop={16}
+              style={{ paddingHorizontal: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Close quiz"
+            >
+              <Text style={{ color: A.accent, fontSize: 22, fontWeight: '700' }}>×</Text>
             </Pressable>
           ),
         }}
@@ -438,7 +447,8 @@ function QuizResultScreen({
       >
         <View style={[styles.resultHero, { backgroundColor: `${accent}11` }]}>
           {/* The companion reacts to the score (mind-blown at 100 → warm hug on
-              a low landing) instead of a generic leaf/star. */}
+              a low landing) instead of a generic leaf/star. Headline
+              ("Amazing!", "Nice progress!", ...) rendered inside the reaction. */}
           <CompanionScoreReaction
             companionType={companion.type}
             score={result.score}
@@ -446,12 +456,17 @@ function QuizResultScreen({
             headlineColor={accent}
             badgeBg={A.ground}
           />
+          {/* Percentage sits BELOW the headline with a comfortable gap
+              (device-test #5: the 56pt digits used to visually crowd the
+              headline). Reduced to 44pt + explicit marginTop clears it. */}
           <Text style={[styles.resultPct, { color: accent }]}>{pct}%</Text>
           <Text style={styles.resultScoreText}>
             {result.correctCount} of {result.totalCount} correct
           </Text>
           {result.isNewBestScore && (
-            <Text style={styles.resultNewBest}>🏆 New best score!</Text>
+            <View style={styles.newBestPill}>
+              <Text style={styles.newBestPillText}>🏆  New best score!</Text>
+            </View>
           )}
         </View>
 
@@ -702,17 +717,37 @@ const styles = StyleSheet.create({
   },
   resultPct: {
     ...Typography.preset.h1,
-    fontSize: 56,
+    fontSize: 44,
+    marginTop: Spacing.lg,
+    lineHeight: 48,
+    fontWeight: '800',
   },
   resultScoreText: {
     ...Typography.preset.body,
     color: A.ink2,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   resultNewBest: {
     ...Typography.preset.bodySemibold,
     color: A.gold,
     marginTop: Spacing.md,
+  },
+  // Owner ask (device-test #5): make the "new best score" moment feel
+  // like a celebration. Gold pill on a warm background reads as a small
+  // trophy chip rather than plain text.
+  newBestPill: {
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Spacing.radius.full,
+    backgroundColor: `${A.gold}22`,
+    borderWidth: 1,
+    borderColor: `${A.gold}88`,
+  },
+  newBestPillText: {
+    ...Typography.preset.captionBold,
+    color: A.gold,
+    letterSpacing: 0.3,
   },
   companionCelebrationCard: {
     flexDirection: 'row',

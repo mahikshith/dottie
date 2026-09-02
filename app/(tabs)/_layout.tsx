@@ -1,6 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { Spacing } from '../../src/constants/spacing';
+import { A } from '../../src/theme';
 import { AuroraTabBar } from '../../src/components/ui';
 import { FeedbackBubble } from '../../src/components/beta/FeedbackBubble';
 import { VersionBadge } from '../../src/components/beta/VersionBadge';
@@ -95,6 +96,12 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    // Device-test #5: without this, the parent view under the transparent
+    // AuroraTabBar defaults to white/cream, painting the "cream rectangle"
+    // the owner keeps flagging. Painting the root aurora ground means the
+    // safe-area area beneath the floating pill also stays dark, so the bar
+    // truly floats on the aurora world instead of an opaque strip.
+    backgroundColor: A.ground,
   },
   // Overlay layer sits ABOVE the Tabs container but BELOW the AppLockGate
   // (root layout). Doesn't intercept taps thanks to pointerEvents="box-none".

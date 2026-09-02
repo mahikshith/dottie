@@ -232,20 +232,20 @@ export default function RootLayout() {
     );
   }
 
-  // While hydrating, render a minimal warm background. The splash
-  // screen is still on top — this is just what's behind it. If the
-  // splash hides before hydration finishes (rare), the spinner kicks in.
+  // Hydration placeholder — sits BEHIND the splash. Device-test #5
+  // owner ask: no cream flash on launch. Paint the aurora ground so the
+  // seam between splash and app is invisible.
   if (!hydrated) {
     return (
       <View
         style={{
           flex: 1,
-          backgroundColor: Colors.surface.background,
+          backgroundColor: '#0C0A16',
           justifyContent: 'center',
           alignItems: 'center',
         }}
       >
-        <ActivityIndicator size="large" color={Colors.primary.coral} />
+        <ActivityIndicator size="large" color="#54E6C8" />
       </View>
     );
   }
@@ -269,7 +269,8 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: Colors.surface.background },
+          // Device-test #5: prevents cream flash between route transitions.
+          contentStyle: { backgroundColor: '#0C0A16' },
           animation: 'slide_from_right',
         }}
       >
