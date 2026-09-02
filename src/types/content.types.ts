@@ -142,6 +142,21 @@ export interface Lesson {
   order: number;
   title: string;
   emoji: string;
+  /**
+   * Difficulty tier of the lesson itself. Optional for backward compat.
+   * Used by the phase-aware selector to prefer beginner content for new
+   * users and by the Learn tab to display a subtle tier hint. NEW in
+   * Learn redesign Phase 0.
+   */
+  difficulty?: DifficultyTier;
+  /**
+   * When true, this lesson is age-gated and MUST NOT be surfaced to
+   * users in `teen` mode by the phase-aware selector. Content about
+   * contraception, fertility windows, and sexual health should carry
+   * this flag. Belt-and-braces defence (Gemini FM-3): the selector
+   * filters it out; the UI double-checks before render.
+   */
+  adultOnly?: boolean;
   /** Lesson content sections (rendered in order by the reader screen) */
   sections: LessonSection[];
   /**
@@ -210,6 +225,15 @@ export interface Quiz {
  * so older content files don't fail to load — see `normalizeQuizQuestion`
  * in the quiz engine for the migration path.
  */
+/**
+ * Difficulty tier used by both lessons and quiz questions. The Adaptive
+ * Quiz Engine (Phase 3 of the Learn redesign — see docs/LEARN-REDESIGN-*)
+ * uses per-question `level` to promote/hold difficulty as the user
+ * answers correctly. Lessons themselves carry a `difficulty` so the
+ * Learn tab can rank/filter appropriately.
+ */
+export type DifficultyTier = 'beginner' | 'moderate' | 'hard';
+
 export interface QuizQuestion {
   id: string;
   /** The question prompt shown to the user */
@@ -221,6 +245,12 @@ export interface QuizQuestion {
   explanation: string;
   /** Optional emoji shown with explanation */
   explanationEmoji?: string;
+  /**
+   * Difficulty tier of this question. Optional for backward compat with
+   * pre-Phase-0 quizzes that shipped untagged. When missing, the
+   * Adaptive Quiz Engine treats the question as 'beginner'.
+   */
+  level?: DifficultyTier;
 }
 
 /**

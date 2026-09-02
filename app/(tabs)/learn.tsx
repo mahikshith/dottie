@@ -56,21 +56,34 @@ import {
   useUserStore,
   useGamificationStore,
   useContentStore,
+  useCycleStore,
   selectUserMode,
   selectCompanionType,
   selectXpTotal,
   selectGemsBalance,
   selectStreak,
+  selectCurrentPhase,
+  selectDayInCycle,
+  selectHasCycleData,
+  selectHealthProfile,
 } from '../../src/stores';
 import {
   LEARNING_PATHS,
+  LESSONS,
   getLessonsForPath,
   getPathsForMode,
 } from '../../src/content/learning-paths';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
 import { getCompanion } from '../../src/content/companions';
 import { LearningPath, Lesson, CompanionType } from '../../src/types/content.types';
+import type { HealthCondition } from '../../src/types/cycle.types';
 import { Storage, type LearnLevel } from '../../src/database/storage';
+import { resolveSubPhase } from '../../src/engine/calendar/day-suggestions';
+import { selectSpotlightLessons } from '../../src/engine/learn/phase-aware-selector';
+import { TodaySpotlightCard } from '../../src/components/learn/TodaySpotlightCard';
+
+// Stable empty array so a null healthProfile doesn't churn the selector.
+const EMPTY_CONDITIONS: HealthCondition[] = [];
 
 const AURORA_SUCCESS = '#6FE6A8';
 
@@ -136,6 +149,11 @@ export default function LearnScreen() {
   const streak = useGamificationStore(selectStreak);
   const userId = useUserStore((s) => s.userId);
   const contentHydrated = useContentStore((s) => s.hydrated);
+  const phase = useCycleStore(selectCurrentPhase);
+  const dayInCycle = useCycleStore(selectDayInCycle);
+  const hasCycleData = useCycleStore(selectHasCycleData);
+  const healthProfile = useUserStore(selectHealthProfile);
+  const conditions = healthProfile?.conditions ?? EMPTY_CONDITIONS;
 
   const companion = getCompanion(companionType);
 
@@ -237,6 +255,32 @@ export default function LearnScreen() {
     router.push(`/lesson/${lessonId}`);
   };
 
+  // ─── Today's spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) ─
+  const subphase = useMemo(
+    () =>
+      hasCycleData
+        ? resolveSubPhase({
+            phase,
+            dayInCycle,
+            daysUntilPredictedPeriod: null,
+            isPeriodDay: phase === 'menstrual',
+          })
+        : null,
+    [hasCycleData, phase, dayInCycle]
+  );
+  const spotlight = useMemo(
+    () =>
+      selectSpotlightLessons({
+        subphase,
+        mode,
+        conditions,
+        lessons: LESSONS,
+        progressById: progressMap,
+        count: 3,
+      }),
+    [subphase, mode, conditions, progressMap]
+  );
+
   const totalLessons = availablePaths.reduce((sum, p) => sum + (pathStats.get(p.id)?.total ?? 0), 0);
   const completedLessons = availablePaths.reduce((sum, p) => sum + (pathStats.get(p.id)?.completed ?? 0), 0);
 
@@ -304,6 +348,17 @@ export default function LearnScreen() {
         <Animated.View entering={rise(110)}>
           <PaceChooser level={level} guided={guided} onPick={pickLevel} />
         </Animated.View>
+
+        {/* Today's Spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) */}
+        {spotlight.length > 0 && (
+          <Animated.View entering={rise(140)} style={{ marginBottom: Spacing.sectionGap }}>
+            <TodaySpotlightCard
+              lessons={spotlight}
+              onOpenLesson={openLesson}
+              hasCycleData={hasCycleData}
+            />
+          </Animated.View>
+        )}
 
         {/* Path trails */}
         {availablePaths.length === 0 && (

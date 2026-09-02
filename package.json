@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint . --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "simulate": "tsx scripts/predictor-simulation.ts"
+    "simulate": "tsx scripts/predictor-simulation.ts",
+    "validate:content": "tsx scripts/validate-content.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

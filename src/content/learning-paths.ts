@@ -407,8 +407,11 @@ export function getTotalLessonCount(): number {
 // ─── HORMONES 101 LESSONS (imported from the curriculum) ─────────────
 //
 // These 7 lessons come verbatim from `docs/dottie questions/dottie_curriculum.json`
-// (path_hormones_101). Curriculum-only fields (`difficulty`, `exerciseIds`) are
-// stripped to match our Lesson shape. Each lesson still points at its quiz.
+// (path_hormones_101). Curriculum's `exerciseIds` are stripped to match our
+// Lesson shape (we have our own exercises seed). `difficulty` is RESTORED
+// here (Learn Redesign Phase 0 — was previously stripped, causing the phase-
+// aware selector to have nothing to rank on). Each lesson still points at its
+// quiz. `adultOnly` flag added where the topic isn't teen-appropriate.
 LESSONS.push(
   {
     id: 'lesson_estrogen_the_rising_star',
@@ -416,6 +419,7 @@ LESSONS.push(
     order: 1,
     title: 'Estrogen: The Rising Star',
     emoji: '🌟',
+    difficulty: 'beginner',
     estimatedMinutes: 5,
     xpReward: 25,
     gemReward: 12,
@@ -435,6 +439,7 @@ LESSONS.push(
     order: 2,
     title: 'Progesterone: The Calming Hormone',
     emoji: '🌙',
+    difficulty: 'beginner',
     estimatedMinutes: 5,
     xpReward: 25,
     gemReward: 12,
@@ -455,6 +460,7 @@ LESSONS.push(
     order: 3,
     title: "LH & FSH: Your Cycle's Starters",
     emoji: '🧫',
+    difficulty: 'moderate',
     estimatedMinutes: 6,
     xpReward: 30,
     gemReward: 15,
@@ -475,6 +481,7 @@ LESSONS.push(
     order: 4,
     title: 'Prostaglandins & Your Cramps',
     emoji: '🌊',
+    difficulty: 'moderate',
     estimatedMinutes: 6,
     xpReward: 30,
     gemReward: 15,
@@ -494,6 +501,7 @@ LESSONS.push(
     order: 5,
     title: 'The Brain-Ovary Team (HPO Axis)',
     emoji: '🧠',
+    difficulty: 'hard',
     estimatedMinutes: 7,
     xpReward: 35,
     gemReward: 18,
@@ -513,6 +521,7 @@ LESSONS.push(
     order: 6,
     title: 'Testosterone in Your Body',
     emoji: '💪',
+    difficulty: 'moderate',
     estimatedMinutes: 6,
     xpReward: 30,
     gemReward: 15,
@@ -532,6 +541,7 @@ LESSONS.push(
     order: 7,
     title: 'Serotonin, Mood & Your Cycle',
     emoji: '💛',
+    difficulty: 'moderate',
     estimatedMinutes: 6,
     xpReward: 30,
     gemReward: 15,
