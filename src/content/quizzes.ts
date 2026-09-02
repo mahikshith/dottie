@@ -426,6 +426,203 @@ QUIZZES.push(
   },
 );
 
+// ─── PER-PHASE PATH QUIZZES (Learn Redesign Phase 2 — 2026-09-02) ────
+//
+// Twelve quizzes (5 questions each, tiered 3× beginner / 1× moderate /
+// 1× hard) paired to the 12 lessons added to LESSONS.push in
+// learning-paths.ts under path_menstrual_phase / path_follicular_phase /
+// path_ovulation / path_luteal_pms. Every question carries a `level`
+// (Phase 0 validator R2). Voice matches the existing cycle_basics quizzes.
+QUIZZES.push(
+  // ─── path_menstrual_phase ───────────────────────────────────────
+  {
+    id: 'quiz_menstrual_day_one',
+    title: 'Day 1: What just started',
+    lessonId: 'lesson_menstrual_day_one',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_menstrual_day_one_1', text: 'What triggers day 1 bleeding?', options: ['A rise in estrogen', 'A drop in progesterone', 'Stress alone', 'Cold weather'], correctIndex: 1, explanation: 'The drop in progesterone at the end of the previous cycle is the signal that starts your period.', explanationEmoji: '🌊', level: 'beginner' },
+      { id: 'q_menstrual_day_one_2', text: 'A typical period lasts about…', options: ['1 day', '3–7 days', '10–14 days', '2 weeks or more'], correctIndex: 1, explanation: '3–7 days is the common range. Cycles vary — yours is your own.', explanationEmoji: '💛', level: 'beginner' },
+      { id: 'q_menstrual_day_one_3', text: 'What is menstrual blood mostly made of?', options: ['Only water', 'The uterine lining being shed', 'A random tissue', 'Nothing biological'], correctIndex: 1, explanation: "It's mainly the lining your uterus built during the last cycle.", explanationEmoji: '🩸', level: 'beginner' },
+      { id: 'q_menstrual_day_one_4', text: 'Why does logging day 1 make Dottie better?', options: ["It doesn't", 'It sharpens the prediction of the next period', 'It sends data to a doctor', 'It changes the app theme'], correctIndex: 1, explanation: 'A few logged day-1s are what let the predictor learn your rhythm.', explanationEmoji: '📅', level: 'moderate' },
+      { id: 'q_menstrual_day_one_5', text: 'Which of these is worth mentioning to a provider?', options: ['A 3-day period', 'A period with mild cramps', 'Soaking a pad or tampon every hour for several hours in a row', 'Any period at all'], correctIndex: 2, explanation: 'Very heavy flow (soaking through a full pad every hour for hours) is worth flagging — it can be a sign of things like fibroids or a bleeding disorder.', explanationEmoji: '🚩', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_menstrual_rest_as_strategy',
+    title: 'Rest as strategy',
+    lessonId: 'lesson_menstrual_rest_as_strategy',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_menstrual_rest_as_strategy_1', text: 'Why is energy often lower during your period?', options: ['Weakness of character', 'Estrogen and progesterone are at their lowest', 'Too much sleep', 'Only because of caffeine'], correctIndex: 1, explanation: 'Low hormones = less drive. Real biology, not a character flaw.', explanationEmoji: '🔋', level: 'beginner' },
+      { id: 'q_menstrual_rest_as_strategy_2', text: 'What often helps cramps in the moment?', options: ['A brutal workout', 'A hot pack on the lower belly', 'Skipping meals', 'Cold showers only'], correctIndex: 1, explanation: 'Heat relaxes the muscle contractions behind cramps — simple and effective.', explanationEmoji: '☕', level: 'beginner' },
+      { id: 'q_menstrual_rest_as_strategy_3', text: 'Movement during your period should be…', options: ['Skipped completely', 'Kind, not intense', 'As hard as possible', 'Only weightlifting'], correctIndex: 1, explanation: 'Gentle movement if it feels good — kindness is the rule.', explanationEmoji: '🌿', level: 'beginner' },
+      { id: 'q_menstrual_rest_as_strategy_4', text: 'Why can heavy periods add fatigue?', options: ['They increase iron', 'Iron loss can leave you slightly more tired', 'They release adrenaline', "They don't"], correctIndex: 1, explanation: 'You lose iron with blood — a heavier period can mean noticeably lower energy.', explanationEmoji: '🩸', level: 'moderate' },
+      { id: 'q_menstrual_rest_as_strategy_5', text: "Which best describes 'rest as strategy'?", options: ['Rest is lazy', 'Rest is calibrated care for a lower-hormone week', 'Rest is always bad', 'Only sleep in this week'], correctIndex: 1, explanation: 'Matching your effort to your hormones is smart, not indulgent.', explanationEmoji: '💛', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_menstrual_rebuild_as_flow_tapers',
+    title: 'Rebuilding as flow tapers',
+    lessonId: 'lesson_menstrual_rebuild_as_flow_tapers',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_menstrual_rebuild_as_flow_tapers_1', text: 'As bleeding lightens, estrogen…', options: ['Drops further', 'Starts to nudge upward', 'Stays flat forever', 'Peaks immediately'], correctIndex: 1, explanation: 'It begins climbing again — the start of the follicular rise.', explanationEmoji: '🌱', level: 'beginner' },
+      { id: 'q_menstrual_rebuild_as_flow_tapers_2', text: 'Which foods help replenish iron?', options: ['Only candy', 'Eggs, beans, leafy greens', 'Only white bread', 'Only soda'], correctIndex: 1, explanation: 'Iron-rich foods help refill what a period costs.', explanationEmoji: '🍳', level: 'beginner' },
+      { id: 'q_menstrual_rebuild_as_flow_tapers_3', text: 'Steady hydration helps because…', options: ['Water controls hormones directly', 'A well-watered body handles hormonal shifts more comfortably', "It doesn't", 'It replaces sleep'], correctIndex: 1, explanation: 'Being hydrated eases the transition between phases.', explanationEmoji: '💧', level: 'beginner' },
+      { id: 'q_menstrual_rebuild_as_flow_tapers_4', text: 'The end of your period is a good time to…', options: ['Overhaul your whole life', 'Pencil in one small plan for the week ahead', 'Skip meals', 'Do nothing all week'], correctIndex: 1, explanation: 'Small plans stick better when your capacity is climbing.', explanationEmoji: '📅', level: 'moderate' },
+      { id: 'q_menstrual_rebuild_as_flow_tapers_5', text: "Which is NOT a reason to plan lightly here?", options: ['Estrogen just began to rise', "You've likely been tired", 'Ovulation is imminent', 'Your body is still refilling reserves'], correctIndex: 2, explanation: "Ovulation isn't imminent yet — that's the late follicular window a bit later.", explanationEmoji: '🌿', level: 'hard' },
+    ],
+  },
+
+  // ─── path_follicular_phase ──────────────────────────────────────
+  {
+    id: 'quiz_follicular_the_bright_climb',
+    title: 'The bright climb',
+    lessonId: 'lesson_follicular_the_bright_climb',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_follicular_the_bright_climb_1', text: 'Which hormone kicks off follicular growth?', options: ['LH', 'FSH', 'Progesterone', 'Insulin'], correctIndex: 1, explanation: 'FSH — follicle-stimulating hormone — from the pituitary starts the cycle.', explanationEmoji: '🧫', level: 'beginner' },
+      { id: 'q_follicular_the_bright_climb_2', text: 'As follicles grow, they release…', options: ['Adrenaline', 'Estrogen', 'Cortisol', 'Melatonin'], correctIndex: 1, explanation: 'Growing follicles produce rising estrogen.', explanationEmoji: '✨', level: 'beginner' },
+      { id: 'q_follicular_the_bright_climb_3', text: 'People often report the follicular week feels…', options: ['Foggier', 'Lighter, more social, more focused', 'The same as the period week', 'Exhausted'], correctIndex: 1, explanation: "Rising estrogen tends to lift mood and clarity — many people notice the shift.", explanationEmoji: '🌤️', level: 'beginner' },
+      { id: 'q_follicular_the_bright_climb_4', text: 'What else does rising estrogen do?', options: ['Nothing', 'Rebuilds the uterine lining and updates mucus', 'Stops your heart', 'Turns off the brain'], correctIndex: 1, explanation: 'Invisible work — but it changes how you feel physically too.', explanationEmoji: '🧬', level: 'moderate' },
+      { id: 'q_follicular_the_bright_climb_5', text: 'Why is contrast between weeks worth watching?', options: ['To beat yourself up', 'Because your own cycle patterns are the most useful data you have', 'To share online', "It isn't"], correctIndex: 1, explanation: 'Your own week-to-week feel is the most personal signal — it teaches you.', explanationEmoji: '💛', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_follicular_focus_window',
+    title: 'Your focus window',
+    lessonId: 'lesson_follicular_focus_window',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_follicular_focus_window_1', text: 'The mid-follicular window covers roughly…', options: ['Days 1–3', 'Days 8–13', 'Days 20–28', 'Days 15–20'], correctIndex: 1, explanation: 'Roughly days 8–13 for a typical cycle.', explanationEmoji: '📅', level: 'beginner' },
+      { id: 'q_follicular_focus_window_2', text: 'In mid-follicular, estrogen is __ and progesterone is __.', options: ['Low; high', 'High; low', 'High; high', 'Low; low'], correctIndex: 1, explanation: 'High estrogen with low progesterone is the combination behind the focused feeling.', explanationEmoji: '🎯', level: 'beginner' },
+      { id: 'q_follicular_focus_window_3', text: 'A common report in this window is feeling…', options: ['Cloudy', 'Clear-headed', 'Angrier than usual', 'Craving carbs strongly'], correctIndex: 1, explanation: 'Many people describe mid-follicular as clear and clicky — a good "climb" week.', explanationEmoji: '🧠', level: 'beginner' },
+      { id: 'q_follicular_focus_window_4', text: 'How should you use this window?', options: ['Rest completely', 'Notice the pattern and plan hard work here if you can', 'Ignore your cycle', 'Skip meals'], correctIndex: 1, explanation: "It's a suggestion — cycles vary. Use the pattern where it fits your life.", explanationEmoji: '📅', level: 'moderate' },
+      { id: 'q_follicular_focus_window_5', text: "If focus doesn't lift in this week, that…", options: ['Means something is broken', 'Is a personal failing', 'Is real information — some cycles feel flatter, and stress can flatten the whole climb', 'Should be ignored'], correctIndex: 2, explanation: "It's normal for the pattern to be quieter some cycles. Your data is still valid.", explanationEmoji: '💛', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_follicular_ride_the_momentum',
+    title: 'Ride the momentum',
+    lessonId: 'lesson_follicular_ride_the_momentum',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_follicular_ride_the_momentum_1', text: 'Rising estrogen also supports…', options: ['Slower recovery', 'Recovery from exercise and stress resilience', 'Only sleep', 'Only appetite'], correctIndex: 1, explanation: 'Estrogen has a broad supportive effect through this window.', explanationEmoji: '💪', level: 'beginner' },
+      { id: 'q_follicular_ride_the_momentum_2', text: 'Same workout, late follicular, often feels…', options: ['Way harder', 'A bit easier', 'Identical to the period week', 'Impossible'], correctIndex: 1, explanation: 'Lower perceived exertion late follicular is a common pattern.', explanationEmoji: '🏃', level: 'beginner' },
+      { id: 'q_follicular_ride_the_momentum_3', text: 'Small habits are more likely to stick when tried…', options: ['Only in the luteal week', 'When capacity is naturally higher (like this window)', 'Only on new-year day', 'Only after a fight'], correctIndex: 1, explanation: 'Riding the rise beats fighting the wind-down.', explanationEmoji: '🌱', level: 'beginner' },
+      { id: 'q_follicular_ride_the_momentum_4', text: 'A better strategy than a big overhaul is…', options: ['One small experiment at a time', 'Redoing your entire life', 'No changes ever', 'Only extreme diets'], correctIndex: 0, explanation: 'Small experiments beat sweeping resolutions.', explanationEmoji: '🌤️', level: 'moderate' },
+      { id: 'q_follicular_ride_the_momentum_5', text: "Why not try heroic new habits in the luteal week?", options: ['It works better then', 'Progesterone dominance and the pre-period dip make effortful change harder to sustain', 'Luteal week has more energy', "It doesn't matter"], correctIndex: 1, explanation: 'The luteal week naturally asks for less effort — habits started there are more likely to lapse.', explanationEmoji: '🌙', level: 'hard' },
+    ],
+  },
+
+  // ─── path_ovulation ─────────────────────────────────────────────
+  {
+    id: 'quiz_ovulation_peak_day_signs',
+    title: 'The peak day — signs to notice',
+    lessonId: 'lesson_ovulation_peak_day_signs',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_ovulation_peak_day_signs_1', text: 'Ovulation is…', options: ['The whole cycle', 'The release of a mature egg', 'Your period', 'PMS'], correctIndex: 1, explanation: "It's a single moment — one egg released.", explanationEmoji: '🥚', level: 'beginner' },
+      { id: 'q_ovulation_peak_day_signs_2', text: 'The trigger for ovulation is a surge in…', options: ['Insulin', 'LH (luteinizing hormone)', 'Progesterone', 'Melatonin'], correctIndex: 1, explanation: 'A sharp LH surge from the pituitary triggers release.', explanationEmoji: '⚡', level: 'beginner' },
+      { id: 'q_ovulation_peak_day_signs_3', text: 'The egg lives for about…', options: ['A month', '12–24 hours after release', 'A week', 'A day of the cycle only'], correctIndex: 1, explanation: "The egg's short life is why the fertile window is so specific.", explanationEmoji: '☀️', level: 'beginner' },
+      { id: 'q_ovulation_peak_day_signs_4', text: 'Around ovulation, cervical mucus often becomes…', options: ['Sticky and dry', 'Clear and stretchy (like egg white)', 'Blood-red', 'Absent'], correctIndex: 1, explanation: "That 'egg white' texture is a classic sign of the fertile window.", explanationEmoji: '💧', level: 'moderate' },
+      { id: 'q_ovulation_peak_day_signs_5', text: 'A basal-body-temperature bump most often…', options: ['Predicts ovulation days before it happens', 'Confirms ovulation happened, after the fact', 'Never changes', 'Falls sharply during ovulation'], correctIndex: 1, explanation: 'BBT rises AFTER ovulation from progesterone — so it confirms rather than predicts.', explanationEmoji: '🌡️', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_ovulation_fertility_window',
+    title: 'The fertile window (basics)',
+    lessonId: 'lesson_ovulation_fertility_window',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_ovulation_fertility_window_1', text: 'The fertile window is wider than a day because…', options: ["The egg lives for a week", 'Sperm can survive in fertile mucus for up to 5 days', 'Estrogen is very high', 'Progesterone is very high'], correctIndex: 1, explanation: 'Sperm survival plus egg release = several days of fertility, not just one.', explanationEmoji: '🌸', level: 'beginner' },
+      { id: 'q_ovulation_fertility_window_2', text: 'The classic fertile window covers roughly…', options: ['Only the day of ovulation', 'The 5 days leading up to ovulation plus ovulation day', 'The whole cycle', 'Only the day after ovulation'], correctIndex: 1, explanation: 'Roughly a 6-day window centered on ovulation.', explanationEmoji: '📅', level: 'beginner' },
+      { id: 'q_ovulation_fertility_window_3', text: 'Calendar predictions are…', options: ['A reliable birth control method', 'Educational, not birth control', 'A legal contract', 'A cure for infertility'], correctIndex: 1, explanation: 'For preventing pregnancy, use a method chosen with a provider.', explanationEmoji: '⚠️', level: 'beginner' },
+      { id: 'q_ovulation_fertility_window_4', text: 'The egg itself is only alive for about…', options: ['A month', '12–24 hours', 'A week', '5 days'], correctIndex: 1, explanation: "The egg's short life is why the window peaks at ovulation.", explanationEmoji: '🥚', level: 'moderate' },
+      { id: 'q_ovulation_fertility_window_5', text: 'Sperm survival in fertile mucus is what stretches the window UP TO…', options: ['1 hour', '5 days', '30 days', "It doesn't"], correctIndex: 1, explanation: 'Under fertile mucus, sperm can persist for as long as ~5 days.', explanationEmoji: '💧', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_ovulation_mood_libido',
+    title: 'Ovulation, mood & libido',
+    lessonId: 'lesson_ovulation_mood_libido',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_ovulation_mood_libido_1', text: 'Just before ovulation, estrogen…', options: ['Drops sharply', 'Peaks', 'Stays flat', 'Is at its lowest'], correctIndex: 1, explanation: 'Estrogen peaks in the lead-up to ovulation.', explanationEmoji: '✨', level: 'beginner' },
+      { id: 'q_ovulation_mood_libido_2', text: 'Around ovulation, testosterone…', options: ['Drops to zero', 'Gets a small bump', 'Stays completely flat all cycle', 'Doubles overnight'], correctIndex: 1, explanation: 'A small but real testosterone bump nudges libido up for many people.', explanationEmoji: '💪', level: 'beginner' },
+      { id: 'q_ovulation_mood_libido_3', text: 'A common ovulation-window pattern is…', options: ['Lower confidence', 'A lift in confidence and sociability', 'Nothing at all', 'Increased sleep only'], correctIndex: 1, explanation: 'Peak estrogen + testosterone bump often shows up as a confidence lift.', explanationEmoji: '☀️', level: 'beginner' },
+      { id: 'q_ovulation_mood_libido_4', text: "If you don't notice this mood shift, that means…", options: ['Something is wrong', "It's a totally normal variation — sensitivity to this shift varies a lot", 'Your cycle is broken', 'You should worry'], correctIndex: 1, explanation: 'Some people feel the peak strongly, others not at all — both fine.', explanationEmoji: '🌿', level: 'moderate' },
+      { id: 'q_ovulation_mood_libido_5', text: 'Why can this window be good for something nervy (a pitch, a hard talk)?', options: ["It isn't", 'Peak estrogen and a testosterone bump often add a bit of nerve', 'Because sleep is bad here', 'Because you\'ll be angry'], correctIndex: 1, explanation: "The hormonal mix supports courage — if that's the pattern for you.", explanationEmoji: '💞', level: 'hard' },
+    ],
+  },
+
+  // ─── path_luteal_pms ────────────────────────────────────────────
+  {
+    id: 'quiz_luteal_wind_down',
+    title: 'The wind-down begins',
+    lessonId: 'lesson_luteal_wind_down',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_luteal_wind_down_1', text: 'Progesterone in the luteal phase is made mostly by the…', options: ['Ovary follicles', 'Corpus luteum (the emptied follicle)', 'Pancreas', 'Liver'], correctIndex: 1, explanation: 'The corpus luteum forms from the follicle after ovulation and pumps out progesterone.', explanationEmoji: '🌙', level: 'beginner' },
+      { id: 'q_luteal_wind_down_2', text: 'Progesterone in the luteal window tends to be…', options: ['Stimulating', 'Calm and warming', 'Sharp and jittery', 'Neutral, no effect'], correctIndex: 1, explanation: 'The calm, warming quality is why cozy rest becomes more appealing.', explanationEmoji: '💤', level: 'beginner' },
+      { id: 'q_luteal_wind_down_3', text: 'BBT tracking notices the luteal shift because progesterone…', options: ['Cools the body', 'Raises basal temperature slightly', "Doesn't affect temperature", 'Turns off metabolism'], correctIndex: 1, explanation: 'The small BBT rise post-ovulation is the marker BBT charts look for.', explanationEmoji: '🌡️', level: 'beginner' },
+      { id: 'q_luteal_wind_down_4', text: 'Earlier bedtimes in the luteal week are…', options: ['A sign of weakness', "Real biology speaking — not a character flaw", 'Only caused by boredom', 'A sign of illness'], correctIndex: 1, explanation: 'Progesterone is mildly sedating — needing more rest is biology.', explanationEmoji: '💛', level: 'moderate' },
+      { id: 'q_luteal_wind_down_5', text: 'If pregnancy doesn\'t happen, progesterone will…', options: ['Stay high forever', 'Drop, which triggers your next period', 'Rise higher', 'Turn into estrogen'], correctIndex: 1, explanation: 'That drop is the day-1 trigger you met in the menstrual path.', explanationEmoji: '🌊', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_luteal_pms_what_is_happening',
+    title: "PMS: what's actually happening",
+    lessonId: 'lesson_luteal_pms_what_is_happening',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_luteal_pms_what_is_happening_1', text: 'In the last few days before a period, estrogen and progesterone…', options: ['Both peak', 'Both drop', 'Rise sharply', 'Stay completely flat'], correctIndex: 1, explanation: "The late-luteal drop is what sets up PMS symptoms and, ultimately, day 1.", explanationEmoji: '🌧️', level: 'beginner' },
+      { id: 'q_luteal_pms_what_is_happening_2', text: 'Alongside those hormone drops, serotonin often…', options: ['Peaks', 'Dips', 'Stays flat', 'Doubles'], correctIndex: 1, explanation: 'The serotonin dip is a big part of PMS mood changes.', explanationEmoji: '💛', level: 'beginner' },
+      { id: 'q_luteal_pms_what_is_happening_3', text: 'Carb cravings before a period are partly a…', options: ['Random glitch', 'Serotonin thing — carbs help the brain make more serotonin', 'Sign of illness', 'Failure of willpower'], correctIndex: 1, explanation: "They're a real biological signal, not a moral failing.", explanationEmoji: '🍫', level: 'beginner' },
+      { id: 'q_luteal_pms_what_is_happening_4', text: 'Bloating and breast tenderness in this window are usually…', options: ['A medical emergency', 'Common and settle once your period starts', 'A sign of pregnancy always', 'Permanent'], correctIndex: 1, explanation: 'Very common late-luteal patterns that ease as bleeding begins.', explanationEmoji: '💧', level: 'moderate' },
+      { id: 'q_luteal_pms_what_is_happening_5', text: 'PMS symptoms severe enough to disrupt your life every month may be…', options: ['Just PMS, ignore it', 'PMDD — a real, treatable condition worth a provider conversation', 'A sign to punish yourself', 'Untreatable'], correctIndex: 1, explanation: "PMDD is real and treatable — worth mentioning, never a personal failing.", explanationEmoji: '🩺', level: 'hard' },
+    ],
+  },
+  {
+    id: 'quiz_luteal_care_ideas',
+    title: 'Care ideas for the PMS window',
+    lessonId: 'lesson_luteal_care_ideas',
+    totalQuestions: 5,
+    questionsPerAttempt: 5,
+    passingScore: 0.6,
+    questions: [
+      { id: 'q_luteal_care_ideas_1', text: 'PMS is best understood as…', options: ['A personal failing', 'A set of physiological shifts', 'Faked', 'Only in your head'], correctIndex: 1, explanation: "It's biology — real shifts you can support with small habits.", explanationEmoji: '💛', level: 'beginner' },
+      { id: 'q_luteal_care_ideas_2', text: 'Gentle movement this week is meant to…', options: ['Fight the wind-down', 'Support mood without draining you', 'Replace sleep', 'Push you to exhaustion'], correctIndex: 1, explanation: 'Kind movement — walk, easy yoga, swim — helps without wrecking recovery.', explanationEmoji: '🚶', level: 'beginner' },
+      { id: 'q_luteal_care_ideas_3', text: 'Steadier energy this week comes from…', options: ['Sugar spikes', 'Meals with protein and complex carbs', 'Skipping meals', 'Coffee only'], correctIndex: 1, explanation: 'Steady meals stabilise mood better than spikes and crashes.', explanationEmoji: '🍽️', level: 'beginner' },
+      { id: 'q_luteal_care_ideas_4', text: 'Protecting sleep in the luteal week is worth extra effort because…', options: ["It isn't", 'Even 30 more minutes matter more here than earlier in the cycle', 'Only naps count', 'Sleep is always overrated'], correctIndex: 1, explanation: 'The body is doing more this week — more sleep is calibrated, not lazy.', explanationEmoji: '💤', level: 'moderate' },
+      { id: 'q_luteal_care_ideas_5', text: 'Being kinder to yourself in this window is…', options: ['Indulgent', 'Calibrated — the body is doing more, so give it more slack', 'A waste of time', 'Only for children'], correctIndex: 1, explanation: "Kindness here is matched effort — real self-management, not self-indulgence.", explanationEmoji: '🛁', level: 'hard' },
+    ],
+  },
+);
+
 // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
 
 /** Get a quiz by ID. Returns null if not found. */

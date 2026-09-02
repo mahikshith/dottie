@@ -5,13 +5,13 @@
 > constraints in play, and exactly what to do next. Update it at the end of every
 > working session.
 
-**Last updated:** 2026-09-01 (device-test #3 ROUND 2 fixes: quiz spinner never resolved
-because useEffect deps missed quizEngine, Garden Notes now shows a "PREVIEW" banner from
-the modal route, walkthrough skip shows a one-time "find it in Profile" hint, status bar
-strip enforced at root layout so per-screen tags can't override it. Also: Learn-tab
-redesign proposal + Gemini brief + full app-audit brief for Gemini deep analysis. All
-PUSHED to `origin/design-v2`.)
-**Updated by:** Claude (Opus 4.7) — post-device-test #3 fixes
+**Last updated:** 2026-09-02 (Learn Redesign Phase 1 + Phase 2 landed on a NEW branch
+`gemini-learn-redesign` — spec-driven work is isolated from `design-v2` so device-test
+fixes can keep shipping independently. Phase 1 = Today's Spotlight (phase-aware picks
+via `selectSpotlightLessons`); Phase 2 = 4 per-phase paths + 12 lessons + 12 quizzes.
+Content validator green: 26 lessons / 23 quizzes / 121 questions. `[skip ci]` on both
+commits — no APK build yet, CI wiring for the new branch pending.)
+**Updated by:** Claude (Opus 4.7) — Learn Redesign Phase 1+2
 **START HERE for test-#3 fixes:** `docs/DEVICE-TEST-3.md`
 **Learn redesign track:** `docs/LEARN-REDESIGN-PROPOSAL.md` (our plan) +
 `docs/LEARN-REDESIGN-GEMINI-BRIEF.md` (Gemini research pack) +
@@ -25,7 +25,55 @@ new)**, **`docs/ONBOARDING-AND-WALKTHROUGH.md` (audit + proposal for next round 
 **`docs/FEATURES-AND-RESEARCH.md` (predictor math, features, aurora system, research)**,
 `docs/SESSION-CONTEXT.md` (original brief), `docs/BETA-TESTING-GUIDE.md`.
 
-## 🔄 THIS SESSION (2026-08-31 → 09-01, PUSHED to `origin/design-v2` — 7 commits + this one)
+## 🔄 THIS SESSION (2026-09-02, PUSHED to `origin/gemini-learn-redesign` — NEW BRANCH)
+
+**Branch strategy change.** Owner asked to isolate all Gemini-driven Learn-redesign work
+on a dedicated branch so `design-v2` can keep receiving device-test fixes without carrying
+half-implemented redesign phases. Phase 1 commit was force-pushed off `design-v2` (rewound
+to `fc82b16`), then re-pushed on the new `gemini-learn-redesign` branch. CI wiring for the
+new branch is deferred until a phase is device-test ready.
+
+**Phase 0 (schema hardening — landed with Phase 1 commit `aa24753`)**
+- `content.types.ts`: `DifficultyTier`, `Lesson.difficulty?`, `Lesson.adultOnly?`,
+  `QuizQuestion.level?` (all optional — legacy content still works; only NEW imports must
+  comply).
+- Restored `difficulty` on the 7 Hormones 101 lessons and `level` on all 42 imported
+  questions (accidentally stripped during import — the FM-1 P0 bug Gemini caught).
+- `scripts/validate-content.ts` + `npm run validate:content`: 4 rules (imported lessons need
+  difficulty; imported questions need level; quiz→lesson refs valid; lesson→quiz refs valid).
+
+**Phase 1 (Today's Spotlight — commit `aa24753`)**
+- `src/engine/learn/phase-aware-selector.ts` — pure TS, harness-runnable. Ranks curriculum
+  paths by sub-phase (Gemini Master Spec §2.1 verbatim, 9 sub-phases), appends PCOS/endo/
+  thyroid paths after phase paths, falls back to `path_cycle_basics` when no cycle data.
+  Teen-mode filter drops `adultOnly` lessons (Gemini FM-3). Never-completed first;
+  already-complete surfaces as filler only.
+- `src/components/learn/TodaySpotlightCard.tsx` — aurora glass hero: chip + primary lesson
+  (title + non-diagnostic "why today" line + tier + minutes) + runner-up rows. Silent-when-
+  empty fallback.
+- `app/(tabs)/learn.tsx` — reads phase/dayInCycle/hasCycleData/conditions, computes subphase
+  via `resolveSubPhase`, memoises the selector, mounts the card between pace chooser and
+  path trails.
+
+**Phase 2 (per-phase curriculum — this commit)**
+- 4 new paths: `path_menstrual_phase`, `path_follicular_phase`, `path_ovulation`,
+  `path_luteal_pms`. Each has 3 beginner-tier lessons; every lesson has a 5-question quiz
+  (levels: 3× beginner / 1× moderate / 1× hard).
+- One `adultOnly: true` lesson (`lesson_ovulation_fertility_window`) — teen filter drops it.
+- All copy NON-DIAGNOSTIC (doctor-report-signals discipline). No "your brain is better
+  today", no clinical claims.
+- Content validator green: 26 lessons / 23 quizzes / 121 questions.
+- Spotlight now has real content to surface for every sub-phase in the ranking table
+  (fallback paths like `path_pain_management` still don't exist, but the selector silently
+  skips missing paths and moves on to the next in rank).
+
+**Next up.** Phase 3 — adaptive quiz engine (adopt Gemini §3 with fixes: nearest-tier
+fallback, session-seeded shuffle, promote-only never demote). Then Phase 4 — Gentle Rhythm
+motivational layer. When a phase feels device-worthy, drop `[skip ci]` on that commit to
+trigger the APK build (workflow currently listens to `design-v2` only — path filter or
+`push.branches` needs `gemini-learn-redesign` added when we're ready to build).
+
+## 🔄 PREVIOUS SESSION (2026-08-31 → 09-01, PUSHED to `origin/design-v2` — 7 commits + this one)
 Order: b21c14a → f083ef0 → cd1e0b3 → 3d91d25 → 97f4a43 → 2ff246e → dce32e2. Previous seven
 carried `[skip ci]` per owner's standing order; THIS commit drops the flag on purpose to
 trigger the preview-APK Actions run for device-test #3.
