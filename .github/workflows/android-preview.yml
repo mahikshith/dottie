@@ -13,11 +13,12 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [design-v2]
+    branches: [design-v2, gemini-learn-redesign]
     paths:
       - 'app/**'
       - 'src/**'
       - 'assets/**'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - 'app.json'
@@ -42,6 +43,22 @@ jobs:
 
       - name: Install JS dependencies
         run: npm ci
+
+      # ─── Optional gates (only run when the script exists) ─────────
+      # Guards the Gemini Learn Redesign phases without breaking
+      # design-v2, which predates these scripts. `--if-present` makes
+      # `npm run` a no-op for scripts that aren't in package.json.
+      - name: TypeScript strict typecheck
+        run: npx tsc --noEmit
+
+      - name: Content validator (Phase 0 schema rules)
+        run: npm run --if-present validate:content
+
+      - name: Adaptive quiz harness (Phase 3, 17 invariants)
+        run: npm run --if-present test:adaptive
+
+      - name: Gentle Rhythm harness (Phase 4, 22 invariants)
+        run: npm run --if-present test:rhythm
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
