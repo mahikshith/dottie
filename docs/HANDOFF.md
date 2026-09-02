@@ -148,7 +148,7 @@ is on device.
 **UI primitives (aurora)**
 - `src/components/ui/aurora/AuroraTabBar.tsx` — liquid-glass bar (BlurView + moving pill)
 - `src/components/ui/aurora/{AuroraBackground,GlassCard,ClayButton,GlowRing}.tsx`
-- `src/components/ui/CelebrationDialog.tsx` — **DO NOT re-wrap in Reanimated entering**
+- `src/components/ui/CelebrationDialog.tsx` — **in-tree overlay, NEVER a `<Modal>`** (see §2 no-Modal rule)
 - `src/components/ui/appDialog.tsx` — `showAppDialog()` global dialog API
 - `src/theme/{palettes,mood-palette,ThemeProvider,aurora-static}.ts` — palette tokens
 
@@ -211,6 +211,59 @@ is on device.
 - **`ensureNotificationPermission`** used to prompt on any sync — that was the
   white-circle before I traced it to CelebrationDialog. Both fixed now, but
   the silent/explicit split stands.
+
+## 9. Gemini architecture audit — reconciled against the code (2026-09-02)
+
+Owner fed the old architecture brief to Gemini; it returned two docs
+(`Comprehensive App Audit` + `Acceptable Compromise Hybrid Architecture`). I
+checked every concrete claim against the source. **Verdict: strategically strong,
+factually stale in places.** Treat it as a roadmap, not a bug list.
+
+**Already done — do NOT re-implement (audit was out of date):**
+- Composite indices exist: `idx_symptom_logs_user_date`, `idx_check_ins_user_date`,
+  `idx_cycle_entries_user_date`, etc. (`src/database/schema.ts`). Audit's "missing
+  indices" is wrong.
+- `PRAGMA foreign_keys = ON` is set (`src/database/client.ts:251`).
+- OTA content seam is more than "dormant": `src/content/remote/` has
+  `content-bundle.ts`, `content-updater.ts`, `merged-providers.ts`,
+  `remote-content-store.ts` — client scaffolding exists, just no CDN wired.
+- Content is **26 lessons / 23 quizzes / 121 questions**, NOT "93 lessons."
+- Perimenopause/birth-control already influence the predictor
+  (`src/engine/prediction/health-adjustments.ts`) — but there's no dedicated UX mode.
+
+**Real, valid findings (worth doing):**
+- **Hardcoded MMKV key** — `storage.ts:61` ships `encryptionKey:
+  'dottie-mvp-static-key-rotate-before-prod'`. Should derive a hardware-backed key
+  via `expo-secure-store` (Keychain/Keystore).
+- **SQLite DB itself is plaintext** — `client.ts` has `ENCRYPTION_ACTIVE = false`;
+  the SQLCipher hook is stubbed. The audit's threat model *assumes* SQLCipher that
+  isn't on yet. Real gap for post-Roe forensic-seizure claims.
+- **No data export/import** — device loss = total data loss (the #1 red-team
+  1-star review). No HealthKit/CSV import seam (`grep` finds none) = cold-start
+  for Flo switchers.
+- **A11y**: fixed heights clip at 200% font scale; glass contrast can dip below
+  4.5:1; decorative SVGs need `accessibilityElementsHidden`.
+- **Tone**: celebration dialogs (streaks/gems) can fire right after a pain/low-mood
+  log — should suppress.
+- **Predictor is Gaussian-symmetric** — real cycles are right-skewed; a
+  log-normal/skew prior would help PCOS/anovulatory tails. (Nice-to-have, not urgent.)
+
+**Deferred by design (correct to NOT build yet):** zero-knowledge E2EE sync relay,
+blind-signature community gateway. Sound long-term, heavy, and premature pre-launch.
+Keep local-first as the master authority; revisit at real scale.
+
+**Owner's new feature asks (2026-09-02) — planned, awaiting greenlight:**
+1. **"How your next period is predicted" explainer** — a plain-language, scientifically
+   grounded card in the empty space under the Sisterhood bridge on the Calendar tab,
+   translating the Bayesian model + condition adjustments into simple "here's why these
+   dates" copy. Non-diagnostic.
+2. **Height/weight capture** — columns ALREADY exist (`weight_kg`,`height_cm` in
+   schema + `weightKg`,`heightCm` in `cycle.types.ts`) but nothing collects or reads
+   them. Wire an onboarding/profile input. ⚠️ BMI↔cycle link is real but WEAK and
+   easily misused — use as *context* in the explainer, not a hard predictor input,
+   pending owner decision.
+3. **Home day-ring meaning** — the top day-number ring shows a number with no meaning;
+   add a short "what this day means" label beside it (phase + one-line significance).
 
 ---
 
