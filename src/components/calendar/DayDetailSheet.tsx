@@ -90,8 +90,12 @@ export interface DayDetailSheetProps {
    * been logging headaches — pack a painkiller"). Optional; empty is fine.
    */
   recentSymptoms?: DaySuggestionSymptom[];
-  /** Log this day as a period day (past/today only). Parent persists + reloads. */
-  onLogPeriod: () => void;
+  /**
+   * Log this day as a period day (past/today only) at the given flow level
+   * (1 spotting … 4 heavy). Parent persists + reloads. Re-calling with a new
+   * level updates the same day, so the user can refine after the quick tap.
+   */
+  onLogPeriod: (flowLevel: number) => void;
   /**
    * Tap on a "worth tracking" chip. Parent closes the sheet and routes into
    * the daily check-in modal so the prompt is one tap from action. Optional;
@@ -109,6 +113,11 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   const [note, setNote] = useState<string>(props.initialPlan?.note ?? '');
   const [planned, setPlanned] = useState<boolean>(props.initialPlan?.planned ?? false);
   const [justLogged, setJustLogged] = useState(false);
+  // Flow intensity for this day. The quick tap logs MEDIUM so one tap is still
+  // enough (Flo's bar), then the "how heavy?" chips let the user refine — which
+  // is what eventually makes the heavy-day forecast personal instead of
+  // population-average.
+  const [flow, setFlow] = useState<number | null>(null);
 
   const set = useMemo(
     () =>
@@ -196,10 +205,11 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
     setTimeout(finish, 200); // JS thread — guaranteed to fire, unlike the worklet cb
   };
 
-  const logPeriod = () => {
+  const logPeriod = (level: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setJustLogged(true);
-    props.onLogPeriod();
+    setFlow(level);
+    props.onLogPeriod(level);
   };
 
   const togglePlanned = () => {
@@ -294,23 +304,61 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
           <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>YOUR DAY</Text>
 
           {!props.isFuture && (
-            <PressableScale
-              onPress={showLogged ? undefined : logPeriod}
-              disabled={showLogged}
-              haptic="none"
-              style={[
-                styles.action,
-                styles.actionPrimary,
-                { borderColor: PHASE_AURORA.menstrual, backgroundColor: showLogged ? `${PHASE_AURORA.menstrual}2E` : `${PHASE_AURORA.menstrual}18` },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={showLogged ? 'Period logged' : 'Mark as period'}
-            >
-              <Text style={styles.actionEmoji}>🩸</Text>
-              <Text style={[styles.actionText, { color: palette.ink }]}>
-                {showLogged ? 'Period logged for this day ✓' : 'Mark as period'}
-              </Text>
-            </PressableScale>
+            <>
+              <PressableScale
+                onPress={showLogged ? undefined : () => logPeriod(3)}
+                disabled={showLogged}
+                haptic="none"
+                style={[
+                  styles.action,
+                  styles.actionPrimary,
+                  { borderColor: PHASE_AURORA.menstrual, backgroundColor: showLogged ? `${PHASE_AURORA.menstrual}2E` : `${PHASE_AURORA.menstrual}18` },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={showLogged ? 'Period logged' : 'Mark as period'}
+              >
+                <Text style={styles.actionEmoji}>🩸</Text>
+                <Text style={[styles.actionText, { color: palette.ink }]}>
+                  {showLogged ? 'Period logged for this day ✓' : 'Mark as period'}
+                </Text>
+              </PressableScale>
+
+              {/* How heavy? — appears once the day is marked, so the fast path
+                  stays one tap and intensity is an optional refinement. */}
+              {showLogged ? (
+                <View style={styles.flowWrap}>
+                  <Text style={[styles.trackLabel, { color: palette.ink3 }]}>HOW HEAVY WAS IT?</Text>
+                  <View style={styles.flowRow}>
+                    {FLOW_OPTIONS.map((o) => {
+                      const active = flow === o.level;
+                      return (
+                        <PressableScale
+                          key={o.level}
+                          onPress={() => logPeriod(o.level)}
+                          haptic="none"
+                          scaleTo={0.94}
+                          style={[
+                            styles.flowChip,
+                            {
+                              backgroundColor: active ? `${PHASE_AURORA.menstrual}33` : palette.glass.bg,
+                              borderColor: active ? PHASE_AURORA.menstrual : palette.glass.edge,
+                            },
+                          ]}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Flow: ${o.label}`}
+                          accessibilityState={{ selected: active }}
+                        >
+                          <Text style={styles.flowDrops}>{o.drops}</Text>
+                          <Text style={[styles.flowText, { color: active ? palette.ink : palette.ink2 }]}>
+                            {o.label}
+                          </Text>
+                        </PressableScale>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+            </>
           )}
 
           <PressableScale
@@ -419,6 +467,14 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
     </View>
   );
 }
+
+// Flow levels mirror the sisterhood log so both paths speak the same language.
+const FLOW_OPTIONS = [
+  { level: 1, label: 'Spotting', drops: '💧' },
+  { level: 2, label: 'Light', drops: '💧💧' },
+  { level: 3, label: 'Medium', drops: '💧💧💧' },
+  { level: 4, label: 'Heavy', drops: '💧💧💧💧' },
+] as const;
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────
 
@@ -553,6 +609,20 @@ const styles = StyleSheet.create({
 
   // "Worth tracking" hint chips — inert visuals for now (log flows can be
   // wired to onPress later so tapping a chip jumps into that log form).
+  flowWrap: { gap: Spacing.xs, marginTop: -Spacing.xs },
+  flowRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  flowChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.full,
+  },
+  flowDrops: { fontSize: 10 },
+  flowText: { ...Typography.preset.caption, fontSize: 11, fontWeight: '700' },
+
   trackWrap: { gap: Spacing.xs, marginTop: Spacing.xs },
   trackLabel: { ...Typography.preset.overline, letterSpacing: 1 },
   trackRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },

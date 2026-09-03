@@ -268,10 +268,10 @@ export default function CalendarScreen() {
   ]);
 
   // Log the currently-selected day as a period day (from inside the sheet).
-  const onLogSelectedPeriod = async () => {
+  const onLogSelectedPeriod = async (flowLevel: number) => {
     if (!selected) return;
     try {
-      await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel: 3 });
+      await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel });
       await reloadPeriodDays();
     } catch (err) {
       if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);

@@ -35,6 +35,7 @@ import {
   selectPredictionExplanation,
   selectCompanionType,
 } from '../../stores';
+import { PredictionDistributionChart } from './PredictionDistributionChart';
 import type {
   FactorEffect,
   PredictionExplanation,
@@ -48,9 +49,35 @@ export function PredictionExplainerCard(): JSX.Element | null {
   const companionType = useUserStore(selectCompanionType);
   const [showScience, setShowScience] = useState(false);
 
-  // No prediction yet (no period ever logged) → don't render; the calendar's
-  // own empty states already invite the first log.
-  if (!explanation) return null;
+  // NEVER render nothing. Owner feedback (device-test-6): the science card
+  // "sometimes shows and sometimes doesn't", which reads as broken and wastes
+  // the space. With no period logged there IS no prediction to explain — but we
+  // can still be transparent about exactly what the model will use once there
+  // is, which is the confidence-building part.
+  if (!explanation) {
+    return (
+      <Animated.View
+        entering={FadeInDown.duration(320)}
+        style={[styles.card, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}
+      >
+        <View style={styles.header}>
+          <CompanionBuddy type={companionType} size={40} accessibilityLabel="Your companion" />
+          <Text style={[styles.title, { color: palette.ink }]}>How your prediction will work</Text>
+        </View>
+        <Text style={[styles.summary, { color: palette.ink2 }]}>
+          Log your first period and Dottie starts modelling your rhythm. Nothing is
+          guessed before then — that&apos;s deliberate.
+        </Text>
+        <Text style={[styles.factorPlain, { color: palette.ink3 }]}>
+          Once you log, this card shows the most likely date, the ± window and how
+          much of the probability it covers, the distribution curve behind it, which
+          days are likely heaviest, and every input that shaped the estimate — your
+          logged cycle lengths and their regularity, period length, age, and any
+          conditions you told us about (PCOS, thyroid). All computed on this phone.
+        </Text>
+      </Animated.View>
+    );
+  }
 
   const confidencePct = Math.round(explanation.confidence * 100);
 
@@ -83,6 +110,15 @@ export function PredictionExplainerCard(): JSX.Element | null {
       {/* Window visual: start —●— end */}
       <WindowBar explanation={explanation} palette={palette} />
 
+      {/* The period itself — how long, and which days tend to be hardest.
+          Owner ask: don't just say WHEN it starts, brace me for the heavy days. */}
+      <View style={[styles.periodBox, { borderColor: `${palette.accent}44`, backgroundColor: `${palette.accent}10` }]}>
+        <Text style={[styles.periodTitle, { color: palette.ink }]}>
+          🩸 Likely {pretty(explanation.pointDate)} – {pretty(explanation.periodEndDate)} · about {explanation.periodLengthDays} days
+        </Text>
+        <Text style={[styles.periodBody, { color: palette.ink2 }]}>{explanation.heavyDaysSummary}</Text>
+      </View>
+
       {/* Confidence chip */}
       <View style={styles.chipRow}>
         <View style={[styles.chip, { borderColor: palette.accent }]}>
@@ -95,7 +131,18 @@ export function PredictionExplainerCard(): JSX.Element | null {
         </Text>
       </View>
 
-      {/* Factors */}
+      {/* The distribution behind the number — real posterior, not decoration. */}
+      <PredictionDistributionChart
+        predictedCycleLength={explanation.predictedCycleLength}
+        stdDevDays={explanation.stdDevDays}
+        windowDays={explanation.windowDays}
+        pointDate={explanation.pointDate}
+        intervalStartDate={explanation.intervalStartDate}
+        intervalEndDate={explanation.intervalEndDate}
+      />
+
+      {/* Factors — what the model actually used. */}
+      <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>WHAT SHAPED THIS PREDICTION</Text>
       <View style={styles.factors}>
         {explanation.factors.map((f) => (
           <View key={f.key} style={styles.factorRow}>
@@ -129,6 +176,9 @@ export function PredictionExplainerCard(): JSX.Element | null {
       {showScience && (
         <Animated.View entering={FadeIn.duration(220)}>
           <Text style={[styles.science, { color: palette.ink2 }]}>{explanation.scienceSummary}</Text>
+          <Text style={[styles.science, { color: palette.ink2 }]}>
+            {explanation.periodLengthTypicalText}
+          </Text>
           <View style={[styles.statsRow, { borderTopColor: palette.glass.edge }]}>
             <Stat label="Typical length" value={`${explanation.predictedCycleLength}d`} palette={palette} />
             <Stat label="Std deviation" value={`±${explanation.stdDevDays.toFixed(1)}d`} palette={palette} />
@@ -305,6 +355,25 @@ const styles = StyleSheet.create({
   chipHint: {
     ...Typography.preset.caption,
     flexShrink: 1,
+  },
+
+  sectionLabel: {
+    ...Typography.preset.overline,
+    letterSpacing: 1,
+    marginTop: Spacing.xs,
+  },
+  periodBox: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+    gap: 4,
+  },
+  periodTitle: {
+    ...Typography.preset.bodySemibold,
+  },
+  periodBody: {
+    ...Typography.preset.caption,
+    lineHeight: 18,
   },
 
   // Factors

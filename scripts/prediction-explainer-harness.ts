@@ -186,6 +186,36 @@ scenario('E7 — more data increases effective cycle count', () => {
     `few ${few.windowDays} vs many ${many.windowDays}`);
 });
 
+scenario('E8 — period window + heavy days (device-test-6)', () => {
+  const e = explain(history([28, 28, 28]), profile());
+
+  ok('periodLengthDays within the clinically-normal 2-8 range',
+    e.periodLengthDays >= 2 && e.periodLengthDays <= 8, `got ${e.periodLengthDays}`);
+
+  const start = new Date(`${e.pointDate}T00:00:00`).getTime();
+  const end = new Date(`${e.periodEndDate}T00:00:00`).getTime();
+  const DAY = 86400000;
+  ok('periodEndDate is periodLengthDays-1 after the start',
+    Math.round((end - start) / DAY) === e.periodLengthDays - 1,
+    `${e.pointDate} -> ${e.periodEndDate} (len ${e.periodLengthDays})`);
+
+  ok('heavy stretch starts on day 1', e.heavyStartDate === e.pointDate);
+  const heavyEnd = new Date(`${e.heavyEndDate}T00:00:00`).getTime();
+  ok('heavy stretch never runs past the period', heavyEnd <= end);
+  ok('heavy stretch is at most the first 2 days',
+    Math.round((heavyEnd - start) / DAY) <= 1);
+
+  ok('heavyDaysSummary is non-empty', e.heavyDaysSummary.trim().length > 0);
+  ok('periodLengthTypicalText cites the typical range',
+    /3-7|3–7/.test(e.periodLengthTypicalText), e.periodLengthTypicalText);
+
+  // A user with a long period should get a longer predicted window.
+  const longP = explain(history([28, 28, 28]), profile({ averagePeriodLength: 8 }));
+  ok('period length is driven by the user profile, not hardcoded',
+    longP.periodLengthDays > e.periodLengthDays,
+    `default ${e.periodLengthDays} vs long ${longP.periodLengthDays}`);
+});
+
 // ─── SUMMARY ─────────────────────────────────────────────────────────
 
 if (failures === 0) {

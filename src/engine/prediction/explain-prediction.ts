@@ -84,6 +84,21 @@ export interface PredictionExplanation {
   confidenceLabel: PredictionOutput['confidenceLabel'];
   /** ~probability (0–1) the true date lands inside the ± window. */
   approxWindowProbability: number;
+  /**
+   * Expected length of the NEXT period in days — the user's own average when
+   * known, else the population median (5). Clamped to the 2-8 day range that
+   * clinical sources (NHS, Cleveland Clinic) still consider normal.
+   */
+  periodLengthDays: number;
+  /** Predicted last day of the next period. */
+  periodEndDate: string;
+  /** First/last day of the stretch that is usually heaviest (the first ~2 days). */
+  heavyStartDate: string;
+  heavyEndDate: string;
+  /** Encouraging, non-diagnostic line naming the likely-heavier days. */
+  heavyDaysSummary: string;
+  /** Population reference facts about period length, for the science section. */
+  periodLengthTypicalText: string;
   /** Human factor list, most influential first. */
   factors: ExplanationFactor[];
   /** 1–2 sentences anyone can read. */
@@ -151,9 +166,32 @@ function buildExplanation(
     approxWindowProbability
   );
 
+  // ─── PERIOD WINDOW + HEAVY DAYS ────────────────────────────────
+  // Owner ask (device-test-6): don't just predict WHEN the next period starts —
+  // say how long it's likely to run and which days tend to be heaviest, so the
+  // user can brace for them. Bleeding is heaviest in the first ~2 days for most
+  // people; period length is 3-7 days typically (2-8 still normal, ~5 median).
+  const periodLengthDays = clampInt(input.healthProfile.averagePeriodLength ?? 5, 2, 8);
+  const periodEnd = addDays(output.predictedDate, periodLengthDays - 1);
+  const heavyEnd = addDays(output.predictedDate, Math.min(1, periodLengthDays - 1));
+  const heavyDaysSummary =
+    periodLengthDays <= 2
+      ? `Day 1 (${shortDate(output.predictedDate)}) is usually the heaviest — it typically eases quickly.`
+      : `Days 1-2 (${shortDate(output.predictedDate)}-${shortDate(heavyEnd)}) are usually the heaviest. ` +
+        `That's typical, and it tends to ease from day 3 — worth planning a lighter couple of days.`;
+  const periodLengthTypicalText =
+    `Most periods run about 5 days (3-7 is typical, and 2-8 can still be perfectly normal), ` +
+    `with bleeding heaviest in the first two days. Yours is set to ~${periodLengthDays} days.`;
+
   return {
     hasData: cyclesObserved > 0,
     pointDate: toISODate(output.predictedDate),
+    periodLengthDays,
+    periodEndDate: toISODate(periodEnd),
+    heavyStartDate: toISODate(output.predictedDate),
+    heavyEndDate: toISODate(heavyEnd),
+    heavyDaysSummary,
+    periodLengthTypicalText,
     windowDays,
     intervalStartDate: toISODate(intervalStart),
     intervalEndDate: toISODate(intervalEnd),
@@ -384,6 +422,18 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+/** Clamp to an integer inside [min, max]. */
+function clampInt(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, Math.round(n)));
+}
+
+/** "Sep 24" — compact date for inline copy. */
+function shortDate(d: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
 }
 
 function round1(n: number): number {
