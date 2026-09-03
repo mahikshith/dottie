@@ -61,6 +61,7 @@ import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calcula
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
 import { WeekAheadStrip, type WeekAheadItem } from '../../src/components/calendar/WeekAheadStrip';
+import { PredictionExplainerCard } from '../../src/components/calendar/PredictionExplainerCard';
 import { buildDaySuggestions } from '../../src/engine/calendar/day-suggestions';
 import { Storage } from '../../src/database/storage';
 
@@ -442,6 +443,11 @@ export default function CalendarScreen() {
             <Text style={[styles.sisterBridgeArrow, { color: palette.accent }]}>›</Text>
           </PressableScale>
         </Animated.View>
+
+        {/* How this prediction is made — the dynamic explainer card. Renders
+            null until a period is logged (it reads the store's live
+            explanation, which recomputes on every edit). */}
+        <PredictionExplainerCard />
 
         {/* Bottom padding */}
         <View style={{ height: Spacing.tabBarHeight }} />

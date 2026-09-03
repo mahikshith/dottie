@@ -30,6 +30,7 @@ export {
   selectLastPeriodStart,
   selectHasCycleData,
   selectPredictionMessage,
+  selectPredictionExplanation,
   selectRecentSymptoms,
 } from './useCycleStore';
 export type { CycleStoreState } from './useCycleStore';

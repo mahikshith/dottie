@@ -44,6 +44,10 @@ import {
   PredictionInput,
 } from '../engine/prediction/predictor';
 import {
+  explainPrediction,
+  PredictionExplanation,
+} from '../engine/prediction/explain-prediction';
+import {
   calculateCurrentPhase,
   daysUntilNextPeriod,
 } from '../engine/prediction/phase-calculator';
@@ -60,6 +64,13 @@ export interface CycleStoreState {
   cycleCount: number;
   /** Latest prediction snapshot */
   latestPrediction: CyclePrediction | null;
+  /**
+   * Human explanation of the latest prediction (how it was calculated: the
+   * ± window, the standard deviation, the contributing factors). Recomputed
+   * alongside `latestPrediction`, so subscribing to it is reactive AND
+   * Zustand-v5-safe (a stable reference that only changes on a real recompute).
+   */
+  latestExplanation: PredictionExplanation | null;
   /** Signed errors from past predictions (for Bayesian self-improvement) */
   predictionErrors: number[];
   /** Symptoms from the last 7 days (used for content state key) */
@@ -97,6 +108,7 @@ const initialState = {
   cycleHistory: [] as CycleRecord[],
   cycleCount: 0,
   latestPrediction: null as CyclePrediction | null,
+  latestExplanation: null as PredictionExplanation | null,
   predictionErrors: [] as number[],
   recentSymptoms: [] as RecentSymptom[],
   todayCheckIn: null as DailyCheckIn | null,
@@ -206,6 +218,7 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
 
     // No last period date = nothing to predict yet
     if (!lastPeriodStart) {
+      set({ latestExplanation: null });
       return null;
     }
 
@@ -228,7 +241,10 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
       if (__DEV__) console.warn('[CycleStore] savePrediction failed:', err);
     }
 
-    set({ latestPrediction: fullPrediction });
+    set({
+      latestPrediction: fullPrediction,
+      latestExplanation: explainPrediction(input),
+    });
     return fullPrediction;
   },
 
@@ -257,11 +273,28 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
       checkinRepository.getCheckIn(userId, today),
     ]);
 
+    // Rebuild the explanation from the current model + inputs so the
+    // "how it's calculated" card is populated immediately on load (not just
+    // after the next mutation). Uses the same input shape recompute uses.
+    const user = useUserStore.getState().user;
+    const latestExplanation: PredictionExplanation | null =
+      lastPeriod && user
+        ? explainPrediction({
+            cycleHistory: history,
+            healthProfile: user.healthProfile,
+            lastPeriodStart: new Date(lastPeriod),
+            recentStressLevel: checkIn?.stressLevel ?? undefined,
+            recentSleepQuality: checkIn?.sleepQuality ?? undefined,
+            predictionErrors: errors,
+          })
+        : null;
+
     set({
       cycleHistory: history,
       lastPeriodStart: lastPeriod,
       cycleCount: count,
       latestPrediction,
+      latestExplanation,
       predictionErrors: errors,
       recentSymptoms: recent,
       todayCheckIn: checkIn,
@@ -314,6 +347,15 @@ export const selectLastPeriodStart = (s: CycleStoreState): string | null =>
  */
 export const selectHasCycleData = (s: CycleStoreState): boolean =>
   s.lastPeriodStart != null;
+
+/**
+ * The current prediction explanation (how the next-period date was computed).
+ * A stable reference that changes only when the prediction is recomputed, so
+ * it's safe to subscribe to directly under Zustand v5 (no fresh-object churn).
+ */
+export const selectPredictionExplanation = (
+  s: CycleStoreState
+): PredictionExplanation | null => s.latestExplanation;
 
 export const selectPredictionMessage = (s: CycleStoreState): string | null => {
   if (!s.latestPrediction || !s.lastPeriodStart) return null;
