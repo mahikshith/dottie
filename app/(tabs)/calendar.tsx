@@ -60,6 +60,7 @@ import {
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { sisterhoodRepository } from '../../src/database/repositories/sisterhood.repo';
 import { buildSisterOverlay, type SisterDayMark } from '../../src/engine/calendar/sister-overlay';
+import { analysePeriodPattern } from '../../src/engine/calendar/period-blocks';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
@@ -398,6 +399,13 @@ export default function CalendarScreen() {
     [overlaySisters, sisterDaysByMember, viewedMonth, todayIso]
   );
 
+  // Sanity-check what's been logged this month. Clipping at the month edge can
+  // only make gaps look BIGGER, so this under-reports rather than crying wolf.
+  const periodPattern = useMemo(
+    () => analysePeriodPattern(Array.from(periodDays)),
+    [periodDays]
+  );
+
   const logTarget = logTargetId ? loggableSisters.find((v) => v.memberId === logTargetId) ?? null : null;
 
   // Today's suggestion set — powers the richer phase card (why you're in this
@@ -547,6 +555,19 @@ export default function CalendarScreen() {
                   {h.emoji} {h.message}
                 </Text>
               ))}
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Logging sanity nudges — "that looks like a slipped tap", never a
+            medical opinion. See engine/calendar/period-blocks.ts. */}
+        {periodPattern.warnings.length > 0 && (
+          <Animated.View entering={rise(155)}>
+            <View style={[styles.nudge, { backgroundColor: palette.glass.bg, borderColor: `${A.gold}66` }]}>
+              <Text style={styles.nudgeEmoji}>🤔</Text>
+              <Text style={[styles.nudgeText, { color: palette.ink2 }]}>
+                {periodPattern.warnings[0]!.message}
+              </Text>
             </View>
           </Animated.View>
         )}
