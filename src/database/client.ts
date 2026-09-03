@@ -45,11 +45,24 @@
  */
 
 import * as SQLite from 'expo-sqlite';
+import {
+  getOrCreateDbKey,
+  isDbMigrated,
+  markDbMigrated,
+} from '../security/keychain';
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 
-/** Database filename — lives in app's document directory. */
-export const DATABASE_NAME = 'dottie.db';
+/**
+ * Database filename. The ENCRYPTED (SQLCipher) DB uses a NEW name so we never
+ * try to open a legacy plaintext file with a key (SQLCipher can't) — the
+ * one-time migration exports the old plaintext DB into this new encrypted file
+ * and then deletes the plaintext one. See migratePlaintextDbIfNeeded().
+ */
+export const DATABASE_NAME = 'dottie-enc.db';
+
+/** The pre-B2 plaintext database filename (migrated from, then deleted). */
+const LEGACY_PLAINTEXT_DB = 'dottie.db';
 
 /**
  * Schema version. Bumped when migrations.ts adds a new step.
@@ -66,16 +79,17 @@ export const DATABASE_NAME = 'dottie.db';
 export const CURRENT_SCHEMA_VERSION = 2;
 
 /**
- * Whether encryption is currently active. KEEP FALSE FOR MVP.
- * Flipping this to true REQUIRES:
- *   - getEncryptionKey() returning a real key
- *   - A SQLCipher-compatible adapter
- *   - A migration plan for existing plaintext databases
+ * Whether DB encryption is active (B2 Step 2 — now ON). All three
+ * prerequisites are in place:
+ *   - getEncryptionKey() returns the hardware-held SQLCipher key (keychain.ts)
+ *   - the native build links SQLCipher (`useSQLCipher: true` in app.json)
+ *   - migratePlaintextDbIfNeeded() migrates existing plaintext DBs
  *
- * Leaving as a constant (not env-var) so it can't be accidentally
- * enabled before all three above are in place.
+ * ⚠️ This constant and the app.json `useSQLCipher` flag MUST ship together —
+ * turning this on without the SQLCipher build would make `PRAGMA key` a silent
+ * no-op (fake encryption). Device-critical; verify on a real build.
  */
-export const ENCRYPTION_ACTIVE = false;
+export const ENCRYPTION_ACTIVE = true;
 
 // ─── INTERNAL STATE ──────────────────────────────────────────────────
 
@@ -231,17 +245,25 @@ export function trackWrite(): void {
  * Called once at app startup via getDatabase().
  */
 async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
+  const key = ENCRYPTION_ACTIVE ? await getEncryptionKey() : null;
+
+  // One-time migration: if a pre-B2 plaintext DB exists, export it into the
+  // new encrypted file before we open the encrypted DB. Best-effort and
+  // non-destructive — never deletes the plaintext copy unless the encrypted
+  // export succeeded (see the function for the full safety contract).
+  if (key) {
+    await migratePlaintextDbIfNeeded(key);
+  }
+
   const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
 
-  // If encryption is ever activated, the key MUST be applied before
-  // any other PRAGMA or query — that's why this lives at the top.
-  if (ENCRYPTION_ACTIVE) {
-    const key = await getEncryptionKey();
-    if (key) {
-      // Note: this PRAGMA only works on SQLCipher builds.
-      // Stock expo-sqlite ignores it silently.
-      await db.execAsync(`PRAGMA key = '${escapeKey(key)}'`);
-    }
+  // The key MUST be applied before any other PRAGMA or query — SQLCipher needs
+  // it to decrypt the page cache. With useSQLCipher enabled in the native
+  // build this PRAGMA truly encrypts; without it, it would be a silent no-op
+  // (which is why ENCRYPTION_ACTIVE and the app.json plugin flag must ship
+  // together).
+  if (key) {
+    await db.execAsync(`PRAGMA key = '${escapeKey(key)}'`);
   }
 
   // Performance + safety PRAGMAs (safe defaults for a single-user mobile DB)
@@ -257,6 +279,62 @@ async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
 }
 
 /**
+ * One-time migration of the legacy PLAINTEXT database into the SQLCipher
+ * encrypted database (B2 Step 2). Plaintext SQLite files can't be opened with
+ * a key, so we copy the data across with SQLCipher's `sqlcipher_export()`.
+ *
+ * ─── SAFETY CONTRACT (never lose or corrupt data) ───────────────────
+ *
+ *  - Guarded by a secure-store flag so it runs at most once.
+ *  - On a FRESH install (no real plaintext data) it just marks itself done.
+ *  - It writes into a NEW file (DATABASE_NAME); the plaintext DB is deleted
+ *    ONLY after a successful export.
+ *  - Any failure is swallowed: the flag is NOT set (so it retries next boot)
+ *    and the plaintext DB is left untouched. Worst case the app opens a fresh
+ *    encrypted DB while the real data waits safely in the plaintext file for a
+ *    later retry — data is never destroyed, only (temporarily) not shown.
+ *  - Device-critical + unverifiable in CI. A clean reinstall skips migration
+ *    entirely (fresh encrypted DB), which is the safe way to test.
+ */
+async function migratePlaintextDbIfNeeded(key: string): Promise<void> {
+  try {
+    if (await isDbMigrated()) return;
+
+    // Open the legacy plaintext DB (no key). If it doesn't exist this creates
+    // an empty one, which we detect via user_version === 0 and clean up.
+    const legacy = await SQLite.openDatabaseAsync(LEGACY_PLAINTEXT_DB);
+    let hasData = false;
+    try {
+      const row = await legacy.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+      hasData = (row?.user_version ?? 0) > 0;
+
+      if (hasData) {
+        // Copy every table into a freshly-attached encrypted file, then swap.
+        const encPath = `${SQLite.defaultDatabaseDirectory}/${DATABASE_NAME}`;
+        await legacy.execAsync(`ATTACH DATABASE '${escapeKey(encPath)}' AS encrypted KEY '${escapeKey(key)}'`);
+        await legacy.execAsync(`SELECT sqlcipher_export('encrypted')`);
+        // Preserve the schema version so runMigrations() sees the real state.
+        await legacy.execAsync(`PRAGMA encrypted.user_version = ${await readSchemaVersion(legacy)}`);
+        await legacy.execAsync(`DETACH DATABASE encrypted`);
+      }
+    } finally {
+      await legacy.closeAsync();
+    }
+
+    // Remove the plaintext file (whether it had data we exported, or was an
+    // empty file we just created by probing).
+    await SQLite.deleteDatabaseAsync(LEGACY_PLAINTEXT_DB);
+    await markDbMigrated();
+  } catch (err) {
+    // Non-destructive: leave the plaintext DB and DON'T mark migrated so we
+    // retry next launch. The encrypted DB open proceeds (possibly fresh).
+    if (__DEV__) {
+      console.warn('[DB] plaintext→SQLCipher migration failed (will retry):', err);
+    }
+  }
+}
+
+/**
  * ENCRYPTION HOOK — currently returns null (encryption off).
  *
  * When we're ready to flip encryption on:
@@ -269,20 +347,17 @@ async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
  */
 async function getEncryptionKey(): Promise<string | null> {
   if (!ENCRYPTION_ACTIVE) return null;
-
-  // Future implementation:
-  // const key = await SecureStore.getItemAsync('dottie_db_key', {
-  //   requireAuthentication: true,
-  // });
-  // if (key) return key;
-  //
-  // const newKey = generateRandom32Bytes();
-  // await SecureStore.setItemAsync('dottie_db_key', newKey, {
-  //   requireAuthentication: true,
-  // });
-  // return newKey;
-
-  return null;
+  try {
+    return await getOrCreateDbKey();
+  } catch (err) {
+    // If the secure enclave is unavailable we can't safely encrypt. Returning
+    // null means the DB opens WITHOUT a key — but since useSQLCipher makes the
+    // build require a key for an encrypted file, this only matters on a fresh
+    // (empty) DB, where it degrades to plaintext rather than bricking. Logged
+    // so it's visible in dev.
+    if (__DEV__) console.warn('[DB] could not obtain encryption key:', err);
+    return null;
+  }
 }
 
 /**

@@ -28,6 +28,9 @@ import * as SecureStore from 'expo-secure-store';
 // Keychain aliases. Versioned so a future rotation can migrate cleanly.
 const MASTER_KEY_ALIAS = 'dottie.mmkv.master_key.v1';
 const MIGRATED_FLAG_ALIAS = 'dottie.mmkv.migrated.v1';
+// SQLCipher DB key + its plaintext→encrypted migration flag (B2 Step 2).
+const DB_KEY_ALIAS = 'dottie.sqlcipher.key.v1';
+const DB_MIGRATED_FLAG_ALIAS = 'dottie.sqlcipher.migrated.v1';
 
 /** Length of the generated master key (chars). Long enough to be a strong key. */
 const KEY_LENGTH = 48;
@@ -61,6 +64,30 @@ export async function isStorageMigrated(): Promise<boolean> {
 /** Record that the one-time legacy→hardware-key migration has completed. */
 export async function markStorageMigrated(): Promise<void> {
   await SecureStore.setItemAsync(MIGRATED_FLAG_ALIAS, '1', KEYCHAIN_OPTS);
+}
+
+/**
+ * The SQLCipher database key. Separate from the MMKV key so the two stores are
+ * cryptographically independent. Created and persisted on first run.
+ */
+export async function getOrCreateDbKey(): Promise<string> {
+  const existing = await SecureStore.getItemAsync(DB_KEY_ALIAS);
+  if (existing && existing.length >= 16) return existing;
+
+  const key = randomKey(KEY_LENGTH);
+  await SecureStore.setItemAsync(DB_KEY_ALIAS, key, KEYCHAIN_OPTS);
+  return key;
+}
+
+/** Whether the plaintext→SQLCipher DB migration has already completed. */
+export async function isDbMigrated(): Promise<boolean> {
+  const flag = await SecureStore.getItemAsync(DB_MIGRATED_FLAG_ALIAS);
+  return flag === '1';
+}
+
+/** Record that the one-time plaintext→SQLCipher DB migration has completed. */
+export async function markDbMigrated(): Promise<void> {
+  await SecureStore.setItemAsync(DB_MIGRATED_FLAG_ALIAS, '1', KEYCHAIN_OPTS);
 }
 
 // ─── INTERNAL ────────────────────────────────────────────────────────

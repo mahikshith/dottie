@@ -40,7 +40,13 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
-      "expo-sqlite",
+      [
+        "expo-sqlite",
+        {
+          "//": "useSQLCipher makes the native build link SQLCipher so PRAGMA key actually encrypts the DB at rest (B2 Step 2). Stock expo-sqlite silently ignores PRAGMA key.",
+          "useSQLCipher": true
+        }
+      ],
       [
         "expo-splash-screen",
         {
