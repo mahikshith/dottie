@@ -150,7 +150,14 @@ profile row (`b52b0d5`). Dynamic card lives under the Sisterhood bridge; reads
 `selectPredictionExplanation` (recomputes on every log/edit). Plan:
 `docs/PREDICTION-EXPLAINER-PLAN.md`.
 
-**B2 — Security honesty. Step 1 ✅ DONE (`28de618`); Step 2 NEXT.**
+**B2 — Security honesty ✅ DONE (Step 1 `28de618`, Step 2 `252833e`).**
+Step 2: SQLCipher DB encryption — `app.json` expo-sqlite `useSQLCipher: true`;
+`ENCRYPTION_ACTIVE=true`; encrypted DB renamed `dottie-enc.db`;
+`migratePlaintextDbIfNeeded()` does a guarded, non-destructive
+`sqlcipher_export()` of the old plaintext DB then deletes it. Whole data plane
+(MMKV + SQLite) now encrypted under hardware-held keys. ⚠️ NATIVE + DEVICE
+critical — needs the SQLCipher prebuild; safe test = clean reinstall.
+Details below (Step 1 unchanged):
 - Step 1: hardware-backed MMKV key via `expo-secure-store` replaces the
   hardcoded key. `src/security/keychain.ts` (new); `storage.ts` now lazy —
   `initEncryptedStorage()` (called before `hydrateAppState()` in `_layout.tsx`)
