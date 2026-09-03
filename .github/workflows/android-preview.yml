@@ -13,7 +13,11 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [design-v2, gemini-learn-redesign]
+    # 'gemini-**' matches gemini-learn-redesign, gemini-v2, and any future
+    # gemini branch — so new gemini branches build APKs with no further
+    # workflow change. (For push events GitHub reads this file from the
+    # pushed branch; it's mirrored on main so workflow_dispatch matches too.)
+    branches: [design-v2, 'gemini-**']
     paths:
       - 'app/**'
       - 'src/**'
