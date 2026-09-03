@@ -61,6 +61,7 @@ import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { sisterhoodRepository } from '../../src/database/repositories/sisterhood.repo';
 import { buildSisterOverlay, type SisterDayMark } from '../../src/engine/calendar/sister-overlay';
 import { analysePeriodPattern } from '../../src/engine/calendar/period-blocks';
+import { log, timed } from '../../src/diagnostics/logger';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
@@ -285,6 +286,10 @@ export default function CalendarScreen() {
   const onLogSelectedPeriod = async (flowLevel: number) => {
     if (!selected) return;
     try {
+      // Diagnostics: this is the exact path that used to wedge, so it's
+      // bracketed. If a stall follows, the log shows whether it happened during
+      // the write or after it.
+      log.action('logPeriodDay:start', { forSister: logTargetId !== null, date: selected.iso });
       if (logTargetId) {
         // Logging on behalf of a sister — same calendar, same sheet, different
         // person. The store action also rebuilds her member view so her
@@ -294,10 +299,14 @@ export default function CalendarScreen() {
           .logShadowPeriod(phase, { memberId: logTargetId, date: selected.iso, flowLevel });
         setSisterVersion((v) => v + 1);
       } else {
-        await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel });
-        await reloadPeriodDays();
+        await timed('store.logPeriodDay', () =>
+          useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel })
+        );
+        await timed('calendar.reloadPeriodDays', () => reloadPeriodDays());
       }
+      log.action('logPeriodDay:done');
     } catch (err) {
+      log.error('logPeriodDay failed', { message: String(err) });
       if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);
     }
   };

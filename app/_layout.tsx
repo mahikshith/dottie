@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { Stack } from 'expo-router';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, AppState } from 'react-native';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '../src/constants/colors';
@@ -8,6 +8,14 @@ import { Typography } from '../src/constants/typography';
 import { Spacing } from '../src/constants/spacing';
 import { Shadows } from '../src/constants/shadows';
 import { hydrateAppState } from '../src/stores';
+import {
+  openSession,
+  closeSession,
+  startFreezeDetector,
+  installErrorHandler,
+  log,
+} from '../src/diagnostics/logger';
+import { APP_VERSION } from '../src/constants/build-info';
 import { initEncryptedStorage } from '../src/database/storage';
 import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
@@ -92,6 +100,38 @@ SplashScreen.preventAutoHideAsync().catch(() => {
  *  one-time celebration on the user's first tab visit.
  */
 export default function RootLayout() {
+  // ─── Diagnostics (owner-requested shareable log) ────────────────
+  //
+  //  Installed as early as possible so a crash or a wedge during startup is
+  //  still captured. Three jobs:
+  //    • openSession()        — notices if the PREVIOUS run never exited
+  //                             cleanly, i.e. it was force-closed (the exact
+  //                             symptom of the period-log freeze).
+  //    • startFreezeDetector()— a 1s heartbeat; if the JS thread stalls the
+  //                             tick can't fire, so the gap we measure on
+  //                             recovery IS the freeze, timestamped right
+  //                             after whatever tap caused it.
+  //    • installErrorHandler()— routes uncaught JS errors into the same trail.
+  const pathname = usePathname();
+
+  useEffect(() => {
+    installErrorHandler();
+    openSession(APP_VERSION);
+    startFreezeDetector();
+
+    // A clean background marker; its ABSENCE next launch means a force-close.
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'background' || next === 'inactive') closeSession();
+      else if (next === 'active') log.lifecycle('app foreground');
+    });
+    return () => sub.remove();
+  }, []);
+
+  // Every screen change, so the log reads as a path through the app.
+  useEffect(() => {
+    if (pathname) log.nav(pathname);
+  }, [pathname]);
+
   const [hydrated, setHydrated] = useState(false);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
   // Bumping this re-runs the bootstrap effect. Used by the error

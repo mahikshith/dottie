@@ -40,6 +40,7 @@ import Animated, {
   useReducedMotion,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { log } from '../../diagnostics/logger';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -84,6 +85,7 @@ export function PressableScale({
   haptic = 'selection',
   onPressIn,
   onPressOut,
+  onPress,
   disabled,
   ...rest
 }: PressableScaleProps): JSX.Element {
@@ -98,6 +100,19 @@ export function PressableScale({
     <AnimatedPressable
       {...rest}
       disabled={disabled}
+      onPress={(e) => {
+        // Owner-requested diagnostics: PressableScale is the standard tappable,
+        // so logging here captures essentially every deliberate tap in the app
+        // with one change instead of touching ~70 call sites. We record the
+        // accessibility label (already required on every tappable by the UI
+        // audit), never the surrounding content — no health data.
+        const label =
+          typeof rest.accessibilityLabel === 'string' && rest.accessibilityLabel.length > 0
+            ? rest.accessibilityLabel
+            : 'unlabelled';
+        log.tap(label);
+        onPress?.(e);
+      }}
       onPressIn={(e) => {
         if (!disabled) {
           if (!reduceMotion) scale.value = withSpring(scaleTo, PRESS_SPRING);

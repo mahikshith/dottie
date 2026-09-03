@@ -43,6 +43,7 @@ import { BlurView } from 'expo-blur';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { PressableScale } from '../ui';
+import { log } from '../../diagnostics/logger';
 import { useAurora, PHASE_AURORA } from '../../theme';
 import {
   buildDaySuggestions,
@@ -154,7 +155,9 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   // ── Enter / exit animation ──────────────────────────────────────
   const t = useSharedValue(reduce ? 1 : 0);
   useEffect(() => {
+    log.action('daySheet:open', { date: props.dateISO });
     if (!reduce) t.value = withSpring(1, { damping: 18, stiffness: 200, mass: 0.7 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduce, t]);
 
   const originDX = props.origin ? props.origin.x - SCREEN_W / 2 : 0;
@@ -188,6 +191,9 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   const finish = () => {
     if (teardownRef.current) return;
     teardownRef.current = true;
+    // If this line is missing from a log that ends in a freeze, the sheet never
+    // tore down — which is precisely the failure mode we chased for weeks.
+    log.action('daySheet:teardown');
     props.onClose({
       note: note.trim(),
       planned,
@@ -201,6 +207,7 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   const close = () => {
     if (closingRef.current) return;
     closingRef.current = true;
+    log.action('daySheet:close');
     Haptics.selectionAsync().catch(() => {});
     if (reduce) {
       finish();

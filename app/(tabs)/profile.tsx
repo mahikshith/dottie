@@ -137,6 +137,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/medications');
   };
 
+  const handleDiagnosticsTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/diagnostics');
+  };
+
   const handleComingSoon = (title: string) => {
     Haptics.selectionAsync().catch(() => {});
     // For now, a no-op. Wired in future chunks.
@@ -292,6 +297,16 @@ export default function ProfileScreen() {
               title="Reminders"
               subtitle="Gentle local nudges, your way"
               onPress={handleRemindersTap}
+            />
+          </Animated.View>
+
+          {/* Diagnostics — the shareable log for bug reports. */}
+          <Animated.View entering={rise(700)}>
+            <SettingsItem
+              emoji="🧪"
+              title="Diagnostics"
+              subtitle="Share a bug report — stays on your phone until you send it"
+              onPress={handleDiagnosticsTap}
             />
           </Animated.View>
           {/* Replay the coach-mark tour on demand — clears the "seen" flag
