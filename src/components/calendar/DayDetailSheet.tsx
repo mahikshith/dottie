@@ -97,6 +97,11 @@ export interface DayDetailSheetProps {
    */
   onLogPeriod: (flowLevel: number) => void;
   /**
+   * When set, taps are being recorded for THIS person (a sister) rather than
+   * the primary user — the calendar is shared, so the sheet has to say so.
+   */
+  logForName?: string | null;
+  /**
    * Tap on a "worth tracking" chip. Parent closes the sheet and routes into
    * the daily check-in modal so the prompt is one tap from action. Optional;
    * when absent the chips render as inert visuals (their old behavior).
@@ -319,7 +324,9 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
               >
                 <Text style={styles.actionEmoji}>🩸</Text>
                 <Text style={[styles.actionText, { color: palette.ink }]}>
-                  {showLogged ? 'Period logged for this day ✓' : 'Mark as period'}
+                  {showLogged
+                    ? `Period logged${props.logForName ? ` for ${props.logForName}` : ''} ✓`
+                    : `Mark as period${props.logForName ? ` for ${props.logForName}` : ''}`}
                 </Text>
               </PressableScale>
 

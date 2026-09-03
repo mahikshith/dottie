@@ -375,6 +375,33 @@ export class SisterhoodRepository {
   }
 
   /**
+   * Period days for one shadow member inside a date range (inclusive).
+   *
+   * Mirrors cycleRepository.getPeriodDaysInRange. Added so the MAIN cycle
+   * calendar can overlay a sister's logged period days in her own colour
+   * (device-test-6): the owner asked to stop maintaining a separate sisterhood
+   * calendar and just show everyone on the one grid.
+   */
+  async getShadowPeriodDaysInRange(
+    memberId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<string[]> {
+    const start = Date.now();
+    const db = await this.getDb();
+    const rows = await db.getAllAsync<{ date: string }>(
+      `SELECT date FROM shadow_cycle_entries
+       WHERE member_id = ? AND is_period_day = 1 AND date BETWEEN ? AND ?
+       ORDER BY date ASC`,
+      memberId,
+      startDate,
+      endDate
+    );
+    trackQuery(Date.now() - start);
+    return rows.map(r => r.date);
+  }
+
+  /**
    * Get the shadow member's most recent period start date.
    * Used by the engine to compute their current phase + day in cycle.
    */

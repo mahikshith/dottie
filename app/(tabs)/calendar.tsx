@@ -43,7 +43,7 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { PressableScale, AuroraBackground, GlassCard } from '../../src/components/ui';
-import { useAurora, PHASE_AURORA } from '../../src/theme';
+import { useAurora, PHASE_AURORA, A } from '../../src/theme';
 import {
   useCycleStore,
   useUserStore,
@@ -55,8 +55,11 @@ import {
   selectRecentSymptoms,
   selectUserMode,
   selectMemberCount,
+  selectMemberViewsOrdered,
 } from '../../src/stores';
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
+import { sisterhoodRepository } from '../../src/database/repositories/sisterhood.repo';
+import { buildSisterOverlay, type SisterDayMark } from '../../src/engine/calendar/sister-overlay';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
@@ -87,6 +90,7 @@ export default function CalendarScreen() {
   const { palette } = useAurora();
   // Sister count drives the copy on the loved-ones bridge card below.
   const sisterCount = useSisterhoodStore(selectMemberCount);
+  const sisterViews = useSisterhoodStore(selectMemberViewsOrdered);
 
   // ─── Live state ─────────────────────────────────────────────────
   const phase = useCycleStore(selectCurrentPhase);
@@ -117,6 +121,15 @@ export default function CalendarScreen() {
   // sheet closes via the bump counter.
   const [plannedDays, setPlannedDays] = useState<Set<string>>(new Set());
   const [plansVersion, setPlansVersion] = useState(0);
+
+  // ─── Sister overlay state (device-test-6) ───────────────────────
+  // The owner asked to stop maintaining a SECOND calendar for Sisterhood: one
+  // grid, everyone on it, sisters painted in their own colour, and a heads-up
+  // when someone's period is coming. `logTargetId === null` means "logging for
+  // me"; otherwise it's the shadow member the taps are being recorded against.
+  const [sisterDaysByMember, setSisterDaysByMember] = useState<Record<string, string[]>>({});
+  const [sisterVersion, setSisterVersion] = useState(0);
+  const [logTargetId, setLogTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     const all = Storage.dayPlans.getAll();
@@ -271,8 +284,18 @@ export default function CalendarScreen() {
   const onLogSelectedPeriod = async (flowLevel: number) => {
     if (!selected) return;
     try {
-      await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel });
-      await reloadPeriodDays();
+      if (logTargetId) {
+        // Logging on behalf of a sister — same calendar, same sheet, different
+        // person. The store action also rebuilds her member view so her
+        // predicted date (and the heads-up) update straight away.
+        await useSisterhoodStore
+          .getState()
+          .logShadowPeriod(phase, { memberId: logTargetId, date: selected.iso, flowLevel });
+        setSisterVersion((v) => v + 1);
+      } else {
+        await useCycleStore.getState().logPeriodDay({ date: selected.iso, flowLevel });
+        await reloadPeriodDays();
+      }
     } catch (err) {
       if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);
     }
@@ -317,6 +340,65 @@ export default function CalendarScreen() {
       },
     })
   ).current;
+
+  // ─── Sister overlay: who else is on this calendar ───────────────
+  // Only members whose privacy level actually exposes cycle data are drawn.
+  // That decision lives HERE (where the privacy level is), never in the pure
+  // engine — the engine trusts whatever it's handed.
+  const overlaySisters = useMemo(
+    () => sisterViews.filter((v) => v.privacyLevel === 'full' || v.privacyLevel === 'summary'),
+    [sisterViews]
+  );
+  // You can only LOG on behalf of shadow members — a linked sister records her
+  // own days on her own phone.
+  const loggableSisters = useMemo(
+    () => sisterViews.filter((v) => v.kind === 'shadow'),
+    [sisterViews]
+  );
+
+  useEffect(() => {
+    if (overlaySisters.length === 0) {
+      setSisterDaysByMember({});
+      return;
+    }
+    let cancelled = false;
+    const start = formatISO(startOfMonth(viewedMonth));
+    const end = formatISO(endOfMonth(viewedMonth));
+    Promise.all(
+      overlaySisters.map(
+        async (v) =>
+          [v.memberId, await sisterhoodRepository.getShadowPeriodDaysInRange(v.memberId, start, end)] as const
+      )
+    )
+      .then((pairs) => {
+        if (!cancelled) setSisterDaysByMember(Object.fromEntries(pairs));
+      })
+      .catch((err) => {
+        if (__DEV__) console.warn('[Calendar] sister period days failed:', err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [overlaySisters, viewedMonth, sisterVersion]);
+
+  const sisterOverlay = useMemo(
+    () =>
+      buildSisterOverlay({
+        sisters: overlaySisters.map((v) => ({
+          memberId: v.memberId,
+          displayName: v.displayName,
+          emoji: v.emoji,
+          periodDays: sisterDaysByMember[v.memberId] ?? [],
+          predictedNextPeriod: v.predictedNextPeriod,
+        })),
+        rangeStart: formatISO(startOfMonth(viewedMonth)),
+        rangeEnd: formatISO(endOfMonth(viewedMonth)),
+        today: todayIso,
+      }),
+    [overlaySisters, sisterDaysByMember, viewedMonth, todayIso]
+  );
+
+  const logTarget = logTargetId ? loggableSisters.find((v) => v.memberId === logTargetId) ?? null : null;
 
   // Today's suggestion set — powers the richer phase card (why you're in this
   // phase + a tip). Only meaningful once there's cycle data; cheap to compute.
@@ -365,6 +447,73 @@ export default function CalendarScreen() {
           <Text style={[styles.monthHint, { color: palette.ink3 }]}>‹ swipe to change month ›</Text>
         </Animated.View>
 
+        {/* Whose day am I marking? Only shown once there's someone to care for.
+            Tapping a sister makes every "Mark as period" tap record against HER
+            — one calendar instead of a second sisterhood one. */}
+        {loggableSisters.length > 0 && (
+          <Animated.View entering={rise(70)} style={styles.whoRow}>
+            <PressableScale
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setLogTargetId(null);
+              }}
+              haptic="none"
+              scaleTo={0.95}
+              style={[
+                styles.whoChip,
+                {
+                  backgroundColor: logTargetId === null ? palette.accent : palette.glass.bg,
+                  borderColor: logTargetId === null ? palette.accent : palette.glass.edge,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: logTargetId === null }}
+              accessibilityLabel="Log for yourself"
+            >
+              <Text style={[styles.whoChipText, { color: logTargetId === null ? palette.ground : palette.ink2 }]}>
+                You
+              </Text>
+            </PressableScale>
+            {loggableSisters.map((v) => {
+              const on = logTargetId === v.memberId;
+              return (
+                <PressableScale
+                  key={v.memberId}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setLogTargetId(on ? null : v.memberId);
+                  }}
+                  haptic="none"
+                  scaleTo={0.95}
+                  style={[
+                    styles.whoChip,
+                    {
+                      backgroundColor: on ? A.gold : palette.glass.bg,
+                      borderColor: on ? A.gold : palette.glass.edge,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`Log for ${v.displayName}`}
+                >
+                  <Text style={styles.whoChipEmoji}>{v.emoji}</Text>
+                  <Text style={[styles.whoChipText, { color: on ? A.ground : palette.ink2 }]}>
+                    {v.displayName}
+                  </Text>
+                </PressableScale>
+              );
+            })}
+          </Animated.View>
+        )}
+
+        {logTarget && (
+          <View style={[styles.whoBanner, { borderColor: A.gold, backgroundColor: `${A.gold}18` }]}>
+            <Text style={[styles.whoBannerText, { color: palette.ink }]}>
+              {logTarget.emoji} Marking days for {logTarget.displayName}. Tap “You” to switch back.
+            </Text>
+          </View>
+        )}
+
         {/* Weekday header + calendar grid — a horizontal swipe here pages the
             month (monthSwipe PanResponder); day taps still open the sheet. */}
         <Animated.View entering={rise(115)} {...monthSwipe.panHandlers}>
@@ -381,11 +530,26 @@ export default function CalendarScreen() {
               <DayCell
                 key={cell.iso}
                 cell={cell}
+                sisterMark={sisterMarkFor(sisterOverlay.marksByDate.get(cell.iso))}
                 onPress={(e) => onDayTap(cell.iso, cell, e)}
               />
             ))}
           </View>
         </Animated.View>
+
+        {/* Sister heads-up — the thing the Cycle tab said nothing about before:
+            whose period is coming, and when. */}
+        {sisterOverlay.headsUp.length > 0 && (
+          <Animated.View entering={rise(150)}>
+            <View style={[styles.sisterHeadsUp, { borderColor: `${A.gold}66`, backgroundColor: `${A.gold}12` }]}>
+              {sisterOverlay.headsUp.map((h) => (
+                <Text key={h.memberId} style={[styles.sisterHeadsUpText, { color: palette.ink2 }]}>
+                  {h.emoji} {h.message}
+                </Text>
+              ))}
+            </View>
+          </Animated.View>
+        )}
 
         {/* Backfill nudge — once there's cycle data but only a cycle or two,
             invite the user to log earlier months so predictions sharpen. */}
@@ -456,6 +620,7 @@ export default function CalendarScreen() {
           <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
           <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
           <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
         </Animated.View>
 
         {/* Loved-ones bridge — a non-clunky calendar → Sisterhood entry point.
@@ -491,7 +656,7 @@ export default function CalendarScreen() {
               </Text>
               <Text style={[styles.sisterBridgeSubtitle, { color: palette.ink2 }]}>
                 {sisterCount > 0
-                  ? 'Log period days, mood, and check-ins on their behalf — each in their own calendar.'
+                  ? 'Mark their days right here on this calendar — pick who you\'re logging for above. Mood and check-ins live in their profile.'
                   : 'Sisterhood lets you track periods & health for a little sister, a friend, or someone who doesn\'t have a phone yet.'}
               </Text>
             </View>
@@ -526,6 +691,7 @@ export default function CalendarScreen() {
           todayCheckIn={selected.iso === todayIso ? todayCheckIn : null}
           recentSymptoms={recentSymptoms}
           onLogPeriod={onLogSelectedPeriod}
+          logForName={logTarget?.displayName ?? null}
           onTrackTap={() => {
             // Open the daily check-in on top of the sheet — the user comes
             // back to the sheet with their note intact. Was inert before.
@@ -547,9 +713,12 @@ function rise(delay: number) {
 
 function DayCell({
   cell,
+  sisterMark,
   onPress,
 }: {
   cell: MonthCell;
+  /** A sister's period on this day — drawn in her own colour, never a phase hue. */
+  sisterMark?: 'logged' | 'predicted';
   onPress: (e: GestureResponderEvent) => void;
 }) {
   const { palette } = useAurora();
@@ -599,6 +768,17 @@ function DayCell({
       <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
       </Text>
+      {/* Sister marker — a slim gold bar, deliberately NOT one of the phase
+          hues so "someone I care for" never reads as one of my own phases.
+          Solid = she logged it, faded = it's her predicted window. */}
+      {cell.inMonth && sisterMark ? (
+        <View
+          style={[
+            styles.daySisterBar,
+            { backgroundColor: A.gold, opacity: sisterMark === 'logged' ? 1 : 0.45 },
+          ]}
+        />
+      ) : null}
     </PressableScale>
   );
 }
@@ -646,6 +826,16 @@ const PHASE_LABELS: Record<Phase, string> = {
   ovulatory: 'Ovulatory',
   luteal: 'Luteal',
 };
+
+/**
+ * Collapse every sister marker on a date to the single treatment the cell
+ * draws. A real logged day outranks a predicted one — if anyone actually bled
+ * that day, that's the honest thing to show.
+ */
+function sisterMarkFor(marks: SisterDayMark[] | undefined): 'logged' | 'predicted' | undefined {
+  if (!marks || marks.length === 0) return undefined;
+  return marks.some((m) => m.kind === 'logged') ? 'logged' : 'predicted';
+}
 
 function phaseLabel(phase: Phase): string {
   return PHASE_LABELS[phase] ?? 'Cycle';
@@ -916,6 +1106,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 3,
   },
+  daySisterBar: {
+    position: 'absolute',
+    bottom: 5,
+    width: 16,
+    height: 3,
+    borderRadius: 2,
+  },
+  // "Who am I logging for" chips + banner.
+  whoRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  whoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.full,
+  },
+  whoChipEmoji: { fontSize: 13 },
+  whoChipText: { ...Typography.preset.caption, fontWeight: '800' },
+  whoBanner: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  whoBannerText: { ...Typography.preset.caption, fontWeight: '700' },
+  // Sister heads-up card.
+  sisterHeadsUp: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+    gap: 4,
+    marginBottom: Spacing.base,
+  },
+  sisterHeadsUpText: { ...Typography.preset.caption, lineHeight: 18 },
+
   dayCellText: {
     ...Typography.preset.bodySemibold,
     fontSize: 15,
