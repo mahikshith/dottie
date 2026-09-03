@@ -415,7 +415,8 @@ export function wrapInCompanionVoice(options: WrapOptions): string {
   const templateIndex = deterministicPick(
     candidateTemplates.length,
     context.day_in_cycle,
-    mood
+    mood,
+    context.day_seed ?? 0
   );
   const template = candidateTemplates[templateIndex]!;
 
@@ -501,6 +502,7 @@ export function buildContext(input: {
     streak_count: input.streakCount,
     user_mood: input.userMood,
     time_of_day: getTimeOfDay(now),
+    day_seed: dayOfYear(now),
   };
 }
 
@@ -603,14 +605,24 @@ function interpolate(
 function deterministicPick(
   choiceCount: number,
   dayInCycle: number,
-  mood: CompanionMood
+  mood: CompanionMood,
+  daySeed: number = 0
 ): number {
   if (choiceCount <= 0) return 0;
 
-  // Simple stable hash: dayInCycle × 31 + mood string length × 7
+  // Stable hash over (calendar day, cycle day, mood). The calendar day is what
+  // guarantees movement: day_in_cycle is 0 before any period is logged and can
+  // sit still if cycle data goes stale, which is exactly how the companion
+  // ended up repeating one line forever (device-test-6).
   const moodKey = MOOD_PRIORITY.indexOf(mood) + 1;
-  const hash = (dayInCycle * 31 + moodKey * 7) >>> 0;
+  const hash = (daySeed * 17 + dayInCycle * 31 + moodKey * 7) >>> 0;
   return hash % choiceCount;
+}
+
+/** 1-366. Pure helper for the dialogue rotation seed. */
+function dayOfYear(d: Date): number {
+  const start = new Date(d.getFullYear(), 0, 0);
+  return Math.floor((d.getTime() - start.getTime()) / 86400000);
 }
 
 function capitalize(word: string): string {

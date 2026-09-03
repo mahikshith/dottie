@@ -111,6 +111,14 @@ export interface DialogueContext {
   streak_count: number;
   user_mood?: string;
   time_of_day: 'morning' | 'afternoon' | 'evening' | 'night';
+  /**
+   * Day-of-year of the real calendar date. Used ONLY to vary which dialogue
+   * template is chosen. It exists because rotation used to key off day_in_cycle
+   * alone: with no cycle data (or a stuck one) that value never moved, so the
+   * companion repeated the same sentence forever (device-test-6). Optional so
+   * existing callers/tests keep working.
+   */
+  day_seed?: number;
 }
 
 // ─── COMPANION CUSTOMIZATION ─────────────────────────────────────────

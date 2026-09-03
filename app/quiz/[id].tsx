@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -90,6 +91,7 @@ export default function QuizScreen() {
   // ─── Screen state machine ───────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('starting');
   const [session, setSession] = useState<QuizAttemptSession | null>(null);
+  const insets = useSafeAreaInsets();
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [lastAnswer, setLastAnswer] = useState<SubmitAnswerResult | null>(null);
@@ -448,14 +450,30 @@ export default function QuizScreen() {
           </Animated.View>
         )}
 
-        {/* Next / Finish button (only while reviewing) */}
-        {phase === 'reviewing' && (
+        {/* Bottom spacer so the pinned footer never covers the last content. */}
+        <View style={{ height: Spacing.buttonHeight.lg + Spacing['3xl'] }} />
+      </ScrollView>
+
+      {/* Next / Finish — PINNED to the bottom of the screen (device-test-6).
+          It used to sit at the end of the scroll content, so on a long question
+          the user had to scroll down to continue and the primary action drifted
+          out of thumb reach. Now it's always exactly where the thumb already
+          is. Only rendered while reviewing, so it can't be tapped early. */}
+      {phase === 'reviewing' && (
+        <View
+          style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}
+          pointerEvents="box-none"
+        >
           <Pressable
             style={({ pressed }) => [
               styles.nextButton,
               pressed && styles.nextButtonPressed,
             ]}
             onPress={handleNext}
+            accessibilityRole="button"
+            accessibilityLabel={
+              questionIndex >= (session?.questions.length ?? 0) - 1 ? 'Finish quiz' : 'Next question'
+            }
           >
             <Text style={styles.nextButtonText}>
               {questionIndex >= (session?.questions.length ?? 0) - 1
@@ -463,10 +481,8 @@ export default function QuizScreen() {
                 : 'Next Question'}
             </Text>
           </Pressable>
-        )}
-
-        <View style={{ height: Spacing['3xl'] }} />
-      </ScrollView>
+        </View>
+      )}
     </AuroraBackground>
   );
 }
@@ -774,6 +790,14 @@ const styles = StyleSheet.create({
   progressPillText: {
     ...Typography.preset.captionBold,
     letterSpacing: 0.3,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.sm,
   },
   nextButton: {
     backgroundColor: A.accent,
