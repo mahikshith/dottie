@@ -651,6 +651,13 @@ export interface MedicationPlan {
   kind: MedicationKind;
   /** Preset time of day the daily reminder fires. */
   time: ReminderTime;
+  /**
+   * Optional EXACT firing time, overriding the preset bucket. Added in
+   * device-test-6 ("we need a specific time, not just morning/midday/evening").
+   * Optional so every already-saved plan keeps working untouched.
+   */
+  hour?: number;
+  minute?: number;
   /** Whether this reminder is currently on. */
   active: boolean;
 }

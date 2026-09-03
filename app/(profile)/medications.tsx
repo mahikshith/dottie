@@ -22,6 +22,12 @@ import { AuroraBackground, GlassCard, PressableScale } from '../../src/component
 import { useAurora } from '../../src/theme';
 import { useCycleStore } from '../../src/stores';
 import {
+  findDuplicateReminder,
+  duplicateReminderMessage,
+  formatFiringTime,
+  PRESET_HOUR,
+} from '../../src/engine/reminders/dedupe';
+import {
   Storage,
   type MedicationPlan,
   type MedicationKind,
@@ -60,6 +66,10 @@ export default function MedicationsScreen() {
   const [kind, setKind] = useState<MedicationKind>('pill');
   const [time, setTime] = useState<ReminderTime>('morning');
   const [permissionDenied, setPermissionDenied] = useState(false);
+  // Exact firing time in minutes-of-day. null = just use the preset bucket.
+  const [exactMinutes, setExactMinutes] = useState<number | null>(null);
+  // Gentle "you already have this" notice — never a blocking dialog.
+  const [duplicateNotice, setDuplicateNotice] = useState<string | null>(null);
 
   const persist = async (next: MedicationPlan[]) => {
     Storage.medications.set(next);
@@ -74,18 +84,47 @@ export default function MedicationsScreen() {
     // Fall back to the kind's label as the reminder name so the tap always
     // does something. They can rename via remove-and-readd if it matters.
     const trimmed = name.trim() || kindMeta(kind).label;
+    const exact =
+      exactMinutes === null
+        ? {}
+        : { hour: Math.floor(exactMinutes / 60), minute: exactMinutes % 60 };
+
+    // Don't silently create a second identical daily reminder — that's how the
+    // same notification started firing twice with no obvious cause. Compare on
+    // the moment it actually FIRES, not the bucket label (device-test-6).
+    const clash = findDuplicateReminder(meds, { name: trimmed, kind, time, ...exact });
+    if (clash) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      setDuplicateNotice(duplicateReminderMessage(clash));
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     const plan: MedicationPlan = {
       id: `med_${Date.now().toString(36)}_${Math.floor(Math.random() * 0xffff).toString(36)}`,
       name: trimmed,
       kind,
       time,
+      ...exact,
       active: true,
     };
     void persist([...meds, plan]);
     setName('');
     setKind('pill');
     setTime('morning');
+    setExactMinutes(null);
+    setDuplicateNotice(null);
+  };
+
+  /** Nudge the exact time by `delta` minutes, seeding from the preset bucket. */
+  const nudgeExact = (delta: number) => {
+    Haptics.selectionAsync().catch(() => {});
+    setDuplicateNotice(null);
+    setExactMinutes((prev) => {
+      const base = prev ?? (PRESET_HOUR[time] ?? 9) * 60;
+      // Wrap within the day so it can never land on an invalid hour.
+      return ((base + delta) % 1440 + 1440) % 1440;
+    });
   };
 
   const toggleMed = (id: string, value: boolean) => {
@@ -199,7 +238,7 @@ export default function MedicationsScreen() {
               return (
                 <PressableScale
                   key={t.key}
-                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setTime(t.key); }}
+                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setTime(t.key); setExactMinutes(null); setDuplicateNotice(null); }}
                   haptic="none"
                   style={[styles.chip, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }, on && { backgroundColor: palette.accent, borderColor: palette.accent }]}
                   accessibilityRole="button"
@@ -212,6 +251,47 @@ export default function MedicationsScreen() {
               );
             })}
           </View>
+
+          {/* Exact time — the preset buckets were too coarse ("we need a
+              specific time"). A stepper rather than a gesture control: precise,
+              and it can't be fumbled on a small screen. */}
+          <Text style={[styles.fieldLabel, { color: palette.ink3 }]}>Exact time</Text>
+          <View style={styles.timeRow}>
+            <PressableScale
+              onPress={() => nudgeExact(-15)}
+              haptic="none"
+              style={[styles.timeStep, { borderColor: palette.glass.edge, backgroundColor: palette.glass.bg }]}
+              accessibilityRole="button"
+              accessibilityLabel="15 minutes earlier"
+            >
+              <Text style={[styles.timeStepText, { color: palette.ink }]}>−</Text>
+            </PressableScale>
+            <Text style={[styles.timeValue, { color: palette.ink }]}>
+              {formatFiringTime({
+                name: '',
+                kind,
+                time,
+                ...(exactMinutes === null
+                  ? {}
+                  : { hour: Math.floor(exactMinutes / 60), minute: exactMinutes % 60 }),
+              })}
+            </Text>
+            <PressableScale
+              onPress={() => nudgeExact(15)}
+              haptic="none"
+              style={[styles.timeStep, { borderColor: palette.glass.edge, backgroundColor: palette.glass.bg }]}
+              accessibilityRole="button"
+              accessibilityLabel="15 minutes later"
+            >
+              <Text style={[styles.timeStepText, { color: palette.ink }]}>+</Text>
+            </PressableScale>
+          </View>
+
+          {duplicateNotice && (
+            <View style={[styles.dupNotice, { borderColor: palette.accent2, backgroundColor: `${palette.accent2}18` }]}>
+              <Text style={[styles.dupNoticeText, { color: palette.ink }]}>{duplicateNotice}</Text>
+            </View>
+          )}
 
           <PressableScale
             onPress={addMed}
@@ -280,6 +360,29 @@ const styles = StyleSheet.create({
   },
   chipEmoji: { fontSize: 13 },
   chipText: { ...Typography.preset.caption, fontWeight: '800' },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  timeStep: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeStepText: { fontSize: 22, fontWeight: '700', lineHeight: 26 },
+  timeValue: { ...Typography.preset.bodySemibold, minWidth: 92, textAlign: 'center' },
+  dupNotice: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  dupNoticeText: { ...Typography.preset.caption, lineHeight: 18 },
   addBtn: {
     height: Spacing.buttonHeight.md,
     borderRadius: Spacing.radius.full,

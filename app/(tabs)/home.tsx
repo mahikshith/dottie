@@ -617,13 +617,16 @@ const styles = StyleSheet.create({
     ...Typography.preset.body,
     lineHeight: 22,
   },
+  // Font consistency (device-test-6): these used to override the type ramp with
+  // arbitrary sizes (26 / 10 / 16). Emoji below are deliberately sized as
+  // GRAPHICS, but text must stay on the ramp or the screen reads as three
+  // different apps stacked together.
   ringDay: {
     ...Typography.preset.number,
-    fontSize: 26,
   },
   ringLabel: {
     ...Typography.preset.caption,
-    fontSize: 10,
+    fontSize: Typography.size.xs,
     marginTop: 1,
   },
   phaseBar: {
@@ -743,7 +746,6 @@ const styles = StyleSheet.create({
   },
   fullCheckInText: {
     ...Typography.preset.bodySemibold,
-    fontSize: 16,
   },
   fullCheckInHint: {
     ...Typography.preset.caption,

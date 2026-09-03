@@ -218,7 +218,8 @@ async function scheduleMedication(plan: MedicationPlan, discrete: boolean): Prom
   try {
     await Notifications.scheduleNotificationAsync({
       content: { title, body: copy.body },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: TIME_HOUR[plan.time], minute: 0 },
+      // An exact time set by the user wins over the preset bucket.
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: plan.hour ?? TIME_HOUR[plan.time], minute: plan.minute ?? 0 },
     });
   } catch (err) {
     if (__DEV__) console.warn('[Notifications] schedule medication failed:', err);

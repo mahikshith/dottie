@@ -438,8 +438,11 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: Spacing.radius['2xl'],
     borderWidth: 1,
-    padding: Spacing.cardPaddingLarge,
-    marginBottom: Spacing.base,
+    // device-test-6: was cardPaddingLarge (24) + base (16). The inputs were
+    // swimming in dead space and pushed the symptom grid below the fold, so
+    // fewer of them got logged. Tightened to fit more in one pane.
+    padding: Spacing.cardPadding,
+    marginBottom: Spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   moodWordsLabel: {
     ...Typography.preset.caption,
     fontWeight: '700',
-    marginTop: Spacing.base,
+    marginTop: Spacing.sm,
   },
   footer: {
     position: 'absolute',

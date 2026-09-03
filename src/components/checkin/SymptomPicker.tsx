@@ -40,7 +40,15 @@ export interface SymptomCatalogItem {
 }
 
 export const SYMPTOM_CATALOG: SymptomCatalogItem[] = [
-  // Physical
+  // Physical — bleeding first: it's the single most useful thing to track on a
+  // cycle app and it was missing entirely (device-test-6). Kept in 'physical'
+  // rather than a new 'flow' category on purpose: symptom_logs has a CHECK
+  // constraint on category, so a new one would need a table-rebuild migration
+  // on every existing install for no user-visible gain. Intensity comes from
+  // the picker's existing severity control (light → heavy).
+  { category: 'physical', type: 'bleeding', label: 'Bleeding', emoji: '🩸' },
+  { category: 'physical', type: 'spotting', label: 'Spotting', emoji: '💧' },
+  { category: 'physical', type: 'clots', label: 'Clots', emoji: '🫐' },
   { category: 'physical', type: 'cramps', label: 'Cramps', emoji: '🌀' },
   { category: 'physical', type: 'bloating', label: 'Bloating', emoji: '🎈' },
   { category: 'physical', type: 'headache', label: 'Headache', emoji: '🤕' },
