@@ -294,6 +294,15 @@ export default function HomeScreen() {
           <Text style={[styles.phaseDay, { color: palette.ink3 }]}>Day {dayInCycle}</Text>
         </Animated.View>
 
+        {/* What this day actually means — a plain, warm one-liner so the day
+            number isn't a bare figure. Owner ask: "when they see day 0/1/2 we
+            should show what it actually means." Non-diagnostic. */}
+        <Animated.View entering={rise(150)}>
+          <Text style={[styles.dayMeaning, { color: palette.ink2 }]}>
+            {dayMeaning(phase)}
+          </Text>
+        </Animated.View>
+
         {/* TODAY AT A GLANCE — Clue-style narrative for today (sub-phase +
             hormone story + personal signal + one tip + track chips). Uses
             the same engine as the calendar day sheet — see
@@ -485,6 +494,26 @@ function capitalize(s: string): string {
   return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
+/**
+ * A warm, plain-language meaning for the current phase, shown under the day
+ * ring so the day number carries significance instead of standing alone.
+ * Non-diagnostic — general tendencies, never "your body is doing X."
+ */
+function dayMeaning(phase: string): string {
+  switch (phase) {
+    case 'menstrual':
+      return 'Your body is resetting — rest is completely valid right now.';
+    case 'follicular':
+      return 'Energy tends to build back up as this phase goes on.';
+    case 'ovulatory':
+      return 'Energy and mood often peak around now for many people.';
+    case 'luteal':
+      return 'A winding-down stretch — be gentle with yourself.';
+    default:
+      return 'Every body has its own rhythm.';
+  }
+}
+
 const moodOptions: { emoji: string; score: number; label: string }[] = [
   { emoji: '😤', score: 1, label: 'rough' },
   { emoji: '😔', score: 2, label: 'low' },
@@ -535,8 +564,12 @@ const styles = StyleSheet.create({
   phaseBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.base,
     paddingVertical: Spacing.sm,
+  },
+  dayMeaning: {
+    ...Typography.preset.caption,
+    lineHeight: 18,
+    marginBottom: Spacing.base,
   },
   phaseDot: {
     width: 12,
