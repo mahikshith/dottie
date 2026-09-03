@@ -287,11 +287,30 @@ scenario('S14 — missed period: 55-day gap after regular cycles', () => {
     daysBetween(new Date(), out.predictedDate) >= 0 && daysBetween(new Date(), out.predictedDate) <= 60);
 });
 
+scenario('S15 — right-skew: one long cycle should NOT drag the estimate up', () => {
+  // Four regular 28-day cycles + one 56-day anovulatory stretch. The
+  // arithmetic mean is 33.6; a symmetric Normal model would predict ~34. The
+  // log-normal model predicts the skew-robust MEDIAN, much closer to 28 — the
+  // whole point of the log-space upgrade (a couple of long cycles shouldn't
+  // convince us every future cycle is long).
+  const hp = profile({ averageCycleLength: 28 });
+  const out = predict(history([56, 28, 28, 28, 28]), hp);
+  const arithmeticMean = (56 + 28 + 28 + 28 + 28) / 5; // 33.6
+  ok('predicted length is below the arithmetic mean (skew-robust median)',
+    out.predictedCycleLength < arithmeticMean, `got ${out.predictedCycleLength} vs mean ${arithmeticMean}`);
+  ok('predicted length stays in a plausible range (not collapsed)',
+    out.predictedCycleLength >= 27 && out.predictedCycleLength <= 34, `got ${out.predictedCycleLength}`);
+  // And a genuinely irregular body still gets a wider window than a regular one.
+  const regular = predict(history([28, 28, 28, 28, 28]), hp);
+  ok('a variable history widens the window vs a perfectly regular one',
+    out.windowDays >= regular.windowDays, `skewed ${out.windowDays} vs regular ${regular.windowDays}`);
+});
+
 // ─── REPORT ─────────────────────────────────────────────────────────
 
 console.log('');
 if (failures === 0) {
-  console.log(`  \x1b[32m✓ All predictor scenarios pass — 14 scenarios, ~60 assertions.\x1b[0m`);
+  console.log(`  \x1b[32m✓ All predictor scenarios pass — 15 scenarios, ~65 assertions.\x1b[0m`);
   process.exit(0);
 }
 console.log(`  \x1b[31m✗ ${failures} assertion failure(s) — fix before device rollout.\x1b[0m`);
