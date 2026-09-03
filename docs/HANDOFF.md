@@ -198,8 +198,21 @@ device loss ≠ data loss; later a HealthKit/CSV import seam for Flo switchers.
 contrast ≥4.5:1, hide decorative SVGs from screen readers; suppress streak/gem
 celebration when a pain/low-mood is logged.
 
-**B6 — Predictor skew (later).** Log-normal / skew-aware prior for PCOS/anovulatory
-right tails. Accuracy refinement, not urgent.
+**B6 — Predictor skew ✅ DONE (`4f5d7ae`).** `bayesian-predictor.ts` now models
+log(cycleLength) as Normal (length is LOG-NORMAL): same NIG conjugate math on
+log(x), point estimate = day-space MEDIAN (skew-robust), window scales with the
+coefficient of variation. New S15 predictor scenario locks it in.
+
+### Gemini audit — remaining backlog (cross-checked 2026-09-03)
+Shipped: hardware key + SQLCipher (B2), indices/FK (pre-existing), prediction
+transparency (B1), log-normal predictor (B6), mood-aware celebration (partial
+tone fix). **Still open, ranked:** (1) data export/import (encrypted JSON, no
+backend — the #1 red-team review); (2) a11y sweep (glass contrast ≥4.5:1,
+dynamic-type minHeight, decorative-SVG hiding, calendar hitSlop) + finish tone
+(suppress celebration right after a pain log); (3) HealthKit/CSV import. **Needs
+owner design steer:** perimenopause UX mode, PCOS calendar (signal timeline vs
+phase bands), Doctor Report V2 (ACOG 1-page). **Non-issues:** "women's health"
+copy is only in 2 comments; no hardcoded `height:48` on buttons.
 
 **Deferred by design** (revisit at real scale, NOT now): zero-knowledge E2EE sync
 relay, blind-signature community gateway. Sound but heavy + premature pre-launch.
