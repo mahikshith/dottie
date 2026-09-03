@@ -8,6 +8,7 @@ import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground } from '../../src/components/ui';
 import { QuizAnswerReaction } from '../../src/components/learn/QuizAnswerReaction';
+import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
 import {
   useUserStore,
   useGamificationStore,
@@ -228,6 +229,15 @@ export default function QuizScreen() {
         ? Haptics.NotificationFeedbackType.Success
         : Haptics.NotificationFeedbackType.Warning
     ).catch(() => {});
+
+    // Celebrate a win across the whole screen — but tuned to today's mood. A
+    // low/frustrated mood gets the gentle, soothing tier (never a loud burst);
+    // a strong pass on a good day gets the full aurora bloom.
+    if (result.passed) {
+      const moodScore = useCycleStore.getState().todayCheckIn?.moodScore ?? null;
+      const magnitude = result.score >= 0.8 ? 'big' : 'small';
+      showCelebration(celebrationTierForMood(moodScore, magnitude));
+    }
 
     setPhase('finished');
   };

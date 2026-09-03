@@ -12,6 +12,7 @@ import { initEncryptedStorage } from '../src/database/storage';
 import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppDialogHost } from '../src/components/ui/appDialog';
+import { CelebrationHost } from '../src/components/ui/celebration/celebration';
 import { WalkthroughOverlay } from '../src/walkthrough/WalkthroughOverlay';
 import { useWalkthroughStore } from '../src/walkthrough/store';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
@@ -306,6 +307,10 @@ export default function RootLayout() {
           the user is unlocked. */}
       <AppLockGate />
       <AppDialogHost />
+      {/* Full-screen mood-aware Aurora celebration. Renders null unless a
+          showCelebration() has fired, then plays a light-bloom across the whole
+          screen and auto-clears. Pointer-transparent — never blocks taps. */}
+      <CelebrationHost />
       {/* First-run coach-mark tour. Renders null unless the walkthrough
           store has an active step, so it costs nothing for returning users.
           Auto-launch is triggered from the Home tab's mount effect, gated
