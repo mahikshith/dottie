@@ -134,6 +134,42 @@ marks a lesson complete without an explicit tap; suspected downstream of the
 white-circle bug (dialog invisibly steals the tap). Re-verify after `e8f1335`
 is on device.
 
+### Owner-approved backlog (2026-09-02/03) — build in this order
+
+**B1 — Prediction explainer + Home day-ring meaning (NEXT, approved).** Full
+file-level plan in `docs/PREDICTION-EXPLAINER-PLAN.md` — build straight from it,
+don't re-explore the predictor. Dynamic "how your next period is predicted" card
+(SD/confidence interval, factor breakdown, plain + "show the science") in the
+empty space under the Sisterhood bridge on the Calendar tab; + a "what this day
+means" line beside the Home GlowRing; + optional height/weight (columns already
+exist, used as CONTEXT only, non-diagnostic).
+
+**B2 — Security honesty.** (a) hardware-backed key via `expo-secure-store` to
+replace the hardcoded `storage.ts:61` MMKV key (mind the async-init + existing-
+data re-encrypt migration); then (b) SQLCipher DB encryption (native dev-client
+build) wired to Ghost Mode panic wipe. `ENCRYPTION_ACTIVE=false` today.
+
+**B3 — Motion / transition pass (Gemini was right).** The app has micro-
+interactions (PressableScale springs, moving tab pill, BreathingView, PopOnChange,
+GlowRing, haptics) but NO choreography layer: no screen/stack transitions, no
+entrance/stagger on lists & cards, no shared-element handoff, no skeleton/loading
+motion. Do a cohesive pass with the `animate-expo` skill — Reduce-Motion aware,
+UI-thread only. Scope: expo-router stack transitions, card/list entrance stagger
+on Home/Learn/Calendar, number/date tweens when predictions update (ties into B1).
+
+**B4 — Data portability.** Password-encrypted JSON export/import (no backend) so
+device loss ≠ data loss; later a HealthKit/CSV import seam for Flo switchers.
+
+**B5 — A11y + tone.** Dynamic-type (drop fixed heights → minHeight), glass
+contrast ≥4.5:1, hide decorative SVGs from screen readers; suppress streak/gem
+celebration when a pain/low-mood is logged.
+
+**B6 — Predictor skew (later).** Log-normal / skew-aware prior for PCOS/anovulatory
+right tails. Accuracy refinement, not urgent.
+
+**Deferred by design** (revisit at real scale, NOT now): zero-knowledge E2EE sync
+relay, blind-signature community gateway. Sound but heavy + premature pre-launch.
+
 ## 5. Files that matter (jump table)
 
 **Learn (Gemini redesign)**

@@ -122,6 +122,8 @@ add paths to `learning-paths.ts` + quizzes to `quizzes.ts` (both need
 - `docs/ONBOARDING-AND-WALKTHROUGH.md` — tour audit + design
 - `docs/DEVICE-TEST-3.md` — earlier device-test round
 - `docs/LEARN-REDESIGN-*.md` — external Gemini research
+- `docs/PREDICTION-EXPLAINER-PLAN.md` — approved next-build plan (B1): dynamic
+  prediction explainer + home day-ring meaning + height/weight
 - `docs/CONTENT-UPDATES.md` — OTA content pipeline (dormant)
 - `docs/BETA-TESTING-GUIDE.md` — beta testing groundwork
 - `docs/LOTTIE-SOURCING.md` — companion art pipeline
