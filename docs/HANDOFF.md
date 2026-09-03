@@ -136,9 +136,16 @@ is on device.
 
 ### Owner-approved backlog (2026-09-02/03) — build in this order
 
-**B1 — Prediction explainer + Home day-ring meaning (NEXT, approved).** Full
-file-level plan in `docs/PREDICTION-EXPLAINER-PLAN.md` — build straight from it,
-don't re-explore the predictor. Dynamic "how your next period is predicted" card
+> **Now building on branch `gemini-v2`** (off `gemini-learn-redesign`). CI does
+> NOT build APKs for it yet — needs a `main` workflow change (owner OK).
+
+**B1 — Prediction explainer + Home day-ring meaning (IN PROGRESS on `gemini-v2`).**
+Done: B1.1 `explain-prediction.ts` + `test:explainer` harness (`0c19ae7`);
+B1.2 store `latestExplanation` + `selectPredictionExplanation` + reactive
+`PredictionExplainerCard` on the Calendar tab (`d00d95b`); B1.4 home day-ring
+meaning line (`0cfe55a`). **Remaining: B1.5 — optional height/weight input**
+(Profile/onboarding; columns + explainer BMI-context factor already exist, just
+need the capture UI). Full plan in `docs/PREDICTION-EXPLAINER-PLAN.md`. Dynamic "how your next period is predicted" card
 (SD/confidence interval, factor breakdown, plain + "show the science") in the
 empty space under the Sisterhood bridge on the Calendar tab; + a "what this day
 means" line beside the Home GlowRing; + optional height/weight (columns already
