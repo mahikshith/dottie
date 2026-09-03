@@ -1,11 +1,23 @@
 # 🌱 Dottie — Session Handoff (READ THIS FIRST)
 
-**Last updated:** 2026-09-02 · Session ~4 hours
-**Branch:** `gemini-learn-redesign` (all current work). `design-v2` and `main` are frozen.
+**Last updated:** 2026-09-03 · Device Test 6 round
+**Branch:** `gemini-v2` (all current work; builds APKs on push via `gemini-**`).
+`gemini-learn-redesign` is the prior checkpoint; `design-v2` and `main` are frozen.
 **Owner device:** Nothing Phone (Android). NOT MIUI/Xiaomi — do not assume MIUI behaviour.
 
 > **Token-efficient start.** Read §1–3 (5 min) and jump to §4 for open work.
 > Every other doc is *reference only* — pull it when a specific section names it.
+
+> ### 🔴 CURRENT — Device Test 6 (read `docs/DEVICE-TEST-6.md` first)
+> The owner device-tested v0.12.0-1 and reported serious recurring bugs. **Keystone
+> insight:** the period-log *freeze* was also causing the "0 cycles / Day 168 / still
+> learning" staleness (tester could only ever log one period). **Fixed this round:**
+> (1) the freeze — `DayDetailSheet` no longer gates unmount on a Reanimated worklet
+> callback (JS-thread `setTimeout` teardown); (2) Learn "YOU'RE HERE"/hopping companion
+> on every path — `isCurrent` now gated on `isActivePath`. Both need **on-device
+> verification**. Full root-cause analysis, the P0/P1/P2 backlog, competitor
+> calendar-engine research, and next-session sequencing live in `docs/DEVICE-TEST-6.md`
+> and the session TODO (`#35–#46`). §3/§4 below predate DT6.
 
 ---
 
