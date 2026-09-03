@@ -107,6 +107,11 @@ export default function ProfileScreen() {
     router.push('/(sisterhood)/circle');
   };
 
+  const handleAboutYouTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/about-you');
+  };
+
   const handleDoctorReportTap = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push('/(profile)/doctor-report');
@@ -206,6 +211,17 @@ export default function ProfileScreen() {
         <View style={styles.settingsSection}>
           <Animated.View entering={rise(300)}>
             <Text style={[styles.sectionTitle, { color: palette.ink }]}>Settings</Text>
+          </Animated.View>
+
+          {/* ✅ Shipped — You & your body (optional height/weight for the
+              prediction explainer's body-context factor) */}
+          <Animated.View entering={rise(330)}>
+            <SettingsItem
+              emoji="🫶"
+              title="You & your body"
+              subtitle="Optional height & weight — sharpens your prediction explainer"
+              onPress={handleAboutYouTap}
+            />
           </Animated.View>
 
           {/* ✅ Shipped — Sisterhood Circle */}
