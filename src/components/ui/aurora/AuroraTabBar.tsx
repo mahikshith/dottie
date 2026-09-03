@@ -20,13 +20,27 @@
  *   4. FLOAT.  Bigger warm shadow so the whole bar reads as elevated,
  *      not painted on the ground.
  *
- * ─── MOTION (animate-expo · tab-indicator recipe) ───────────────────
+ * ─── MOTION (animate-expo · tab-indicator recipe) — LIQUID FLOW ──────
  *
- *   Positions are measured once with `onLayout`; the pill absolutely
- *   positions with no interactive children (the one sanctioned width
- *   animation). Spring form { dampingRatio: 0.78, duration: 340 } with
- *   a hint of overshoot. Reduce Motion snaps. Selection haptic on press.
- *   The screen never re-renders per frame — only the pill's transform.
+ *   This is STATE INDICATION (which tab is active), not a screen slide —
+ *   the tab SCREENS never slide (animation:'none' in the navigator). Only
+ *   the indicator moves, and it's an absolutely-positioned childless
+ *   element, so animating width is the one sanctioned width animation.
+ *
+ *   The "liquid is flowing" effect the owner asked for is a TWO-LAYER trick:
+ *     • the crisp mint pill (front) springs fast + tight to the new tab;
+ *     • a soft luminous glow (behind) springs SLOWER and looser, so it
+ *       LAGS — and its width is drawn to BRIDGE the gap between where it
+ *       is and where the pill is going. So during travel the glow visibly
+ *       stretches across the icons like a droplet, then contracts on
+ *       arrival. Tapping a far tab smears the light the whole way across.
+ *   Each tab's icon+label also springs a small "pop" (1→1.08) as it
+ *   becomes active, and dips (0.92) on press-in for tactile feedback.
+ *
+ *   All of it runs on the UI thread (shared values + useAnimatedStyle);
+ *   the screen never re-renders per frame. Reduce Motion snaps everything
+ *   (no stretch, no pop). Selection haptic fires on press-in (feedback),
+ *   navigation commits on press-out. Never animates BlurView intensity.
  *
  *   On the first render the pill snaps to the initially-focused tab's
  *   measured position, so no "starts at 0 and slides to tab 3" flash.
@@ -48,6 +62,8 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withSpring,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
@@ -132,8 +148,13 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
   const positionsRef = useRef<Record<string, { x: number; w: number }>>({});
   const [layoutReady, setLayoutReady] = useState(0);
 
+  // Crisp pill (front): position + width. Springs fast + tight.
   const pillX = useSharedValue(0);
   const pillW = useSharedValue(0);
+  // Glow (behind): a SEPARATE x that springs slower/looser so it LAGS behind
+  // the pill. The gap between glowX and pillX is what the glow stretches to
+  // bridge → the liquid "flow" across the icons.
+  const glowX = useSharedValue(0);
 
   useEffect(() => {
     const route = state.routes[state.index];
@@ -143,24 +164,32 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
     if (reduce) {
       pillX.value = pos.x;
       pillW.value = pos.w;
+      glowX.value = pos.x;
     } else {
-      pillX.value = withSpring(pos.x, { dampingRatio: 0.78, duration: 340 });
-      pillW.value = withSpring(pos.w, { dampingRatio: 0.78, duration: 340 });
+      // Front pill: quick + tight (lands first).
+      pillX.value = withSpring(pos.x, { dampingRatio: 0.82, duration: 300 });
+      pillW.value = withSpring(pos.w, { dampingRatio: 0.9, duration: 300 });
+      // Glow: slower + looser (a little overshoot) so it trails and catches up.
+      glowX.value = withSpring(pos.x, { dampingRatio: 0.6, duration: 520 });
     }
-  }, [state.index, state.routes, layoutReady, reduce, pillX, pillW]);
+  }, [state.index, state.routes, layoutReady, reduce, pillX, pillW, glowX]);
 
+  // Crisp pill — just moves + keeps its width.
   const pillStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: pillX.value }],
     width: pillW.value,
   }));
 
-  const onPress = (route: TabRoute, index: number) => {
-    Haptics.selectionAsync().catch(() => {});
-    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-    if (state.index !== index && !event.defaultPrevented) {
-      navigation.navigate(route.name);
-    }
-  };
+  // Glow — spans from wherever it is to wherever the pill is, so it stretches
+  // to bridge the two positions during travel and contracts on arrival.
+  const glowStyle = useAnimatedStyle(() => {
+    const left = Math.min(pillX.value, glowX.value);
+    const span = Math.abs(pillX.value - glowX.value);
+    return {
+      transform: [{ translateX: left - 3 }],
+      width: pillW.value + span + 6,
+    };
+  });
 
   const handleTabLayout = (routeKey: string, isFocused: boolean) => (e: LayoutChangeEvent) => {
     const { x, width } = e.nativeEvent.layout;
@@ -168,6 +197,7 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
     if (isFocused && pillW.value === 0) {
       pillX.value = x;
       pillW.value = width;
+      glowX.value = x;
       setLayoutReady((n) => n + 1);
     }
   };
@@ -211,7 +241,7 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
           pointerEvents="none"
           style={[
             styles.pillGlow,
-            pillStyle,
+            glowStyle,
             { backgroundColor: `${palette.accent}22` },
           ]}
         />
@@ -230,30 +260,102 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
           const meta = TAB_META[route.name];
           if (!meta) return null;
           const focused = state.index === index;
-          // Icon + label go BRIGHT on the active pill (palette.ink),
-          // dim on inactive tabs (palette.ink2 — one step brighter than
-          // ink3 so all five icons read). Reference-image contrast.
-          const color = focused ? palette.ink : palette.ink2;
           return (
-            <Pressable
+            <TabButton
               key={route.key}
+              meta={meta}
+              focused={focused}
+              reduce={reduce}
+              activeColor={palette.ink}
+              inactiveColor={palette.ink2}
               onLayout={handleTabLayout(route.key, focused)}
-              onPress={() => onPress(route, index)}
-              style={styles.tab}
-              accessibilityRole="button"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={meta.label}
-              hitSlop={4}
-            >
-              <TabIcon name={meta.icon} color={color} />
-              <Text style={[styles.label, { color, fontWeight: focused ? '800' : '600' }]}>
-                {meta.label}
-              </Text>
-            </Pressable>
+              onActivate={() => {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (state.index !== index && !event.defaultPrevented) {
+                  navigation.navigate(route.name);
+                }
+              }}
+            />
           );
         })}
       </View>
     </View>
+  );
+}
+
+// ─── TAB BUTTON (owns its press-dip + focus-pop) ────────────────────
+
+// Strong ease-out for UI micro-motion (animate-expo).
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+
+interface TabButtonProps {
+  meta: { label: string; icon: IconName };
+  focused: boolean;
+  reduce: boolean;
+  activeColor: string;
+  inactiveColor: string;
+  onLayout: (e: LayoutChangeEvent) => void;
+  onActivate: () => void;
+}
+
+function TabButton({
+  meta,
+  focused,
+  reduce,
+  activeColor,
+  inactiveColor,
+  onLayout,
+  onActivate,
+}: TabButtonProps): JSX.Element {
+  const pressed = useSharedValue(0);
+  const focus = useSharedValue(focused ? 1 : 0);
+
+  // Pop to 1.08 as this tab becomes active (spring), snap under Reduce Motion.
+  useEffect(() => {
+    if (reduce) {
+      focus.value = focused ? 1 : 0;
+    } else {
+      focus.value = withSpring(focused ? 1 : 0, { dampingRatio: 0.6, duration: 380 });
+    }
+  }, [focused, reduce, focus]);
+
+  const contentStyle = useAnimatedStyle(() => {
+    const base = 1 + focus.value * 0.08; // focus pop
+    const scale = base * (1 - pressed.value * 0.08); // press dip
+    return { transform: [{ scale }] };
+  });
+
+  const color = focused ? activeColor : inactiveColor;
+
+  return (
+    <Pressable
+      onLayout={onLayout}
+      onPressIn={() => {
+        // Feedback on press-IN (immediate): haptic + a small dip.
+        pressed.value = reduce ? 0 : withTiming(1, { duration: 90, easing: EASE_OUT });
+        Haptics.selectionAsync().catch(() => {});
+      }}
+      onPressOut={() => {
+        pressed.value = withTiming(0, { duration: 130, easing: EASE_OUT });
+      }}
+      onPress={onActivate}
+      style={styles.tab}
+      accessibilityRole="button"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={meta.label}
+      hitSlop={4}
+    >
+      <Animated.View style={[styles.tabContent, contentStyle]}>
+        <TabIcon name={meta.icon} color={color} />
+        <Text style={[styles.label, { color, fontWeight: focused ? '800' : '600' }]}>
+          {meta.label}
+        </Text>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -287,7 +389,7 @@ const styles = StyleSheet.create({
   pillGlow: {
     position: 'absolute',
     top: BAR_PAD - 3,
-    left: -3,
+    left: 0, // horizontal position is driven by glowStyle's translateX
     height: BAR_H - BAR_PAD * 2 + 6,
     borderRadius: RADIUS - BAR_PAD + 3,
   },
@@ -303,8 +405,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
     height: '100%',
+  },
+  tabContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
   },
   label: {
     fontSize: 10.5,
