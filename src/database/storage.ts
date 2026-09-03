@@ -480,8 +480,13 @@ export const Storage = {
   // the UI treats null as guided by default (safest for a first-timer).
 
   learnLevel: {
-    get: (): LearnLevel | null =>
-      (db().getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
+    get: (): LearnLevel => {
+      const raw = db().getString(Keys.LEARN_LEVEL);
+      // Migrate the legacy 3-way values in place: 'new' meant guided, while
+      // 'basics'/'deep' both meant "let me explore freely" → 'phase'.
+      if (raw === 'phase' || raw === 'basics' || raw === 'deep') return 'phase';
+      return 'guided';
+    },
     set: (level: LearnLevel): void => db().set(Keys.LEARN_LEVEL, level),
     clear: (): void => db().delete(Keys.LEARN_LEVEL),
   },
@@ -604,7 +609,14 @@ export const Storage = {
 export type ThemeOverride = 'light' | 'dark' | 'auto';
 
 /** The user's chosen Learn pace (see Storage.learnLevel). 'new' = guided. */
-export type LearnLevel = 'new' | 'basics' | 'deep';
+/**
+ * Learn pacing. Reduced from the old three-way New/Basics/Deep chooser to the
+ * two modes the owner actually wants (device-test-6):
+ *   'guided' — start from the very beginning, unlocked step by step.
+ *   'phase'  — jump straight to what's relevant to the user's current cycle
+ *              phase and health conditions; nothing is locked.
+ */
+export type LearnLevel = 'guided' | 'phase';
 
 /** Preset times of day for the daily check-in reminder. */
 export type ReminderTime = 'morning' | 'midday' | 'evening';

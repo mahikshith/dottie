@@ -13,13 +13,14 @@
  *  sequential LOCK rule, XP/gem stats, and tap-to-open-lesson. The reader +
  *  practice + quiz flow beyond a node is unchanged.
  *
- *  The HYBRID PLACEMENT is a real behavioural switch, not a hollow selector:
- *   • New · Guided     → sequential locks stay on (one step at a time)
- *   • Knows basics /   → the trail UNLOCKS; jump to any lesson (self-directed)
- *     Deep dive
- *  Persisted in `Storage.learnLevel` (null defaults to guided — safest for a
- *  first-timer). Difficulty-tiered CONTENT is future work; this switches the
- *  navigation model over the existing lessons today.
+ *  TWO modes (device-test-6 — the old New/Basics/Deep split asked the user to
+ *  make a distinction they never needed):
+ *   • 'guided' → start from the beginning; sequential locks stay on.
+ *   • 'phase'  → nothing is locked, and the phase-aware selector surfaces a
+ *                longer list of lessons matched to the user's CURRENT sub-phase
+ *                and health conditions, so "show me what's relevant to me right
+ *                now" is one tap rather than a hunt through paths.
+ *  Persisted in `Storage.learnLevel`, which migrates the legacy values.
  *
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
@@ -86,12 +87,7 @@ import { Storage, type LearnLevel } from '../../src/database/storage';
 import { resolveSubPhase } from '../../src/engine/calendar/day-suggestions';
 import { selectSpotlightLessons } from '../../src/engine/learn/phase-aware-selector';
 import { TodaySpotlightCard } from '../../src/components/learn/TodaySpotlightCard';
-import {
-  recordVisit as recordRhythmVisit,
-  summarizeRhythm,
-  type GentleRhythmSummary,
-} from '../../src/engine/learn/gentle-rhythm';
-import { GentleRhythmChip } from '../../src/components/learn/GentleRhythmChip';
+import { recordVisit as recordRhythmVisit } from '../../src/engine/learn/gentle-rhythm';
 
 // Stable empty array so a null healthProfile doesn't churn the selector.
 const EMPTY_CONDITIONS: HealthCondition[] = [];
@@ -200,8 +196,8 @@ export default function LearnScreen() {
 
   // ─── Progress + pace ────────────────────────────────────────────
   const [progressMap, setProgressMap] = useState<Map<string, LessonProgress>>(new Map());
-  const [level, setLevel] = useState<LearnLevel | null>(() => Storage.learnLevel.get());
-  const guided = level !== 'basics' && level !== 'deep'; // null/'new' → guided
+  const [level, setLevel] = useState<LearnLevel>(() => Storage.learnLevel.get());
+  const guided = level === 'guided';
 
   // Gentle Rhythm (Phase 4). We hold the rolling visited-days state in local
   // state so the chip can rerender when we record today's visit inside the
@@ -327,24 +323,6 @@ export default function LearnScreen() {
         : null,
     [hasCycleData, phase, dayInCycle]
   );
-  // Gentle Rhythm summary + a 7-dot map ending today (oldest → today). Both
-  // derived pure from state — cheap to recompute per render.
-  const rhythmSummary: GentleRhythmSummary = useMemo(() => {
-    const todayIso = new Date().toISOString().slice(0, 10);
-    return summarizeRhythm(rhythm, todayIso);
-  }, [rhythm]);
-  const last7Dots: boolean[] = useMemo(() => {
-    const today = new Date();
-    const set = new Set(rhythm.visitedDays);
-    const out: boolean[] = [];
-    for (let offset = 6; offset >= 0; offset--) {
-      const d = new Date(today.getTime() - offset * 86400000);
-      const iso = d.toISOString().slice(0, 10);
-      out.push(set.has(iso));
-    }
-    return out;
-  }, [rhythm]);
-
   const spotlight = useMemo(
     () =>
       selectSpotlightLessons({
@@ -353,9 +331,11 @@ export default function LearnScreen() {
         conditions,
         lessons: LESSONS,
         progressById: progressMap,
-        count: 3,
+        // In "My phase & conditions" mode this list IS the experience — the
+        // user asked to jump straight to what's relevant — so surface more.
+        count: level === 'phase' ? 6 : 3,
       }),
-    [subphase, mode, conditions, progressMap]
+    [subphase, mode, conditions, progressMap, level]
   );
 
   const totalLessons = availablePaths.reduce((sum, p) => sum + (pathStats.get(p.id)?.total ?? 0), 0);
@@ -426,10 +406,10 @@ export default function LearnScreen() {
           <PaceChooser level={level} guided={guided} onPick={pickLevel} />
         </Animated.View>
 
-        {/* Gentle Rhythm — a warm, non-punishing cadence chip (Phase 4). */}
-        <Animated.View entering={rise(125)} style={{ marginBottom: Spacing.md }}>
-          <GentleRhythmChip summary={rhythmSummary} last7Dots={last7Dots} />
-        </Animated.View>
+        {/* The "A visit today. Every one counts." cadence chip was REMOVED
+            (device-test-6): it took prime space to tell the user something they
+            already know. Visits are still recorded above — that belongs in a
+            Duolingo-style push notification, not a permanent banner. */}
 
         {/* Today's Spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) */}
         {spotlight.length > 0 && (
@@ -484,16 +464,17 @@ function PaceChooser({
   guided,
   onPick,
 }: {
-  level: LearnLevel | null;
+  level: LearnLevel;
   guided: boolean;
   onPick: (l: LearnLevel) => void;
 }): JSX.Element {
   const { palette } = useAurora();
-  // One-word labels only — full phrases overflowed the rounded chips on device.
+  // TWO modes only (device-test-6). "New / Basics / Deep" was a distinction the
+  // user never needed to make; what they actually want is "teach me from the
+  // start" vs "show me what matters for my body right now".
   const options: { key: LearnLevel; emoji: string; label: string }[] = [
-    { key: 'new', emoji: '🌱', label: 'New' },
-    { key: 'basics', emoji: '🙂', label: 'Basics' },
-    { key: 'deep', emoji: '🦉', label: 'Deep' },
+    { key: 'guided', emoji: '🌱', label: 'From the start' },
+    { key: 'phase', emoji: '🌙', label: 'My phase' },
   ];
   return (
     <View style={styles.pace}>
@@ -527,7 +508,7 @@ function PaceChooser({
       <Text style={[styles.paceHint, { color: palette.ink3 }]}>
         {guided
           ? 'Guided — one step at a time. We\'ll unlock as you go.'
-          : 'Explore — jump to any lesson you like. Nothing\'s locked.'}
+          : 'Straight to what matters for your phase and conditions. Nothing\'s locked.'}
       </Text>
     </View>
   );
