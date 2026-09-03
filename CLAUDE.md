@@ -11,10 +11,9 @@ its budget on rediscovery.**
   explainer, security, motion, etc; branched off `gemini-learn-redesign`).
   `gemini-learn-redesign` is the prior stable checkpoint; `design-v2` and
   `main` are frozen. Never push to `main` except the workflow file.
-  ⚠️ **CI does NOT build APKs for `gemini-v2` yet** — the workflow on `main`
-  only triggers on `design-v2` / `gemini-learn-redesign`. To device-test
-  `gemini-v2`, add it (ideally a `gemini-**` wildcard) to the workflow's
-  `push.branches` on `main` — needs explicit owner OK (a `main` change).
+  **CI builds APKs for `gemini-v2`** — the workflow (on `gemini-v2` and mirrored
+  on `main`) triggers on a `gemini-**` wildcard, so every gemini branch builds
+  on push. Owner may ask to HOLD pushes and do a single final push later.
 - **Repo:** `mahikshith/dottie`. Owner: `mahikshith97@gmail.com`. Owner's phone:
   **Nothing Phone (Android)** — NOT MIUI/Xiaomi.
 - **What's built:** the Learn tab redesign (Phases 0–4 shipped) sits on top of a
