@@ -169,13 +169,27 @@ Details below (Step 1 unchanged):
 - Step 2 (NEXT): SQLCipher DB encryption (`client.ts` `ENCRYPTION_ACTIVE=false`
   today) — native driver swap + dev-client build, wired to Ghost Mode panic wipe.
 
-**B3 — Motion / transition pass (Gemini was right).** The app has micro-
-interactions (PressableScale springs, moving tab pill, BreathingView, PopOnChange,
-GlowRing, haptics) but NO choreography layer: no screen/stack transitions, no
-entrance/stagger on lists & cards, no shared-element handoff, no skeleton/loading
-motion. Do a cohesive pass with the `animate-expo` skill — Reduce-Motion aware,
-UI-thread only. Scope: expo-router stack transitions, card/list entrance stagger
-on Home/Learn/Calendar, number/date tweens when predictions update (ties into B1).
+**B3 — Motion / delight pass (IN PROGRESS on `gemini-v2`, `animate-expo` skill).**
+Done so far:
+- `a3302d4` **Liquid-flow tab bar** — crisp pill (fast spring) + a lagging glow
+  that stretches to BRIDGE the gap between icons (the "liquid flowing" effect) +
+  per-tab press-dip & focus-pop (`TabButton`). Tab SCREENS still don't slide.
+- `2240059` **Quiz answer reactions + rich feedback panel** —
+  `src/components/learn/QuizAnswerReaction.tsx` (companion celebrates/encourages
+  each answer, warm on a miss, never punishing) fills the empty space under the
+  quiz with an animated panel (reaction + explanation + "X of Y correct" pill).
+- `32efde7` **Full-screen mood-aware Aurora celebration** —
+  `src/components/ui/celebration/celebration.tsx`: `showCelebration(tier)` +
+  root-mounted `<CelebrationHost/>` (imperative, in-tree, never a Modal). Bloom
+  of aurora orbs across the whole screen. `celebrationTierForMood(moodScore)`:
+  glory / warm / gentle (low mood → soothing, no burst). Wired into quiz pass.
+- `7f1201d` Celebration also fires on **level-up**; new `CompanionWave` gives a
+  "hello" wiggle on the Home hero.
+Still open: fire celebration on **streak milestones + badge unlocks**; card/list
+**entrance stagger** on Home/Learn/Calendar; **prediction number/date tween** when
+a log changes the prediction (ties into B1). NOTE: real illustrated companion
+**Lottie art** is still unsourced — the `assets/lottie/` + manifest drop-in seam
+is ready; every reaction upgrades with zero code change once art lands.
 
 **B4 — Data portability.** Password-encrypted JSON export/import (no backend) so
 device loss ≠ data loss; later a HealthKit/CSV import seam for Flo switchers.
