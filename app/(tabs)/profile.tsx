@@ -33,7 +33,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { PressableScale, PopOnChange, BreathingView, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { PressableScale, PopOnChange, CompanionBuddy, AuroraBackground, GlassCard } from '../../src/components/ui';
 import { showAppDialog } from '../../src/components/ui/appDialog';
 import { Storage } from '../../src/database/storage';
 import { useAurora } from '../../src/theme';
@@ -158,9 +158,14 @@ export default function ProfileScreen() {
       >
         {/* Companion & Identity */}
         <Animated.View entering={rise(60)} style={styles.profileHeader}>
-          <BreathingView>
-            <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-          </BreathingView>
+          {/* Interactive companion — greets on open, peeks periodically to
+              draw the eye toward the sections below, and bounces when tapped. */}
+          <CompanionBuddy
+            type={companionType}
+            size={68}
+            accessibilityLabel={`${companion.name}, your companion`}
+          />
+          <View style={{ height: Spacing.sm }} />
           <Text style={[styles.companionName, { color: palette.ink }]}>{companion.name}</Text>
           <View style={[styles.modeBadge, { backgroundColor: companion.accentColor }]}>
             <Text style={styles.modeBadgeText}>{formatMode(userMode)}</Text>

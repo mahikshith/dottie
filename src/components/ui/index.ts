@@ -27,5 +27,8 @@ export type { CompanionLottieProps } from './CompanionLottie';
 export { CompanionWave } from './CompanionWave';
 export type { CompanionWaveProps } from './CompanionWave';
 
+export { CompanionBuddy } from './CompanionBuddy';
+export type { CompanionBuddyProps } from './CompanionBuddy';
+
 // ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
 export * from './aurora';

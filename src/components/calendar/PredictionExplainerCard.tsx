@@ -27,9 +27,14 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { PressableScale, PopOnChange } from '../ui';
+import { PressableScale, PopOnChange, CompanionBuddy } from '../ui';
 import { useAurora } from '../../theme';
-import { useCycleStore, selectPredictionExplanation } from '../../stores';
+import {
+  useCycleStore,
+  useUserStore,
+  selectPredictionExplanation,
+  selectCompanionType,
+} from '../../stores';
 import type {
   FactorEffect,
   PredictionExplanation,
@@ -40,6 +45,7 @@ import type {
 export function PredictionExplainerCard(): JSX.Element | null {
   const { palette } = useAurora();
   const explanation = useCycleStore(selectPredictionExplanation);
+  const companionType = useUserStore(selectCompanionType);
   const [showScience, setShowScience] = useState(false);
 
   // No prediction yet (no period ever logged) → don't render; the calendar's
@@ -61,11 +67,13 @@ export function PredictionExplainerCard(): JSX.Element | null {
         { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
       ]}
     >
-      {/* Header */}
+      {/* Header — the companion GUIDES the explanation (taps to peek). */}
       <View style={styles.header}>
-        <Text style={styles.headerIcon} accessibilityElementsHidden importantForAccessibility="no">
-          🔎
-        </Text>
+        <CompanionBuddy
+          type={companionType}
+          size={40}
+          accessibilityLabel="Your companion explains your prediction"
+        />
         <Text style={[styles.title, { color: palette.ink }]}>How this prediction is made</Text>
       </View>
 
