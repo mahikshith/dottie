@@ -8,6 +8,7 @@ import { Typography } from '../src/constants/typography';
 import { Spacing } from '../src/constants/spacing';
 import { Shadows } from '../src/constants/shadows';
 import { hydrateAppState } from '../src/stores';
+import { initEncryptedStorage } from '../src/database/storage';
 import { AuroraProvider } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppDialogHost } from '../src/components/ui/appDialog';
@@ -103,6 +104,12 @@ export default function RootLayout() {
 
     (async () => {
       try {
+        // Unlock encrypted storage FIRST — fetches the hardware-backed MMKV
+        // key from the secure enclave and, on the first boot after the B2
+        // upgrade, re-encrypts the existing store from the old hardcoded key.
+        // Must complete before hydrateAppState() (the first Storage reader).
+        await initEncryptedStorage();
+
         const result = await hydrateAppState();
         if (__DEV__) {
           console.log('[Hydration] complete', result);

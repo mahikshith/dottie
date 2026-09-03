@@ -111,7 +111,11 @@ export interface UserStoreState {
 // ─── STORE ──────────────────────────────────────────────────────────
 
 export const useUserStore = create<UserStoreState>((set, get) => ({
-  userId: Storage.currentUserId.get(),
+  // Starts null and is populated by hydrateAppState() (populateStoresForUser
+  // → setState({ userId })). It must NOT read Storage here: this initializer
+  // runs at module import, before initEncryptedStorage() has unlocked MMKV
+  // with the hardware key (B2). Reading Storage now would throw.
+  userId: null,
   user: null,
   companionConfig: null,
   hydrated: false,

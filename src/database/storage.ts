@@ -45,21 +45,83 @@
  */
 
 import { MMKV } from 'react-native-mmkv';
+import {
+  getOrCreateMasterKey,
+  isStorageMigrated,
+  markStorageMigrated,
+} from '../security/keychain';
 
 // ─── INTERNAL MMKV INSTANCE ──────────────────────────────────────────
 
+const STORE_ID = 'dottie-storage-v1';
+
 /**
- * The actual MMKV instance. Single instance for the whole app —
- * MMKV is thread-safe and there's no benefit to splitting into
- * multiple namespaces at this scale.
- *
- * The encryption key is a placeholder; rotate when we wire up
- * proper key derivation (see file header note).
+ * The legacy, hardcoded key. Kept ONLY so we can open a pre-B2 store once and
+ * re-encrypt it to the hardware-backed key. New installs never persist under
+ * it (they migrate on first boot before any data is written).
  */
-const mmkv = new MMKV({
-  id: 'dottie-storage-v1',
-  encryptionKey: 'dottie-mvp-static-key-rotate-before-prod',
-});
+const LEGACY_KEY = 'dottie-mvp-static-key-rotate-before-prod';
+
+/**
+ * The MMKV instance. Constructed LAZILY by `initEncryptedStorage()` with the
+ * hardware-backed key (see keychain.ts) — NOT at module load, because that
+ * key is fetched asynchronously from the secure enclave.
+ *
+ * Safe because every `Storage.*` read/write happens inside functions called
+ * during or after `hydrateAppState()`, and `initEncryptedStorage()` runs
+ * before hydration in the root layout's bootstrap. `db()` throws loudly if
+ * that ordering is ever violated, so a regression fails fast instead of
+ * silently reading with the wrong key.
+ */
+let mmkv: MMKV | null = null;
+
+/** Access the store, or throw if used before initialization. */
+function db(): MMKV {
+  if (!mmkv) {
+    throw new Error(
+      '[Storage] accessed before initEncryptedStorage() — call it first in the app bootstrap.'
+    );
+  }
+  return mmkv;
+}
+
+/**
+ * One-time async setup: fetch (or create) the hardware-backed key and, on the
+ * first run after upgrading from the legacy key, re-encrypt the existing store
+ * in place so NO data is lost. Idempotent; safe to call more than once.
+ *
+ * Never throws — if the secure store is unavailable we fall back to opening
+ * with the legacy key so the app still works (no worse than before B2), rather
+ * than bricking. The migration flag is NOT set on the fallback path, so the
+ * migration is retried on the next boot.
+ */
+export async function initEncryptedStorage(): Promise<void> {
+  if (mmkv) return;
+  try {
+    const hardwareKey = await getOrCreateMasterKey();
+    if (await isStorageMigrated()) {
+      // Already re-keyed on a prior boot — open directly with the hardware key.
+      mmkv = new MMKV({ id: STORE_ID, encryptionKey: hardwareKey });
+    } else {
+      // First run under B2: open the legacy store (existing data) and
+      // re-encrypt it in place to the hardware key. On a fresh install the
+      // legacy store is empty, so this just keys a new empty store.
+      const store = new MMKV({ id: STORE_ID, encryptionKey: LEGACY_KEY });
+      store.recrypt(hardwareKey);
+      mmkv = store;
+      await markStorageMigrated();
+    }
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[Storage] hardware-key init failed; falling back to legacy key:', err);
+    }
+    // Never brick: fall back to the legacy key. Migration flag stays unset so
+    // we retry next launch.
+    if (!mmkv) {
+      mmkv = new MMKV({ id: STORE_ID, encryptionKey: LEGACY_KEY });
+    }
+  }
+}
 
 // ─── KEY NAMES (private — accessed only via typed wrappers below) ────
 
@@ -149,19 +211,19 @@ const Keys = {
  * Wrapped here so callers never deal with JSON.parse exceptions.
  */
 function getJson<T>(key: string): T | null {
-  const raw = mmkv.getString(key);
+  const raw = db().getString(key);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as T;
   } catch {
     // Corrupted value — clean it up so it doesn't keep failing
-    mmkv.delete(key);
+    db().delete(key);
     return null;
   }
 }
 
 function setJson<T>(key: string, value: T): void {
-  mmkv.set(key, JSON.stringify(value));
+  db().set(key, JSON.stringify(value));
 }
 
 // ─── TYPED ACCESSORS ─────────────────────────────────────────────────
@@ -176,15 +238,15 @@ export const Storage = {
   // ─── Onboarding ─────────────────────────────────────────────────
 
   hasOnboarded: {
-    get: (): boolean => mmkv.getBoolean(Keys.HAS_ONBOARDED) ?? false,
-    set: (value: boolean): void => mmkv.set(Keys.HAS_ONBOARDED, value),
-    clear: (): void => mmkv.delete(Keys.HAS_ONBOARDED),
+    get: (): boolean => db().getBoolean(Keys.HAS_ONBOARDED) ?? false,
+    set: (value: boolean): void => db().set(Keys.HAS_ONBOARDED, value),
+    clear: (): void => db().delete(Keys.HAS_ONBOARDED),
   },
 
   onboardedAt: {
-    get: (): string | null => mmkv.getString(Keys.ONBOARDED_AT) ?? null,
-    set: (iso: string): void => mmkv.set(Keys.ONBOARDED_AT, iso),
-    clear: (): void => mmkv.delete(Keys.ONBOARDED_AT),
+    get: (): string | null => db().getString(Keys.ONBOARDED_AT) ?? null,
+    set: (iso: string): void => db().set(Keys.ONBOARDED_AT, iso),
+    clear: (): void => db().delete(Keys.ONBOARDED_AT),
   },
 
   /**
@@ -201,35 +263,35 @@ export const Storage = {
       setJson(Keys.ONBOARDING_DRAFT, next);
       return next;
     },
-    clear: (): void => mmkv.delete(Keys.ONBOARDING_DRAFT),
+    clear: (): void => db().delete(Keys.ONBOARDING_DRAFT),
   },
 
   // ─── Current user ───────────────────────────────────────────────
 
   currentUserId: {
-    get: (): string | null => mmkv.getString(Keys.CURRENT_USER_ID) ?? null,
-    set: (id: string): void => mmkv.set(Keys.CURRENT_USER_ID, id),
-    clear: (): void => mmkv.delete(Keys.CURRENT_USER_ID),
+    get: (): string | null => db().getString(Keys.CURRENT_USER_ID) ?? null,
+    set: (id: string): void => db().set(Keys.CURRENT_USER_ID, id),
+    clear: (): void => db().delete(Keys.CURRENT_USER_ID),
   },
 
   // ─── Feature flags ──────────────────────────────────────────────
 
   ghostModeActive: {
-    get: (): boolean => mmkv.getBoolean(Keys.GHOST_MODE_ACTIVE) ?? false,
-    set: (value: boolean): void => mmkv.set(Keys.GHOST_MODE_ACTIVE, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_MODE_ACTIVE),
+    get: (): boolean => db().getBoolean(Keys.GHOST_MODE_ACTIVE) ?? false,
+    set: (value: boolean): void => db().set(Keys.GHOST_MODE_ACTIVE, value),
+    clear: (): void => db().delete(Keys.GHOST_MODE_ACTIVE),
   },
 
   adhdModeOn: {
-    get: (): boolean => mmkv.getBoolean(Keys.ADHD_MODE_ON) ?? false,
-    set: (value: boolean): void => mmkv.set(Keys.ADHD_MODE_ON, value),
-    clear: (): void => mmkv.delete(Keys.ADHD_MODE_ON),
+    get: (): boolean => db().getBoolean(Keys.ADHD_MODE_ON) ?? false,
+    set: (value: boolean): void => db().set(Keys.ADHD_MODE_ON, value),
+    clear: (): void => db().delete(Keys.ADHD_MODE_ON),
   },
 
   discreteNotifications: {
-    get: (): boolean => mmkv.getBoolean(Keys.DISCRETE_NOTIFICATIONS) ?? true,
-    set: (value: boolean): void => mmkv.set(Keys.DISCRETE_NOTIFICATIONS, value),
-    clear: (): void => mmkv.delete(Keys.DISCRETE_NOTIFICATIONS),
+    get: (): boolean => db().getBoolean(Keys.DISCRETE_NOTIFICATIONS) ?? true,
+    set: (value: boolean): void => db().set(Keys.DISCRETE_NOTIFICATIONS, value),
+    clear: (): void => db().delete(Keys.DISCRETE_NOTIFICATIONS),
   },
 
   // ─── Ghost Mode secrets (chunk 11) ──────────────────────────────
@@ -243,39 +305,39 @@ export const Storage = {
   // "explicitly set to false" — important for first-time defaults.
 
   ghostPinHash: {
-    get: (): string | null => mmkv.getString(Keys.GHOST_PIN_HASH) ?? null,
-    set: (value: string): void => mmkv.set(Keys.GHOST_PIN_HASH, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_PIN_HASH),
+    get: (): string | null => db().getString(Keys.GHOST_PIN_HASH) ?? null,
+    set: (value: string): void => db().set(Keys.GHOST_PIN_HASH, value),
+    clear: (): void => db().delete(Keys.GHOST_PIN_HASH),
   },
 
   ghostPinSalt: {
-    get: (): string | null => mmkv.getString(Keys.GHOST_PIN_SALT) ?? null,
-    set: (value: string): void => mmkv.set(Keys.GHOST_PIN_SALT, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_PIN_SALT),
+    get: (): string | null => db().getString(Keys.GHOST_PIN_SALT) ?? null,
+    set: (value: string): void => db().set(Keys.GHOST_PIN_SALT, value),
+    clear: (): void => db().delete(Keys.GHOST_PIN_SALT),
   },
 
   ghostPanicHash: {
-    get: (): string | null => mmkv.getString(Keys.GHOST_PANIC_HASH) ?? null,
-    set: (value: string): void => mmkv.set(Keys.GHOST_PANIC_HASH, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_PANIC_HASH),
+    get: (): string | null => db().getString(Keys.GHOST_PANIC_HASH) ?? null,
+    set: (value: string): void => db().set(Keys.GHOST_PANIC_HASH, value),
+    clear: (): void => db().delete(Keys.GHOST_PANIC_HASH),
   },
 
   ghostPanicWipeEnabled: {
-    get: (): boolean | undefined => mmkv.getBoolean(Keys.GHOST_PANIC_WIPE_ENABLED),
-    set: (value: boolean): void => mmkv.set(Keys.GHOST_PANIC_WIPE_ENABLED, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_PANIC_WIPE_ENABLED),
+    get: (): boolean | undefined => db().getBoolean(Keys.GHOST_PANIC_WIPE_ENABLED),
+    set: (value: boolean): void => db().set(Keys.GHOST_PANIC_WIPE_ENABLED, value),
+    clear: (): void => db().delete(Keys.GHOST_PANIC_WIPE_ENABLED),
   },
 
   ghostDisguiseAppName: {
-    get: (): boolean | undefined => mmkv.getBoolean(Keys.GHOST_DISGUISE_APP_NAME),
-    set: (value: boolean): void => mmkv.set(Keys.GHOST_DISGUISE_APP_NAME, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_DISGUISE_APP_NAME),
+    get: (): boolean | undefined => db().getBoolean(Keys.GHOST_DISGUISE_APP_NAME),
+    set: (value: boolean): void => db().set(Keys.GHOST_DISGUISE_APP_NAME, value),
+    clear: (): void => db().delete(Keys.GHOST_DISGUISE_APP_NAME),
   },
 
   ghostRouteToDecoyOnFailure: {
-    get: (): boolean | undefined => mmkv.getBoolean(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
-    set: (value: boolean): void => mmkv.set(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
+    get: (): boolean | undefined => db().getBoolean(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
+    set: (value: boolean): void => db().set(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE, value),
+    clear: (): void => db().delete(Keys.GHOST_ROUTE_TO_DECOY_ON_FAILURE),
   },
 
   // Which look the "Garden Notes" decoy wears: 'aurora' (dark glass, the
@@ -284,9 +346,9 @@ export const Storage = {
   // to the DecoyTheme union and defaults to 'aurora' when unset. Owner asked
   // for a user-facing toggle so THEY choose the disguise's appearance.
   ghostDecoyTheme: {
-    get: (): string | undefined => mmkv.getString(Keys.GHOST_DECOY_THEME),
-    set: (value: string): void => mmkv.set(Keys.GHOST_DECOY_THEME, value),
-    clear: (): void => mmkv.delete(Keys.GHOST_DECOY_THEME),
+    get: (): string | undefined => db().getString(Keys.GHOST_DECOY_THEME),
+    set: (value: string): void => db().set(Keys.GHOST_DECOY_THEME, value),
+    clear: (): void => db().delete(Keys.GHOST_DECOY_THEME),
   },
 
   // ─── Beta tester pack (chunk 12) ────────────────────────────────
@@ -302,23 +364,23 @@ export const Storage = {
   // back in a future beta build (which is correct — fresh start).
 
   betaPioneerAwarded: {
-    get: (): boolean => mmkv.getBoolean(Keys.BETA_PIONEER_AWARDED) ?? false,
-    set: (value: boolean): void => mmkv.set(Keys.BETA_PIONEER_AWARDED, value),
-    clear: (): void => mmkv.delete(Keys.BETA_PIONEER_AWARDED),
+    get: (): boolean => db().getBoolean(Keys.BETA_PIONEER_AWARDED) ?? false,
+    set: (value: boolean): void => db().set(Keys.BETA_PIONEER_AWARDED, value),
+    clear: (): void => db().delete(Keys.BETA_PIONEER_AWARDED),
   },
 
   betaPioneerAwardedAt: {
-    get: (): string | null => mmkv.getString(Keys.BETA_PIONEER_AWARDED_AT) ?? null,
-    set: (iso: string): void => mmkv.set(Keys.BETA_PIONEER_AWARDED_AT, iso),
-    clear: (): void => mmkv.delete(Keys.BETA_PIONEER_AWARDED_AT),
+    get: (): string | null => db().getString(Keys.BETA_PIONEER_AWARDED_AT) ?? null,
+    set: (iso: string): void => db().set(Keys.BETA_PIONEER_AWARDED_AT, iso),
+    clear: (): void => db().delete(Keys.BETA_PIONEER_AWARDED_AT),
   },
 
   // ─── App state ──────────────────────────────────────────────────
 
   lastOpenedAt: {
-    get: (): string | null => mmkv.getString(Keys.LAST_OPENED_AT) ?? null,
-    set: (iso: string): void => mmkv.set(Keys.LAST_OPENED_AT, iso),
-    clear: (): void => mmkv.delete(Keys.LAST_OPENED_AT),
+    get: (): string | null => db().getString(Keys.LAST_OPENED_AT) ?? null,
+    set: (iso: string): void => db().set(Keys.LAST_OPENED_AT, iso),
+    clear: (): void => db().delete(Keys.LAST_OPENED_AT),
   },
 
   /**
@@ -327,42 +389,42 @@ export const Storage = {
    * on each cold start.
    */
   lastDailyResetDate: {
-    get: (): string | null => mmkv.getString(Keys.LAST_DAILY_RESET_DATE) ?? null,
-    set: (date: string): void => mmkv.set(Keys.LAST_DAILY_RESET_DATE, date),
-    clear: (): void => mmkv.delete(Keys.LAST_DAILY_RESET_DATE),
+    get: (): string | null => db().getString(Keys.LAST_DAILY_RESET_DATE) ?? null,
+    set: (date: string): void => db().set(Keys.LAST_DAILY_RESET_DATE, date),
+    clear: (): void => db().delete(Keys.LAST_DAILY_RESET_DATE),
   },
 
   contentVersion: {
-    get: (): number => mmkv.getNumber(Keys.CONTENT_VERSION) ?? 1,
-    set: (version: number): void => mmkv.set(Keys.CONTENT_VERSION, version),
-    clear: (): void => mmkv.delete(Keys.CONTENT_VERSION),
+    get: (): number => db().getNumber(Keys.CONTENT_VERSION) ?? 1,
+    set: (version: number): void => db().set(Keys.CONTENT_VERSION, version),
+    clear: (): void => db().delete(Keys.CONTENT_VERSION),
   },
 
   dbInitializedAt: {
-    get: (): string | null => mmkv.getString(Keys.DB_INITIALIZED_AT) ?? null,
-    set: (iso: string): void => mmkv.set(Keys.DB_INITIALIZED_AT, iso),
-    clear: (): void => mmkv.delete(Keys.DB_INITIALIZED_AT),
+    get: (): string | null => db().getString(Keys.DB_INITIALIZED_AT) ?? null,
+    set: (iso: string): void => db().set(Keys.DB_INITIALIZED_AT, iso),
+    clear: (): void => db().delete(Keys.DB_INITIALIZED_AT),
   },
 
   // ─── UI preferences ─────────────────────────────────────────────
 
   themeOverride: {
     get: (): ThemeOverride | null =>
-      (mmkv.getString(Keys.THEME_OVERRIDE) as ThemeOverride | undefined) ?? null,
-    set: (theme: ThemeOverride): void => mmkv.set(Keys.THEME_OVERRIDE, theme),
-    clear: (): void => mmkv.delete(Keys.THEME_OVERRIDE),
+      (db().getString(Keys.THEME_OVERRIDE) as ThemeOverride | undefined) ?? null,
+    set: (theme: ThemeOverride): void => db().set(Keys.THEME_OVERRIDE, theme),
+    clear: (): void => db().delete(Keys.THEME_OVERRIDE),
   },
 
   reducedMotion: {
-    get: (): boolean => mmkv.getBoolean(Keys.REDUCED_MOTION) ?? false,
-    set: (value: boolean): void => mmkv.set(Keys.REDUCED_MOTION, value),
-    clear: (): void => mmkv.delete(Keys.REDUCED_MOTION),
+    get: (): boolean => db().getBoolean(Keys.REDUCED_MOTION) ?? false,
+    set: (value: boolean): void => db().set(Keys.REDUCED_MOTION, value),
+    clear: (): void => db().delete(Keys.REDUCED_MOTION),
   },
 
   hapticsEnabled: {
-    get: (): boolean => mmkv.getBoolean(Keys.HAPTICS_ENABLED) ?? true,
-    set: (value: boolean): void => mmkv.set(Keys.HAPTICS_ENABLED, value),
-    clear: (): void => mmkv.delete(Keys.HAPTICS_ENABLED),
+    get: (): boolean => db().getBoolean(Keys.HAPTICS_ENABLED) ?? true,
+    set: (value: boolean): void => db().set(Keys.HAPTICS_ENABLED, value),
+    clear: (): void => db().delete(Keys.HAPTICS_ENABLED),
   },
 
   // ─── Companion (hot copy for instant render) ────────────────────
@@ -374,9 +436,9 @@ export const Storage = {
    */
   companionType: {
     get: (): CompanionType | null =>
-      (mmkv.getString(Keys.COMPANION_TYPE) as CompanionType | undefined) ?? null,
-    set: (type: CompanionType): void => mmkv.set(Keys.COMPANION_TYPE, type),
-    clear: (): void => mmkv.delete(Keys.COMPANION_TYPE),
+      (db().getString(Keys.COMPANION_TYPE) as CompanionType | undefined) ?? null,
+    set: (type: CompanionType): void => db().set(Keys.COMPANION_TYPE, type),
+    clear: (): void => db().delete(Keys.COMPANION_TYPE),
   },
 
   // ─── Calendar day plans / notes (design-v2 planner) ─────────────
@@ -408,7 +470,7 @@ export const Storage = {
       delete all[dateISO];
       setJson(Keys.DAY_PLANS, all);
     },
-    clear: (): void => mmkv.delete(Keys.DAY_PLANS),
+    clear: (): void => db().delete(Keys.DAY_PLANS),
   },
 
   // ─── Learn placement / pace (design-v2 path-map) ────────────────
@@ -419,9 +481,9 @@ export const Storage = {
 
   learnLevel: {
     get: (): LearnLevel | null =>
-      (mmkv.getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
-    set: (level: LearnLevel): void => mmkv.set(Keys.LEARN_LEVEL, level),
-    clear: (): void => mmkv.delete(Keys.LEARN_LEVEL),
+      (db().getString(Keys.LEARN_LEVEL) as LearnLevel | undefined) ?? null,
+    set: (level: LearnLevel): void => db().set(Keys.LEARN_LEVEL, level),
+    clear: (): void => db().delete(Keys.LEARN_LEVEL),
   },
 
   // ─── Gentle Rhythm state (design-v2 Phase 4 — Learn cadence) ────
@@ -436,7 +498,7 @@ export const Storage = {
     get: (): { visitedDays: string[] } =>
       getJson<{ visitedDays: string[] }>(Keys.LEARN_RHYTHM) ?? { visitedDays: [] },
     set: (state: { visitedDays: string[] }): void => setJson(Keys.LEARN_RHYTHM, state),
-    clear: (): void => mmkv.delete(Keys.LEARN_RHYTHM),
+    clear: (): void => db().delete(Keys.LEARN_RHYTHM),
   },
 
   // ─── OTA content bundle (design-v2 — updatable lessons) ─────────
@@ -450,7 +512,7 @@ export const Storage = {
   remoteContentBundle: {
     get: <T>(): T | null => getJson<T>(Keys.REMOTE_CONTENT_BUNDLE),
     set: <T>(bundle: T): void => setJson(Keys.REMOTE_CONTENT_BUNDLE, bundle),
-    clear: (): void => mmkv.delete(Keys.REMOTE_CONTENT_BUNDLE),
+    clear: (): void => db().delete(Keys.REMOTE_CONTENT_BUNDLE),
   },
 
   // ─── Reminder preferences (design-v2 notification scheduler) ────
@@ -462,7 +524,7 @@ export const Storage = {
   reminderPrefs: {
     get: (): ReminderPrefs => ({ ...DEFAULT_REMINDER_PREFS, ...(getJson<Partial<ReminderPrefs>>(Keys.REMINDER_PREFS) ?? {}) }),
     set: (prefs: ReminderPrefs): void => setJson(Keys.REMINDER_PREFS, prefs),
-    clear: (): void => mmkv.delete(Keys.REMINDER_PREFS),
+    clear: (): void => db().delete(Keys.REMINDER_PREFS),
   },
 
   // ─── Medication / birth-control plans (design-v2) ───────────────
@@ -473,19 +535,19 @@ export const Storage = {
   medications: {
     get: (): MedicationPlan[] => getJson<MedicationPlan[]>(Keys.MEDICATIONS) ?? [],
     set: (plans: MedicationPlan[]): void => setJson(Keys.MEDICATIONS, plans),
-    clear: (): void => mmkv.delete(Keys.MEDICATIONS),
+    clear: (): void => db().delete(Keys.MEDICATIONS),
   },
 
   sisterhoodExplainerSeen: {
-    get: (): boolean => mmkv.getBoolean(Keys.SISTERHOOD_EXPLAINER_SEEN) === true,
-    set: (): void => mmkv.set(Keys.SISTERHOOD_EXPLAINER_SEEN, true),
-    clear: (): void => mmkv.delete(Keys.SISTERHOOD_EXPLAINER_SEEN),
+    get: (): boolean => db().getBoolean(Keys.SISTERHOOD_EXPLAINER_SEEN) === true,
+    set: (): void => db().set(Keys.SISTERHOOD_EXPLAINER_SEEN, true),
+    clear: (): void => db().delete(Keys.SISTERHOOD_EXPLAINER_SEEN),
   },
 
   walkthroughSeen: {
-    get: (): boolean => mmkv.getBoolean(Keys.WALKTHROUGH_SEEN) === true,
-    set: (): void => mmkv.set(Keys.WALKTHROUGH_SEEN, true),
-    clear: (): void => mmkv.delete(Keys.WALKTHROUGH_SEEN),
+    get: (): boolean => db().getBoolean(Keys.WALKTHROUGH_SEEN) === true,
+    set: (): void => db().set(Keys.WALKTHROUGH_SEEN, true),
+    clear: (): void => db().delete(Keys.WALKTHROUGH_SEEN),
   },
 
   // ─── Bulk operations ────────────────────────────────────────────
@@ -499,16 +561,16 @@ export const Storage = {
    * clears the `currentUserId` pointer, so the next hydration treats
    * the user as fresh and routes to onboarding.
    */
-  clearAll: (): void => mmkv.clearAll(),
+  clearAll: (): void => db().clearAll(),
 
   /**
    * Clear only onboarding state. Used to send the user back through
    * onboarding without nuking their cycle data (admin/debug action).
    */
   clearOnboarding: (): void => {
-    mmkv.delete(Keys.HAS_ONBOARDED);
-    mmkv.delete(Keys.ONBOARDED_AT);
-    mmkv.delete(Keys.ONBOARDING_DRAFT);
+    db().delete(Keys.HAS_ONBOARDED);
+    db().delete(Keys.ONBOARDED_AT);
+    db().delete(Keys.ONBOARDING_DRAFT);
   },
 
   /**
@@ -518,17 +580,17 @@ export const Storage = {
     const snapshot: Record<string, unknown> = {};
     for (const [, key] of Object.entries(Keys)) {
       // Try each value type until one returns a non-null result
-      const str = mmkv.getString(key);
+      const str = db().getString(key);
       if (str !== undefined) {
         snapshot[key] = str;
         continue;
       }
-      const num = mmkv.getNumber(key);
+      const num = db().getNumber(key);
       if (num !== undefined) {
         snapshot[key] = num;
         continue;
       }
-      const bool = mmkv.getBoolean(key);
+      const bool = db().getBoolean(key);
       if (bool !== undefined) {
         snapshot[key] = bool;
       }
