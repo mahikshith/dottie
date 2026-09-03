@@ -14,6 +14,7 @@ import {
   selectCurrentPhase,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
+import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
 
 /**
  * Streak Celebration Modal
@@ -73,11 +74,16 @@ export default function StreakCelebrationScreen() {
   const milestone = paramToInt(params.milestone, 0);
   const engineMessage = paramToStr(params.message, '');
 
-  // Soft success haptic on mount — feels like a warm chime.
+  // Soft success haptic + a mood-aware Aurora celebration on mount. A milestone
+  // is a big win (full bloom unless they're low today); a plain increment is
+  // smaller. Low/frustrated mood always gets the gentle, soothing tier.
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
       () => {}
     );
+    const mood = useCycleStore.getState().todayCheckIn?.moodScore ?? null;
+    showCelebration(celebrationTierForMood(mood, milestone > 0 ? 'big' : 'small'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDismiss = () => {
