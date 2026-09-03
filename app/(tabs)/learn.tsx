@@ -32,6 +32,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown,
   Easing,
+  useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -41,6 +42,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Path, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+
+// A trail path whose bright dashes FLOW along it (toward the current lesson) —
+// the "liquid glowing flow" the owner asked for on the Learn path.
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
@@ -141,6 +146,36 @@ function HoppingCompanion({ type }: { type: CompanionType }): JSX.Element {
     <Animated.View style={style}>
       <CompanionLottie type={type} state="idle" size={48} />
     </Animated.View>
+  );
+}
+
+/**
+ * A bright dash that continuously FLOWS along the lit trail toward the current
+ * lesson — the "glowing liquid flow from one lesson to the next" the owner
+ * asked for. As the user finishes a lesson the lit path extends, so the flow
+ * streams all the way to the newly-current node (which glows). Reduce-Motion →
+ * the dash holds still.
+ */
+function FlowingPath({ d, color }: { d: string; color: string }): JSX.Element {
+  const reduce = useReducedMotion();
+  const off = useSharedValue(0);
+  useEffect(() => {
+    if (reduce) return;
+    // Scroll the dash pattern forward forever (negative = toward the path end).
+    off.value = withRepeat(withTiming(-44, { duration: 850, easing: Easing.linear }), -1, false);
+  }, [reduce, off]);
+  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: off.value }));
+  return (
+    <AnimatedPath
+      d={d}
+      stroke={color}
+      strokeWidth={3.5}
+      fill="none"
+      strokeLinecap="round"
+      strokeDasharray="9 35"
+      strokeOpacity={0.92}
+      animatedProps={animatedProps}
+    />
   );
 }
 
@@ -665,6 +700,8 @@ function PathTrail({
                   <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={palette.accent} strokeOpacity={0.22} strokeWidth={20} fill="none" strokeLinecap="round" />
                   <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke={`url(#stream_${path.id})`} strokeWidth={9} fill="none" strokeLinecap="round" />
                   <Path d={buildTrailPath(points.slice(0, currentIndex + 1))} stroke="#FFFFFF" strokeOpacity={0.32} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+                  {/* the glowing liquid flow streaming toward the current node */}
+                  <FlowingPath d={buildTrailPath(points.slice(0, currentIndex + 1))} color="#FFFFFF" />
                 </>
               )}
             </Svg>
@@ -723,16 +760,54 @@ function PathTrail({
                     </View>
                   )}
 
-                  {/* centered title under the node */}
-                  <View style={[styles.nodeLabel, { left: p.x - 62, top: p.y + NODE / 2 + 6 }]} pointerEvents="none">
-                    {isCurrent && <Text style={[styles.currentTag, { color: accent }]}>YOU'RE HERE</Text>}
-                    <Text style={[styles.nodeTitle, { color: locked || n.state === 'reward-off' ? palette.ink3 : palette.ink }]} numberOfLines={2}>
-                      {n.title}
-                    </Text>
-                    <Text style={[styles.nodeMeta, { color: palette.ink3 }]} numberOfLines={1}>
-                      {n.meta}
-                    </Text>
-                  </View>
+                  {/* Title sits BESIDE the node (in the empty side gutter),
+                      never on top of the icon. It goes on the INNER side —
+                      toward centre, where there's the most room — so labels
+                      never overlap the meandering trail or each other. */}
+                  {(() => {
+                    const GUT = 12;
+                    const EDGE = 10;
+                    const labelRight = p.x <= cx; // left/centre node → label to the right
+                    const labelWidth = labelRight
+                      ? Math.min(176, width - (p.x + NODE / 2 + GUT) - EDGE)
+                      : Math.min(176, p.x - NODE / 2 - GUT - EDGE);
+                    const labelLeft = labelRight
+                      ? p.x + NODE / 2 + GUT
+                      : p.x - NODE / 2 - GUT - labelWidth;
+                    const align = labelRight ? 'left' : 'right';
+                    return (
+                      <View
+                        style={[
+                          styles.nodeLabel,
+                          {
+                            left: labelLeft,
+                            width: labelWidth,
+                            top: p.y - 24,
+                            alignItems: labelRight ? 'flex-start' : 'flex-end',
+                          },
+                        ]}
+                        pointerEvents="none"
+                      >
+                        {isCurrent && (
+                          <Text style={[styles.currentTag, { color: accent, textAlign: align }]}>
+                            YOU'RE HERE
+                          </Text>
+                        )}
+                        <Text
+                          style={[
+                            styles.nodeTitle,
+                            { color: locked || n.state === 'reward-off' ? palette.ink3 : palette.ink, textAlign: align },
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {n.title}
+                        </Text>
+                        <Text style={[styles.nodeMeta, { color: palette.ink3, textAlign: align }]} numberOfLines={1}>
+                          {n.meta}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
               );
             })}
@@ -856,8 +931,10 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   lockBadgeText: { fontSize: 11 },
-  nodeLabel: { position: 'absolute', width: 124, alignItems: 'center' },
+  // width + alignItems are set inline per node (label sits beside the icon on
+  // whichever side has room — see the trail render).
+  nodeLabel: { position: 'absolute' },
   currentTag: { ...Typography.preset.overline, fontSize: 9, letterSpacing: 1, marginBottom: 2 },
-  nodeTitle: { ...Typography.preset.bodySemibold, fontSize: 13, textAlign: 'center' },
-  nodeMeta: { ...Typography.preset.caption, fontSize: 10.5, marginTop: 1, textAlign: 'center' },
+  nodeTitle: { ...Typography.preset.bodySemibold, fontSize: 13 },
+  nodeMeta: { ...Typography.preset.caption, fontSize: 10.5, marginTop: 1 },
 });
