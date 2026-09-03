@@ -1,9 +1,8 @@
 # Dottie — Claude Code project guide
 
-**Auto-loaded every session. Read `docs/HANDOFF.md` FIRST — it has the live status,
-the current branch, the recent commit log, and the open TODO. This file is the
-stable how-we-work reference; keep it short so a new session doesn't burn 25% of
-its budget on rediscovery.**
+**Auto-loaded every session. Read `docs/HANDOFF.md` FIRST (137 lines) — live
+status, the one open P0, and the jump table. This file is the stable how-we-work
+reference. Between the two you have everything; do NOT re-explore the codebase.**
 
 ## Where the work is
 
@@ -30,11 +29,10 @@ non-diagnostic voice throughout.
 ## Environment + workflow
 
 - **Node available** (v22). `npx tsc --noEmit` must be exit 0 before every commit.
-- **On-device runtime = GitHub Actions APK.** Push to `gemini-learn-redesign`
-  without `[skip ci]` → builds a release APK. With `[skip ci]` → back-up only.
-  Owner downloads it via the GitHub mobile app (Actions → run → Artifacts card).
-- **`main` had no workflow before this session** — added it there so
-  `workflow_dispatch` works. Don't touch `main` for anything else.
+- **On-device runtime = GitHub Actions APK.** Push to `gemini-v2` without
+  `[skip ci]` → builds a release APK. `[skip ci]` on the TIP commit skips the
+  whole push, so keep a code commit last. Owner downloads it via the GitHub
+  mobile app (Actions → run → Artifacts card).
 - **Every commit ends with the Claude co-author + Claude-Session trailer.**
 
 ## Test scripts (all must stay green — CI runs `test:all`)
@@ -45,7 +43,9 @@ non-diagnostic voice throughout.
 - `npm run test:rhythm` — Phase 4 rhythm layer, 22 invariants
 - `npm run test:predictor` — 14 real-user predictor scenarios, ~60 assertions
 - `npm run test:journey` — 10 pure-engine end-to-end journeys
-- `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (154 tappables)
+- `npm run test:charts` — explainer figure data, 12 invariants
+- `npm run test:sister` / `test:blocks` / `test:dedupe` / `test:diag` / `test:creature`
+- `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (167 tappables)
 - `npm run test:all` — runs all of the above, non-zero exit on any failure
 - `npm run simulate` — non-assertive eyeball predictor simulation
 
@@ -98,7 +98,19 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    `syncAllReminders`); `requestNotificationPermission()` prompts and must be
    called ONLY from an explicit user tap.
 8. **Companion Lottie via `<CompanionLottie type=... state=... />`** — never
-   hardcode emoji.
+   hardcode emoji. Lottie plays for `idle` ONLY: every expressive state routes to
+   the SVG rig (`CompanionCreature`), because one happy .json replayed at a
+   different tempo is still a happy face. Moment animations (confetti, sparkles)
+   are a corner badge, never full-size over the character.
+9. **No `experimentalBlurMethod="dimezisBlurView"`** on anything overlaying a
+   heavy view tree — it snapshots the whole tree per frame and ANRs on Android.
+10. **Safe area is not optional.** Every scroll screen pads
+   `insets.top + Spacing.lg` and `insets.bottom + Spacing.tabBarClearance`.
+   `AuroraBackground` paints a GRADIENT status veil — never restore the opaque
+   block, it reads as the app eating the heading.
+11. **The prediction explainer must never render nothing.** It recomputes the
+   explanation itself when the store's copy is missing, and its three figures
+   draw in both states. Owner requirement: mandatory, at any cost.
 
 ## Conventions
 
@@ -111,13 +123,11 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
 - Haptics: `selectionAsync` on light taps, `impactAsync(Light)` on important,
   `notificationAsync` on celebrations. All tappables get accessibility props.
 
-## Learn redesign phase state (Gemini Master Spec)
+## Learn redesign phase state
 
-All four phases + Phase 0 schema hardening are shipped on `gemini-learn-redesign`.
-Phase-by-phase file map + commit hashes are in `docs/HANDOFF.md §3`. Corpus:
-26 lessons / 23 quizzes / 121 questions. If the owner asks for more content,
-add paths to `learning-paths.ts` + quizzes to `quizzes.ts` (both need
-`difficulty` on lessons and `level` on questions or the validator fails).
+Phases 0–4 all shipped. Corpus: 26 lessons / 23 quizzes / 121 questions. More
+content = paths in `learning-paths.ts` + quizzes in `quizzes.ts` (lessons need
+`difficulty`, questions need `level`, or `validate:content` fails).
 
 ## Companion docs (pull only when a section names them)
 
@@ -135,12 +145,10 @@ add paths to `learning-paths.ts` + quizzes to `quizzes.ts` (both need
 
 ## Session-start checklist for the NEXT Claude
 
-1. Read `docs/HANDOFF.md` (has the live status + open TODO).
-2. `git log --oneline -10 gemini-learn-redesign` (see recent commits).
-3. `git status` (see local work-tree state).
-4. Do NOT re-explore the codebase. Jump straight to the TODO items in HANDOFF §4.
-5. Every commit → `npx tsc --noEmit` + `npm run test:adaptive` + `npm run
-   test:rhythm` + `npm run validate:content` before pushing.
+1. Read `docs/HANDOFF.md` — live status + the one open P0.
+2. `git log --oneline -8` and `git status`.
+3. Jump straight to HANDOFF §1. Do NOT re-explore the codebase.
+4. Before every commit: `npm run test:all` (it includes `tsc --noEmit`).
 
 If the user asks for help or wants to give feedback:
 - `/help` for Claude Code help

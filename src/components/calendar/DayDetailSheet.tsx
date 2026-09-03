@@ -258,12 +258,21 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
       <Animated.View
         style={[
           styles.card,
-          { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
+          // OPAQUE ground + a glass tint painted on top of it, instead of the
+          // translucent `palette.glass.bg` alone. The sheet has to be a
+          // surface, not a window: with the Android blur removed (see the
+          // backdrop note above) a translucent card let the whole calendar
+          // grid read straight through the content (device-test-7).
+          { backgroundColor: palette.ground, borderColor: palette.glass.edge },
           cardStyle,
         ]}
         accessibilityViewIsModal
         accessibilityRole="none"
       >
+        <View
+          pointerEvents="none"
+          style={[styles.cardBase, { backgroundColor: palette.glass.bg }]}
+        />
         {/* Header */}
         <View style={[styles.top, { borderBottomColor: palette.glass.edge }]}>
           <View style={styles.topRow}>
@@ -571,7 +580,14 @@ function predictionShort(text: string): string {
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: Spacing.lg, zIndex: 50 },
-  scrim: { backgroundColor: 'rgba(0,0,0,0.55)' },
+  // 0.55 was tuned when Android still had a real blur behind it. With the
+  // blur gone (ANR fix) that left the calendar clearly legible through the
+  // sheet — "THE CALENDAR IS TRANSPARENT AGAIN" (device-test-7). The scrim now
+  // carries the separation on its own.
+  scrim: { backgroundColor: 'rgba(0,0,0,0.78)' },
+  // Opaque base under the glass tint. `palette.glass.bg` alone is ~8% white,
+  // so the card was a window, not a surface.
+  cardBase: { ...StyleSheet.absoluteFillObject },
   card: {
     width: '100%',
     maxWidth: 440,

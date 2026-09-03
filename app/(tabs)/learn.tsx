@@ -356,7 +356,13 @@ export default function LearnScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + Spacing.lg }]}
+        contentContainerStyle={[
+          styles.contentContainer,
+          {
+            paddingTop: insets.top + Spacing.lg,
+            paddingBottom: insets.bottom + Spacing.tabBarClearance,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header — title left, minimal streak/gems (no words) top-right */}

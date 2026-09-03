@@ -63,11 +63,20 @@ export function CompanionLottie({
   const reduce = useReducedMotion();
   const asset = getCompanionLottie(type, state);
 
+  // ── Expressive states use the DRAWN RIG, not the Lottie ────────────
+  // Every companion .json is ONE happy performance, so routing 'sad'/'proud'/
+  // 'celebrate' through it made the character look identical everywhere —
+  // exactly the "it's always happy" the owner reported. Tempo alone can't carry
+  // an emotion. The rig has real faces (brows, eye openness, mouth curve), so
+  // any state that must READ differently is drawn, and the licensed art is kept
+  // for the neutral idle where its motion quality is the point.
+  const EXPRESSIVE = state !== 'idle';
+
   // ── Reduce Motion: a STILL but correctly-EXPRESSED pose ────────────
   // A paused Lottie freezes on whatever frame it starts at, which may show the
   // character mid-blink and reads as broken. The drawn rig can hold a real
   // expression without moving, so it's the better still.
-  if (reduce || asset == null) {
+  if (reduce || asset == null || EXPRESSIVE) {
     return (
       <View style={[{ width: size, height: size }, styles.center, style]}>
         <CompanionCreature type={type} state={ANIM_TO_STATE[state]} size={size} />
@@ -92,13 +101,18 @@ export function CompanionLottie({
         style={{ width: size, height: size }}
       />
       {showOverlay && overlay != null && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        // A corner BADGE, not a full-size layer. Playing it at the character's
+        // own size drew confetti straight over the face (owner screenshot).
+        <View
+          style={[styles.badge, { width: size * 0.42, height: size * 0.42 }]}
+          pointerEvents="none"
+        >
           <LottieView
             source={overlay as LottieViewProps['source']}
             autoPlay
             loop
             speed={1}
-            style={{ width: size, height: size }}
+            style={{ width: '100%', height: '100%' }}
           />
         </View>
       )}
@@ -140,6 +154,7 @@ const ANIM_TO_STATE: Record<CompanionAnim, CreatureState> = {
 };
 
 const styles = StyleSheet.create({
+  badge: { position: 'absolute', right: -2, top: -2 },
   center: {
     alignItems: 'center',
     justifyContent: 'center',

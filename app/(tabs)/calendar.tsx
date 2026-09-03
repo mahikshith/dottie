@@ -445,7 +445,10 @@ export default function CalendarScreen() {
         style={styles.container}
         contentContainerStyle={[
           styles.contentContainer,
-          { paddingTop: insets.top + Spacing.lg },
+          {
+            paddingTop: insets.top + Spacing.lg,
+            paddingBottom: insets.bottom + Spacing.tabBarClearance,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -694,13 +697,12 @@ export default function CalendarScreen() {
           </PressableScale>
         </Animated.View>
 
-        {/* How this prediction is made — the dynamic explainer card. Renders
-            null until a period is logged (it reads the store's live
-            explanation, which recomputes on every edit). */}
+        {/* How this prediction is made — the dynamic explainer card. ALWAYS
+            renders: with a period logged it explains the live prediction; with
+            none it explains what will be used and still draws the figures.
+            Bottom clearance now comes from contentContainerStyle (it has to
+            include insets.bottom), so no spacer view here. */}
         <PredictionExplainerCard />
-
-        {/* Bottom padding */}
-        <View style={{ height: Spacing.tabBarHeight }} />
       </ScrollView>
 
       {/* Day detail popover — magnifies from the tapped cell over a scrim */}

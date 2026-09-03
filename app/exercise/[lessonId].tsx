@@ -118,7 +118,15 @@ export default function ExerciseScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + Spacing.lg,
+            // Room for the gesture bar — the last block was sitting under the
+            // Android nav bar (device-test-7).
+            paddingBottom: insets.bottom + Spacing['4xl'],
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

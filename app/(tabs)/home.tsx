@@ -256,7 +256,10 @@ export default function HomeScreen() {
         style={styles.container}
         contentContainerStyle={[
           styles.contentContainer,
-          { paddingTop: insets.top + Spacing.lg },
+          {
+            paddingTop: insets.top + Spacing.lg,
+            paddingBottom: insets.bottom + Spacing.tabBarClearance,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >

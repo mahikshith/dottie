@@ -27,6 +27,7 @@ import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -40,6 +41,10 @@ import { useAurora } from '../../../theme/ThemeProvider';
 
 // Bloom layout as fractions of the screen box (kept resolution-independent).
 // {sizeFrac, leftFrac, topFrac, hue index into palette.aurora, drift px, secs}
+// How far the status veil fades out BELOW the safe-area inset. Small enough
+// that it never dims a heading, large enough to kill the hard seam.
+const STATUS_FADE = 14;
+
 const BLOOMS = [
   { size: 1.05, left: -0.18, top: -0.1, hue: 0, dx: 26, dy: 22, secs: 20 },
   { size: 0.95, left: 0.6, top: 0.08, hue: 1, dx: -24, dy: 26, secs: 24 },
@@ -144,19 +149,25 @@ export function AuroraBackground({
         ))}
       </Animated.View>
       {children}
-      {/* Status-bar cap — a solid ground-coloured strip over the safe-area at
-          the very top. Every aurora screen pads its content by insets.top, but
-          that only protects the INITIAL position: as a ScrollView scrolls, its
-          headings slide UP UNDER the translucent Android status bar and collide
-          with the clock/battery (device-test-6, multiple screens). This opaque
-          cap sits above the scroll content (painted last) so anything scrolling
-          up is hidden behind solid ground before it reaches the status bar.
-          pointerEvents="none" so taps pass through; the root beta overlays
-          (version badge etc.) live above this and stay visible. */}
+      {/* Status-bar veil — the safe-area strip at the very top.
+          WHY IT EXISTS: every aurora screen pads its content by insets.top, but
+          that only protects the INITIAL position. As a ScrollView scrolls, its
+          headings slide UP under the translucent Android status bar and collide
+          with the clock/battery (device-test-6).
+
+          WHY IT'S A GRADIENT, NOT A BLOCK (device-test-7): the first version was
+          an opaque rectangle. On a phone with a tall inset that read as the app
+          "eating the top heading" — a hard ground-coloured band with a visible
+          seam right above the title. Now only the true status-bar height is
+          solid; below it the ground fades out over FADE px so content passes
+          under it softly instead of hitting an edge. Same protection, no band.
+          pointerEvents="none" so taps pass through. */}
       {insets.top > 0 ? (
-        <View
+        <LinearGradient
           pointerEvents="none"
-          style={[styles.statusCap, { height: insets.top, backgroundColor: palette.ground }]}
+          colors={[palette.ground, palette.ground, `${palette.ground}00`]}
+          locations={[0, insets.top / (insets.top + STATUS_FADE), 1]}
+          style={[styles.statusCap, { height: insets.top + STATUS_FADE }]}
         />
       ) : null}
     </View>

@@ -26,6 +26,12 @@ export const Spacing = {
 
   // ─── SEMANTIC SPACING ─────────────────────────────────────────
   screenPadding: 20,         // Horizontal page margins
+  // Vertical room a scroll view must leave at its BOTTOM so the floating tab
+  // pill (BAR_H 64 + 8 float gap in AuroraTabBar) never covers the last card.
+  // Always used as `insets.bottom + Spacing.tabBarClearance` — the inset covers
+  // the gesture bar, this covers the pill itself. (device-test-7: the last
+  // option on Cycle/Learn/Profile sat under the bar and could not be tapped.)
+  tabBarClearance: 96,
   cardPadding: 16,           // Inner card padding
   cardPaddingLarge: 24,      // Large cards (Daily Decode, etc.)
   sectionGap: 24,            // Gap between sections on a screen

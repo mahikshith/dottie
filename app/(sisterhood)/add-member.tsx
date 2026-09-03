@@ -167,7 +167,6 @@ export default function AddMemberScreen() {
   const [shadowMode, setShadowMode] = useState<UserMode>('adult');
   const [shadowAge, setShadowAge] = useState('');
   const [shadowConditions, setShadowConditions] = useState<HealthCondition[]>([]);
-  const [shadowLastPeriod, setShadowLastPeriod] = useState(''); // ISO YYYY-MM-DD
   const [shadowNotes, setShadowNotes] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,7 +238,10 @@ export default function AddMemberScreen() {
             mode: shadowMode,
             conditions: shadowConditions,
             averageCycleLength: null,
-            lastPeriodStart: shadowLastPeriod ? shadowLastPeriod : null,
+            // No seed date here any more — sisters are logged on the shared
+            // cycle calendar (device-test-7). The store fills this in from the
+            // first logged day.
+            lastPeriodStart: null,
             notes: shadowNotes.trim() ? shadowNotes.trim() : null,
           }
         : undefined;
@@ -254,25 +256,7 @@ export default function AddMemberScreen() {
     };
 
     try {
-      const member = await useSisterhoodStore
-        .getState()
-        .addMember(userId, primaryCurrentPhase, input);
-
-      // If shadow + has lastPeriodStart, log it now so the dashboard
-      // shows real cycle data immediately.
-      if (kind === 'shadow' && shadowLastPeriod) {
-        try {
-          await useSisterhoodStore
-            .getState()
-            .logShadowPeriod(primaryCurrentPhase, {
-              memberId: member.id,
-              date: shadowLastPeriod,
-              flowLevel: 3,
-            });
-        } catch (err) {
-          if (__DEV__) console.warn('[Wizard] seed period failed:', err);
-        }
-      }
+      await useSisterhoodStore.getState().addMember(userId, primaryCurrentPhase, input);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setStep('celebration');
@@ -422,8 +406,6 @@ export default function AddMemberScreen() {
                 prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
               )
             }
-            lastPeriod={shadowLastPeriod}
-            onChangeLastPeriod={setShadowLastPeriod}
             notes={shadowNotes}
             onChangeNotes={setShadowNotes}
           />
@@ -689,8 +671,6 @@ function ShadowStep({
   onChangeAge,
   conditions,
   onToggleCondition,
-  lastPeriod,
-  onChangeLastPeriod,
   notes,
   onChangeNotes,
 }: {
@@ -701,11 +681,11 @@ function ShadowStep({
   onChangeAge: (v: string) => void;
   conditions: HealthCondition[];
   onToggleCondition: (c: HealthCondition) => void;
-  lastPeriod: string;
-  onChangeLastPeriod: (v: string) => void;
   notes: string;
   onChangeNotes: (v: string) => void;
 }) {
+  const ageInvalid = age.length > 0 && parseAge(age) === null;
+
   return (
     <View>
       <StepHeader
@@ -750,9 +730,12 @@ function ShadowStep({
         })}
       </View>
 
-      {/* Age */}
+      {/* Age. The field used to accept any 3 digits and parseAge() then threw
+          away anything out of range WITHOUT telling anyone — device-test-7
+          caught "644" sitting there looking accepted. Now the bad value is
+          called out inline, in Dottie's voice, and the wizard blocks on it. */}
       <Text style={styles.sectionLabel}>How old are they?</Text>
-      <View style={styles.inputCard}>
+      <View style={[styles.inputCard, ageInvalid && styles.inputCardInvalid]}>
         <TextInput
           value={age}
           onChangeText={(v) => onChangeAge(v.replace(/[^0-9]/g, '').slice(0, 3))}
@@ -761,8 +744,14 @@ function ShadowStep({
           style={styles.textInput}
           keyboardType="number-pad"
           maxLength={3}
+          accessibilityLabel="Their age"
         />
       </View>
+      {ageInvalid ? (
+        <Text style={styles.fieldError}>
+          That one doesn't look right — ages between {MIN_AGE} and {MAX_AGE}, please.
+        </Text>
+      ) : null}
 
       {/* Conditions */}
       <Text style={styles.sectionLabel}>Anything they're managing?</Text>
@@ -799,18 +788,19 @@ function ShadowStep({
         })}
       </View>
 
-      {/* Last period */}
-      <Text style={styles.sectionLabel}>Their last period started…</Text>
-      <View style={styles.inputCard}>
-        <TextInput
-          value={lastPeriod}
-          onChangeText={(v) => onChangeLastPeriod(v.replace(/[^0-9-]/g, '').slice(0, 10))}
-          placeholder="YYYY-MM-DD · optional"
-          placeholderTextColor={A.ink3}
-          style={styles.textInput}
-          keyboardType="numbers-and-punctuation"
-          autoCorrect={false}
-        />
+      {/* Their last period — NO typed date field any more (device-test-7).
+          Asking someone to hand-type "YYYY-MM-DD" was the worst input in the
+          app: no validation, no idea what a valid string looked like, and a
+          second date UI to learn when the Cycle tab already has one. Sisters
+          are now logged on the SAME calendar as your own cycle — pick the day,
+          pick who it's for. This is just the signpost. */}
+      <View style={styles.calendarHint}>
+        <Text style={styles.calendarHintTitle}>Their period days</Text>
+        <Text style={styles.calendarHintBody}>
+          You'll log those on your own calendar — open the Cycle tab, tap a day,
+          and choose {memberName}. Their days show in gold so they never mix
+          with yours.
+        </Text>
       </View>
 
       {/* Notes */}
@@ -885,16 +875,48 @@ function StepHeader({
 
 // ─── HELPERS ─────────────────────────────────────────────────────────
 
+/** Age bounds. Anything outside this is a typo, not a person. */
+const MIN_AGE = 8;
+const MAX_AGE = 60;
+
 function parseAge(input: string): number | null {
   const n = parseInt(input, 10);
   if (Number.isNaN(n)) return null;
-  if (n < 8 || n > 120) return null;
+  if (n < MIN_AGE || n > MAX_AGE) return null;
   return n;
 }
 
 // ─── STYLES ──────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  // Signpost that replaced the typed YYYY-MM-DD field.
+  calendarHint: {
+    backgroundColor: A.glass,
+    borderWidth: 1,
+    borderColor: A.edge,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.cardPadding,
+    gap: 4,
+    marginBottom: Spacing.base,
+  },
+  calendarHintTitle: {
+    ...Typography.preset.bodySemibold,
+    color: A.ink,
+  },
+  calendarHintBody: {
+    ...Typography.preset.caption,
+    color: A.ink2,
+    lineHeight: 18,
+  },
+  inputCardInvalid: {
+    borderColor: A.error,
+  },
+  fieldError: {
+    ...Typography.preset.caption,
+    color: A.error,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.base,
+  },
   container: {
     flex: 1,
     backgroundColor: 'transparent',

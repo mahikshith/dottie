@@ -21,7 +21,7 @@
  *  is written entirely in "likely / tends to / for some people" language.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -36,6 +36,13 @@ import {
   selectCompanionType,
 } from '../../stores';
 import { PredictionDistributionChart } from './PredictionDistributionChart';
+import { CycleLengthHistoryChart } from './CycleLengthHistoryChart';
+import { FlowShapeChart } from './FlowShapeChart';
+import { explainPrediction } from '../../engine/prediction/explain-prediction';
+import {
+  buildCycleLengthSeries,
+  buildFlowShape,
+} from '../../engine/prediction/chart-data';
 import type {
   FactorEffect,
   PredictionExplanation,
@@ -45,9 +52,64 @@ import type {
 
 export function PredictionExplainerCard(): JSX.Element | null {
   const { palette } = useAurora();
-  const explanation = useCycleStore(selectPredictionExplanation);
+  const storeExplanation = useCycleStore(selectPredictionExplanation);
+  const lastPeriodStart = useCycleStore((s) => s.lastPeriodStart);
+  const cycleHistory = useCycleStore((s) => s.cycleHistory);
+  const predictionErrors = useCycleStore((s) => s.predictionErrors);
+  const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
+  const user = useUserStore((s) => s.user);
   const companionType = useUserStore(selectCompanionType);
   const [showScience, setShowScience] = useState(false);
+
+  // ─── THE EXPLANATION IS MANDATORY ─────────────────────────────────
+  //
+  //  Owner, device-test-7: "even after entering the period the explanation is
+  //  not showing up and the graphs are not showing up and shows a default
+  //  message ... make sure these graph and scientific explanation are
+  //  mandatory no matter what and should show up at any cost."
+  //
+  //  `latestExplanation` is written by the store, so ANY path that leaves it
+  //  null — a log that landed on a sister rather than the user, a refresh that
+  //  hadn't finished when this mounted, an early return in recomputePrediction
+  //  — showed the empty card even though the data to explain was right there.
+  //  So the card no longer trusts a single store field: if the store has no
+  //  explanation but there IS an anchor period date, it computes one itself
+  //  from the same pure function the store uses. Same numbers, no stale gap.
+  const explanation = useMemo<PredictionExplanation | null>(() => {
+    if (storeExplanation) return storeExplanation;
+    if (!user) return null;
+
+    // Anchor = the most recent period start we can find anywhere in the store.
+    const anchor = lastPeriodStart ?? latestHistoryStart(cycleHistory);
+    if (!anchor) return null;
+
+    try {
+      return explainPrediction({
+        cycleHistory,
+        healthProfile: user.healthProfile,
+        lastPeriodStart: new Date(anchor),
+        recentStressLevel: todayCheckIn?.stressLevel ?? undefined,
+        recentSleepQuality: todayCheckIn?.sleepQuality ?? undefined,
+        predictionErrors,
+      });
+    } catch (err) {
+      if (__DEV__) console.warn('[Explainer] local recompute failed:', err);
+      return null;
+    }
+  }, [storeExplanation, user, lastPeriodStart, cycleHistory, predictionErrors, todayCheckIn]);
+
+  // The two figures that don't need a prediction to be meaningful. They are
+  // built for BOTH states, so the empty card carries graphs too — the owner
+  // asked for the science to be unconditional, not "once you have data".
+  const lengthSeries = useMemo(() => buildCycleLengthSeries(cycleHistory), [cycleHistory]);
+  const flowSeries = useMemo(
+    () =>
+      buildFlowShape(
+        explanation?.periodLengthDays ?? user?.healthProfile.averagePeriodLength ?? 5,
+        cycleHistory
+      ),
+    [explanation, user, cycleHistory]
+  );
 
   // NEVER render nothing. Owner feedback (device-test-6): the science card
   // "sometimes shows and sometimes doesn't", which reads as broken and wastes
@@ -75,6 +137,20 @@ export function PredictionExplainerCard(): JSX.Element | null {
           logged cycle lengths and their regularity, period length, age, and any
           conditions you told us about (PCOS, thyroid). All computed on this phone.
         </Text>
+
+        {/* Graphs are unconditional. With nothing logged these show the shape
+            the model starts from — the population pattern — clearly labelled as
+            such. Better an honest starting figure than a blank space that reads
+            as a broken card (device-test-7). */}
+        <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>
+          YOUR CYCLE LENGTHS
+        </Text>
+        <CycleLengthHistoryChart series={lengthSeries} />
+
+        <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>
+          WHICH DAYS TEND TO BE HEAVIEST
+        </Text>
+        <FlowShapeChart series={flowSeries} />
       </Animated.View>
     );
   }
@@ -131,7 +207,16 @@ export function PredictionExplainerCard(): JSX.Element | null {
         </Text>
       </View>
 
-      {/* The distribution behind the number — real posterior, not decoration. */}
+      {/* ─── THE THREE FIGURES ────────────────────────────────────────
+          Each answers a different question, which is why one curve wasn't
+          enough (owner: "you are only showing one graph of normal distribution
+          ... which is not really useful"):
+            WHEN will it start?     → the posterior density
+            Am I regular?           → my own lengths vs. my mean ±1 SD
+            Which days will be bad? → predicted heaviness per period day     */}
+      <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>
+        WHEN IT&apos;S LIKELY TO START
+      </Text>
       <PredictionDistributionChart
         predictedCycleLength={explanation.predictedCycleLength}
         stdDevDays={explanation.stdDevDays}
@@ -140,6 +225,16 @@ export function PredictionExplainerCard(): JSX.Element | null {
         intervalStartDate={explanation.intervalStartDate}
         intervalEndDate={explanation.intervalEndDate}
       />
+
+      <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>
+        YOUR CYCLE LENGTHS · MEAN ±1 SD
+      </Text>
+      <CycleLengthHistoryChart series={lengthSeries} />
+
+      <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>
+        WHICH DAYS TEND TO BE HEAVIEST
+      </Text>
+      <FlowShapeChart series={flowSeries} />
 
       {/* Factors — what the model actually used. */}
       <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>WHAT SHAPED THIS PREDICTION</Text>
@@ -453,3 +548,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+/**
+ * Most recent period start found in the cycle history — the fallback anchor
+ * when `lastPeriodStart` hasn't landed in the store yet. History is stored
+ * newest-first by the repository, but we sort rather than assume.
+ */
+function latestHistoryStart(history: { startDate: string }[]): string | null {
+  if (history.length === 0) return null;
+  let latest = history[0]!.startDate;
+  for (const c of history) if (c.startDate > latest) latest = c.startDate;
+  return latest;
+}

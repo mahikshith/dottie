@@ -325,7 +325,13 @@ export default function QuizScreen() {
       />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          // Bottom room for the PINNED footer + the gesture bar. Without this
+          // the "N of M correct so far" pill and the last option sat under the
+          // Next button and the Android nav bar (device-test-7, image 1/3).
+          { paddingBottom: insets.bottom + Spacing.buttonHeight.lg + Spacing['3xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Progress bar */}
@@ -450,8 +456,8 @@ export default function QuizScreen() {
           </Animated.View>
         )}
 
-        {/* Bottom spacer so the pinned footer never covers the last content. */}
-        <View style={{ height: Spacing.buttonHeight.lg + Spacing['3xl'] }} />
+        {/* Footer clearance lives in contentContainerStyle above (it also has
+            to account for insets.bottom), so no extra spacer view here. */}
       </ScrollView>
 
       {/* Next / Finish — PINNED to the bottom of the screen (device-test-6).

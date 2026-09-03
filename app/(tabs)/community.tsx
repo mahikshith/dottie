@@ -158,7 +158,10 @@ export default function CommunityScreen() {
           then sort filters, then the sorted posts. */}
       <ScrollView
         style={styles.feed}
-        contentContainerStyle={styles.feedContent}
+        contentContainerStyle={[
+          styles.feedContent,
+          { paddingBottom: insets.bottom + Spacing.tabBarClearance },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

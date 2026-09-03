@@ -180,7 +180,10 @@ export default function SisterhoodCircleScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + Spacing.lg },
+          {
+            paddingTop: insets.top + Spacing.lg,
+            paddingBottom: insets.bottom + Spacing.tabBarClearance,
+          },
         ]}
         refreshControl={
           <RefreshControl
