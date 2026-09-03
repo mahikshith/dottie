@@ -136,25 +136,31 @@ is on device.
 
 ### Owner-approved backlog (2026-09-02/03) — build in this order
 
-> **Now building on branch `gemini-v2`** (off `gemini-learn-redesign`). CI does
-> NOT build APKs for it yet — needs a `main` workflow change (owner OK).
+> **Now building on branch `gemini-v2`** (off `gemini-learn-redesign`). CI builds
+> APKs for it (workflow triggers on `gemini-**`). **Pushes are held** at owner's
+> request — commit to `gemini-v2` as we go; the owner does the FINAL push to
+> trigger the APK build. So `origin/gemini-v2` may lag local by several commits.
 
-**B1 — Prediction explainer + Home day-ring meaning (IN PROGRESS on `gemini-v2`).**
-Done: B1.1 `explain-prediction.ts` + `test:explainer` harness (`0c19ae7`);
-B1.2 store `latestExplanation` + `selectPredictionExplanation` + reactive
-`PredictionExplainerCard` on the Calendar tab (`d00d95b`); B1.4 home day-ring
-meaning line (`0cfe55a`). **Remaining: B1.5 — optional height/weight input**
-(Profile/onboarding; columns + explainer BMI-context factor already exist, just
-need the capture UI). Full plan in `docs/PREDICTION-EXPLAINER-PLAN.md`. Dynamic "how your next period is predicted" card
-(SD/confidence interval, factor breakdown, plain + "show the science") in the
-empty space under the Sisterhood bridge on the Calendar tab; + a "what this day
-means" line beside the Home GlowRing; + optional height/weight (columns already
-exist, used as CONTEXT only, non-diagnostic).
+**B1 — Prediction explainer + Home day-ring meaning ✅ DONE (`gemini-v2`).**
+B1.1 `explain-prediction.ts` + `test:explainer` (`0c19ae7`); B1.2 store
+`latestExplanation`/`selectPredictionExplanation` + reactive
+`PredictionExplainerCard` on Calendar (`d00d95b`); B1.4 home day-ring meaning
+(`0cfe55a`); B1.5 optional height/weight → `app/(profile)/about-you.tsx` +
+profile row (`b52b0d5`). Dynamic card lives under the Sisterhood bridge; reads
+`selectPredictionExplanation` (recomputes on every log/edit). Plan:
+`docs/PREDICTION-EXPLAINER-PLAN.md`.
 
-**B2 — Security honesty.** (a) hardware-backed key via `expo-secure-store` to
-replace the hardcoded `storage.ts:61` MMKV key (mind the async-init + existing-
-data re-encrypt migration); then (b) SQLCipher DB encryption (native dev-client
-build) wired to Ghost Mode panic wipe. `ENCRYPTION_ACTIVE=false` today.
+**B2 — Security honesty. Step 1 ✅ DONE (`28de618`); Step 2 NEXT.**
+- Step 1: hardware-backed MMKV key via `expo-secure-store` replaces the
+  hardcoded key. `src/security/keychain.ts` (new); `storage.ts` now lazy —
+  `initEncryptedStorage()` (called before `hydrateAppState()` in `_layout.tsx`)
+  fetches the key and, first boot after upgrade, `recrypt()`s the legacy store
+  in place (data preserved). Never bricks (legacy-key fallback). `db()` throws
+  if used before init. `useUserStore` initial `userId` no longer reads Storage
+  at import. ⚠️ DEVICE-CRITICAL — verify the upgrade path on device; recovery =
+  reinstall.
+- Step 2 (NEXT): SQLCipher DB encryption (`client.ts` `ENCRYPTION_ACTIVE=false`
+  today) — native driver swap + dev-client build, wired to Ghost Mode panic wipe.
 
 **B3 — Motion / transition pass (Gemini was right).** The app has micro-
 interactions (PressableScale springs, moving tab pill, BreathingView, PopOnChange,
