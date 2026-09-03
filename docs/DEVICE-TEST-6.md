@@ -123,6 +123,63 @@ All downstream uses already guard on `> 0` / `>= 0` / `anchorPoint &&`, so the l
 trail, auto-scroll and companion correctly stay off on non-active paths. Verify on
 device (task #36).
 
+### 2.3 — Tab bar: finger-follow liquid pill + switch-stutter mitigation ✅
+
+**Files:** `src/components/ui/aurora/AuroraTabBar.tsx`, `app/(tabs)/_layout.tsx`
+
+**Owner report.** Switching tabs froze ~1–2s before the screen appeared, and the
+liquid glass did **not** flow under the finger when dragging across the 5 icons —
+"that was not implemented at all."
+
+**Two causes, two fixes.**
+1. *No finger-follow.* The pill only sprang **after** a tap committed navigation.
+   Added a core-RN `PanResponder` layered over the tab buttons: it only claims a
+   clearly-horizontal drag (>8px), so taps + a11y still go straight to the child
+   `<Pressable>`s (navigation can never break). While dragging, the pill tracks the
+   finger 1:1 (clamped in-bar) with the glow trailing one frame for the liquid
+   smear; on release it springs to the tab under the finger and commits. We use
+   PanResponder (not Gesture Handler) because there's no `GestureHandlerRootView` at
+   the app root — same reason `AuroraSlider` does.
+2. *Switch stutter.* That freeze is the **destination screen mounting** on first
+   focus (lazy), not the pill (which is UI-thread). Added `freezeOnBlur: true` +
+   `animation: 'none'` to the navigator so inactive tabs stop re-rendering and
+   there's no transition cost on top of the mount. Screens stay mounted after first
+   visit, so **return** trips are instant; only the FIRST open of a heavy tab
+   (calendar/learn) still pays mount cost — deeper first-mount profiling (defer heavy
+   subtrees via `InteractionManager`) is the follow-up if it still bites on device.
+
+### 2.4 — Home: day number now says what it means ✅
+
+**File:** `app/(tabs)/home.tsx`
+
+**Owner ask.** "Day 2 / Day 5" must tell the user it's *days since they last logged
+their period* — it wasn't shown. **Also a semantics question:** does the top-right
+ring count from the *first-ever* period? **Answer: no.** `dayInCycle` =
+`latestPrediction.dayInCycle` = days since the **most recent** period start, so it
+**resets every time a newer start is logged** (log June→July→August and it recounts
+from the latest). The "Day 168" was purely the freeze/staleness artifact — only one
+old period had ever committed. The meaning line now states it plainly, e.g.
+*"Day 5 — it's been 4 days since your last period started. Energy tends to build…"*,
+and "started today → Day 1 of your new cycle" on the start day.
+
+### 2.5 — Calendar redesign (v1) ✅
+
+**File:** `app/(tabs)/calendar.tsx`
+
+**Cross-impact checked (owner ask):** `DayDetailSheet`, `WeekAheadStrip`,
+`buildMonthGrid` and `DayCell` are imported/defined **only** in `calendar.tsx` —
+Sisterhood has its own separate log screen — so this redesign touches nothing else.
+(Unifying them is the *separate*, deliberate task #40.)
+
+Implemented: **swipe** left/right to change month (a horizontal `PanResponder` fling;
+month arrows removed, tap the label to jump to today); **date dots removed**;
+**bigger cells** (40→44px, still 7-per-week ≤ a 360dp row); a **backfill nudge**
+when only a cycle or two is logged ("swipe back and tap earlier period days"); and a
+**phase-why card** — the summary now shows the sub-phase + *why* (hormone story),
+the prediction line, *what's next* (next-phase hint), and a *tip*, all
+non-diagnostic. Past-month logging already worked once the month is navigable.
+**Needs device verification** of the swipe feel + cell fit on the owner's phone.
+
 ---
 
 ## 3. Prioritized backlog (not yet fixed)
