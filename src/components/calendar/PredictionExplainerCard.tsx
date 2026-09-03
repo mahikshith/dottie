@@ -27,7 +27,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { PressableScale } from '../ui';
+import { PressableScale, PopOnChange } from '../ui';
 import { useAurora } from '../../theme';
 import { useCycleStore, selectPredictionExplanation } from '../../stores';
 import type {
@@ -151,7 +151,11 @@ function WindowBar({
       <View style={styles.windowTrackWrap}>
         <View style={[styles.windowTrack, { backgroundColor: palette.glass.edge }]} />
         <View style={[styles.windowDot, { backgroundColor: palette.accent, borderColor: palette.ground }]} />
-        <Text style={[styles.windowPoint, { color: palette.ink }]}>{pretty(explanation.pointDate)}</Text>
+        {/* Pops when a new log recomputes the prediction — the date visibly
+            reacts so the user sees their input changed the answer. */}
+        <PopOnChange value={explanation.pointDate}>
+          <Text style={[styles.windowPoint, { color: palette.ink }]}>{pretty(explanation.pointDate)}</Text>
+        </PopOnChange>
       </View>
       <View style={styles.windowEndcap}>
         <Text style={[styles.windowDate, { color: palette.ink3 }]}>{pretty(explanation.intervalEndDate)}</Text>
