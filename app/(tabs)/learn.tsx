@@ -588,7 +588,13 @@ function PathTrail({
   // Build the ordered node model (lessons + a final reward node).
   const nodes: TrailNode[] = lessons.map((lesson) => {
     const isComplete = progressMap.get(lesson.id)?.status === 'complete';
-    const isCurrent = lesson.id === currentId;
+    // Only the ONE active path (the one the user is actually progressing) gets a
+    // "current" node. `currentId` is per-path (each path's first-incomplete
+    // lesson), so WITHOUT this gate every path flagged its first lesson as
+    // current — lighting the "YOU'RE HERE" tag, pulse ring and hopping companion
+    // on every path's first lesson at once (device-test-6 #P1). On non-active
+    // paths the next lesson is simply 'available'.
+    const isCurrent = isActivePath && lesson.id === currentId;
     const locked = guided && isLessonLocked(lesson, lessons, progressMap);
     const state: TrailNode['state'] = isComplete
       ? 'done'
@@ -620,9 +626,13 @@ function PathTrail({
   });
 
   // The "you are here" index = current lesson (or the reward when all done).
+  // Stays -1 when this path has no current node (i.e. it isn't the active path)
+  // — every downstream use guards on `> 0` / `>= 0` / `anchorPoint &&`, so the
+  // lit trail, auto-scroll anchor and companion all correctly stay off. (Was
+  // `Math.max(0, …)`, which silently pinned them to node 0 on every path.)
   const currentIndex = allComplete
     ? nodes.length - 1
-    : Math.max(0, nodes.findIndex((n) => n.state === 'current'));
+    : nodes.findIndex((n) => n.state === 'current');
 
   // Geometry: a wide meander so the trail actually USES the empty side space
   // (owner feedback) and reads as a winding journey, not a centred list.

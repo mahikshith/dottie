@@ -21,7 +21,7 @@
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -37,7 +37,6 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
@@ -157,7 +156,24 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
     ],
   }));
 
+  // ── Teardown (crash-proofed) ────────────────────────────────────
+  // The sheet's dismissal used to be gated on Reanimated's withTiming
+  // COMPLETION CALLBACK (`runOnJS(finish)`). On Android, when the JS thread is
+  // busy (right after logging a period recomputes the prediction), that worklet
+  // callback can be dropped or fire with `done=false` — so `finish()` never
+  // ran, `onClose` never fired, and this full-screen scrim (zIndex 50,
+  // absoluteFill) stayed mounted swallowing every touch. That is the "screen
+  // freezes after logging, must force-close the app" bug that survived ~20
+  // builds. The fix: NEVER gate unmount on the animation callback. We play the
+  // exit visual for looks, but the actual teardown is driven from the JS thread
+  // by a plain timer that always fires. Two refs make close()/finish() each
+  // run at most once. (device-test-6 #P0)
+  const closingRef = useRef(false); // close() has started the exit
+  const teardownRef = useRef(false); // onClose() has fired
+
   const finish = () => {
+    if (teardownRef.current) return;
+    teardownRef.current = true;
     props.onClose({
       note: note.trim(),
       planned,
@@ -169,14 +185,15 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   };
 
   const close = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
     Haptics.selectionAsync().catch(() => {});
     if (reduce) {
       finish();
       return;
     }
-    t.value = withTiming(0, { duration: 180 }, (done) => {
-      if (done) runOnJS(finish)();
-    });
+    t.value = withTiming(0, { duration: 180 });
+    setTimeout(finish, 200); // JS thread — guaranteed to fire, unlike the worklet cb
   };
 
   const logPeriod = () => {
