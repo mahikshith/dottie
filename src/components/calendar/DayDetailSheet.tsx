@@ -212,13 +212,20 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
-      {/* Frosted + dimmed backdrop — tap to close. Real blur so the month
-          behind the sheet stops bleeding through (was translucent-only). */}
+      {/* Dimmed backdrop — tap to close.
+          ⚠️ CRITICAL (device-test-6): the Android `experimentalBlurMethod=
+          "dimezisBlurView"` was REMOVED here. That method snapshots the ENTIRE
+          screen behind the overlay every frame; after the first period log the
+          calendar fills with content (week-ahead, explainer, rich phase card),
+          so the SECOND time the sheet opened it snapshotted a heavy tree and
+          ANR-froze the app — the "log a 2nd day, screen freezes, must force-
+          close" bug. iOS still gets a real blur; Android now uses expo-blur's
+          cheap translucent fallback + the solid scrim below, which reads the
+          same but never blocks the JS thread. */}
       <Animated.View style={[StyleSheet.absoluteFill, scrimStyle]}>
         <BlurView
           intensity={40}
           tint="dark"
-          experimentalBlurMethod="dimezisBlurView"
           style={StyleSheet.absoluteFill}
         />
         <View style={[StyleSheet.absoluteFill, styles.scrim]} />

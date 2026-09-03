@@ -137,7 +137,7 @@ export const WARM_MESSAGES: string[] = [
   "You're never alone in this rhythm.",
   "A whole sisterhood is breathing with you today.",
   "Your body has company — millions of beautiful rhythms unfolding together.",
-  "Wherever you are in your cycle, there's a Dottie feeling it too.",
+  "Wherever you are in your cycle, countless others are somewhere in theirs.",
   "Today, your body is part of something larger and softer than itself.",
   "You and so many others — all moving with the same quiet music.",
   "Cycles all over the world are humming alongside yours right now.",

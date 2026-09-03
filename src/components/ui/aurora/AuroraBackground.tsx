@@ -25,6 +25,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -118,6 +119,7 @@ export function AuroraBackground({
 }: AuroraBackgroundProps): JSX.Element {
   const { palette, paletteId } = useAurora();
   const reduce = useReducedMotion();
+  const insets = useSafeAreaInsets();
 
   // Gentle "re-bloom" dip when the mood palette changes.
   const fieldOpacity = useSharedValue(1);
@@ -142,6 +144,21 @@ export function AuroraBackground({
         ))}
       </Animated.View>
       {children}
+      {/* Status-bar cap — a solid ground-coloured strip over the safe-area at
+          the very top. Every aurora screen pads its content by insets.top, but
+          that only protects the INITIAL position: as a ScrollView scrolls, its
+          headings slide UP UNDER the translucent Android status bar and collide
+          with the clock/battery (device-test-6, multiple screens). This opaque
+          cap sits above the scroll content (painted last) so anything scrolling
+          up is hidden behind solid ground before it reaches the status bar.
+          pointerEvents="none" so taps pass through; the root beta overlays
+          (version badge etc.) live above this and stay visible. */}
+      {insets.top > 0 ? (
+        <View
+          pointerEvents="none"
+          style={[styles.statusCap, { height: insets.top, backgroundColor: palette.ground }]}
+        />
+      ) : null}
     </View>
   );
 }
@@ -153,5 +170,12 @@ const styles = StyleSheet.create({
   },
   bloom: {
     position: 'absolute',
+  },
+  statusCap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
   },
 });

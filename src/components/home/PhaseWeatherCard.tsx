@@ -1,10 +1,16 @@
 /**
  * PhaseWeatherCard — MOOD AURORA THEME (design-v2)
  *
- * Ambient card showing the global community pulse. Presentational (view via
- * props). Themed to the aurora palette: glass surfaces, the user's phase hue
- * from PHASE_AURORA, all text from the active palette. Expand/collapse state,
- * the toggle haptic, and every copy string are unchanged.
+ * Ambient card showing what's TYPICAL for the user's current phase.
+ *
+ * ⚠️ HONESTY (device-test-6): this card used to read "You & 12,363 others in
+ * the same rhythm right now" over numbers generated from `sample-data.ts` —
+ * i.e. fabricated. Dottie is local-first and on-device, so it CANNOT know what
+ * other users are feeling, and claiming otherwise directly contradicts the
+ * privacy promise. The counts are gone; the copy now frames these as typical
+ * phase patterns from cycle research and says plainly that nothing leaves the
+ * phone. Never reintroduce a live-user count unless a real, opt-in backend
+ * actually exists behind it.
  *
  * ⚠️ design-v2 / UNVERIFIED (no device).
  */
@@ -24,14 +30,10 @@ interface PhaseWeatherCardProps {
 export function PhaseWeatherCard({ view }: PhaseWeatherCardProps) {
   const { palette } = useAurora();
   const [expanded, setExpanded] = useState(false);
-  const { snapshot, inSameRhythmDisplay, userPhase } = view;
+  const { snapshot, userPhase } = view;
   const phaseHue = PHASE_AURORA[userPhase];
   const dominantHue = PHASE_AURORA[snapshot.dominantPhase];
 
-  const totalDisplay = useMemo(
-    () => snapshot.totalDotties.toLocaleString(),
-    [snapshot.totalDotties]
-  );
   const dateLabel = useMemo(() => formatDateLabel(snapshot.date), [snapshot.date]);
 
   const handleToggle = () => {
@@ -75,10 +77,10 @@ export function PhaseWeatherCard({ view }: PhaseWeatherCardProps) {
         <View style={[styles.rhythmDot, { backgroundColor: phaseHue }]} />
         <View style={styles.rhythmContent}>
           <Text style={[styles.rhythmTitle, { color: palette.ink }]}>
-            You & {inSameRhythmDisplay} others
+            Common in your {userPhase} phase
           </Text>
           <Text style={[styles.rhythmSubtitle, { color: palette.ink2 }]}>
-            in the same rhythm right now
+            what many people report around now
           </Text>
         </View>
       </View>
@@ -131,7 +133,8 @@ export function PhaseWeatherCard({ view }: PhaseWeatherCardProps) {
           ) : null}
 
           <Text style={[styles.totalHint, { color: palette.ink3 }]}>
-            Drawing from {totalDisplay} Dotties checking in this day
+            Typical patterns for this phase — from cycle research, not from other
+            users. Nothing about you leaves your phone.
           </Text>
         </View>
       ) : null}

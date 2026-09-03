@@ -68,6 +68,11 @@ export default function TabLayout() {
           // cost — deeper first-mount profiling of calendar/learn is a
           // follow-up, see docs/DEVICE-TEST-6.md).
           freezeOnBlur: true,
+          // Paint the scene container in the aurora ground so the FIRST open of
+          // a heavy tab (Today→Cycle) never flashes WHITE while it mounts — the
+          // white glitch the owner saw. The screen's own AuroraBackground paints
+          // the same colour a beat later, so the seam is invisible.
+          sceneStyle: { backgroundColor: A.ground },
           // AuroraTabBar draws no background of its own on purpose. The
           // default react-navigation tab-bar container is white/cream on
           // Android — that's the "white rectangle at the bottom" the owner
