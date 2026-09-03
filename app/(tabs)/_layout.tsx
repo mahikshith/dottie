@@ -57,6 +57,17 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          // No cross-fade/shift on tab change — the liquid pill is the only
+          // motion we want; a screen transition just adds latency on top of
+          // the destination's mount.
+          animation: 'none',
+          // Freeze blurred tabs (react-native-screens): stops inactive screens
+          // re-rendering in the background, so the active tab + the tab-bar
+          // scrub stay responsive. Screens still stay mounted after first visit,
+          // so returning to a tab is instant (only the FIRST open pays mount
+          // cost — deeper first-mount profiling of calendar/learn is a
+          // follow-up, see docs/DEVICE-TEST-6.md).
+          freezeOnBlur: true,
           // AuroraTabBar draws no background of its own on purpose. The
           // default react-navigation tab-bar container is white/cream on
           // Android — that's the "white rectangle at the bottom" the owner

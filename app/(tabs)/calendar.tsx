@@ -33,8 +33,8 @@
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
 
-import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, type GestureResponderEvent } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, PanResponder, type GestureResponderEvent } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,6 +94,9 @@ export default function CalendarScreen() {
   const lastPeriodStart = useCycleStore(selectLastPeriodStart);
   const predictionMessage = useCycleStore(selectPredictionMessage);
   const latestPrediction = useCycleStore((s) => s.latestPrediction);
+  // Number of full cycles observed — drives the "backfill recent months" nudge
+  // (predictions stay coarse until a couple of real cycles are logged).
+  const cycleCount = useCycleStore((s) => s.cycleCount);
   const userHealth = useUserStore((s) => s.user?.healthProfile);
   const userId = useUserStore((s) => s.userId);
   const mode = useUserStore(selectUserMode);
@@ -286,20 +289,55 @@ export default function CalendarScreen() {
   };
 
   // ─── Month nav handlers ─────────────────────────────────────────
-  const goPrevMonth = () => {
-    Haptics.selectionAsync().catch(() => {});
-    setViewedMonth(shiftMonth(viewedMonth, -1));
-  };
-  const goNextMonth = () => {
-    Haptics.selectionAsync().catch(() => {});
-    setViewedMonth(shiftMonth(viewedMonth, 1));
-  };
   const goToday = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     setViewedMonth(startOfMonth(new Date()));
   };
 
+  // ─── Month paging by SWIPE (owner ask: drop the arrows) ─────────
+  //  A horizontal fling on the grid pages the month: swipe LEFT → next month,
+  //  swipe RIGHT → previous. Core-RN PanResponder (no GestureHandlerRootView at
+  //  the root — same reason AuroraSlider/AuroraTabBar use it). It only claims a
+  //  clearly-horizontal drag (>18px, and more horizontal than vertical), so day
+  //  taps and the outer vertical ScrollView both keep working. Functional
+  //  setState avoids any stale-closure month value.
+  const monthSwipe = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 18 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+      onPanResponderRelease: (_e, g) => {
+        if (g.dx <= -40) {
+          Haptics.selectionAsync().catch(() => {});
+          setViewedMonth((m) => shiftMonth(m, 1));
+        } else if (g.dx >= 40) {
+          Haptics.selectionAsync().catch(() => {});
+          setViewedMonth((m) => shiftMonth(m, -1));
+        }
+      },
+    })
+  ).current;
+
+  // Today's suggestion set — powers the richer phase card (why you're in this
+  // phase + a tip). Only meaningful once there's cycle data; cheap to compute.
+  const todaySet = useMemo(
+    () =>
+      buildDaySuggestions({
+        phase,
+        daysUntilPredictedPeriod: daysUntil(todayIso, latestPrediction?.predictedNextPeriod ?? null),
+        isPeriodDay: periodDays.has(todayIso),
+        mode,
+        conditions,
+        daySeed: parseInt(todayIso.slice(8, 10), 10) || 0,
+        dayInCycle,
+        todayCheckIn,
+        recentSymptoms,
+      }),
+    [phase, todayIso, latestPrediction?.predictedNextPeriod, periodDays, mode, conditions, dayInCycle, todayCheckIn, recentSymptoms]
+  );
+
   const phaseHue = PHASE_AURORA[phase];
+  const hasCycleData = lastPeriodStart != null;
 
   return (
     <AuroraBackground>
@@ -312,39 +350,24 @@ export default function CalendarScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Month navigation */}
+        {/* Month header — no arrows (owner ask). Swipe the grid left/right to
+            change month; tap the label to jump back to today. */}
         <Animated.View entering={rise(40)} style={styles.monthHeader}>
-          <PressableScale
-            onPress={goPrevMonth}
-            haptic="none"
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Previous month"
-          >
-            <Text style={[styles.monthNavArrow, { color: palette.accent }]}>‹</Text>
-          </PressableScale>
           <PressableScale
             onPress={goToday}
             haptic="none"
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Jump to current month"
+            accessibilityLabel={`${monthLabel}. Tap to jump to the current month`}
           >
             <Text style={[styles.monthLabel, { color: palette.ink }]}>{monthLabel}</Text>
           </PressableScale>
-          <PressableScale
-            onPress={goNextMonth}
-            haptic="none"
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Next month"
-          >
-            <Text style={[styles.monthNavArrow, { color: palette.accent }]}>›</Text>
-          </PressableScale>
+          <Text style={[styles.monthHint, { color: palette.ink3 }]}>‹ swipe to change month ›</Text>
         </Animated.View>
 
-        {/* Weekday header + calendar grid */}
-        <Animated.View entering={rise(115)}>
+        {/* Weekday header + calendar grid — a horizontal swipe here pages the
+            month (monthSwipe PanResponder); day taps still open the sheet. */}
+        <Animated.View entering={rise(115)} {...monthSwipe.panHandlers}>
           <View style={styles.weekdayRow}>
             {WEEKDAY_LABELS.map((d, i) => (
               <Text key={`${d}_${i}`} style={[styles.weekdayLabel, { color: palette.ink3 }]}>
@@ -358,29 +381,61 @@ export default function CalendarScreen() {
               <DayCell
                 key={cell.iso}
                 cell={cell}
-                planned={plannedDays.has(cell.iso)}
                 onPress={(e) => onDayTap(cell.iso, cell, e)}
               />
             ))}
           </View>
         </Animated.View>
 
-        {/* Current phase summary */}
+        {/* Backfill nudge — once there's cycle data but only a cycle or two,
+            invite the user to log earlier months so predictions sharpen. */}
+        {hasCycleData && cycleCount < 2 && (
+          <Animated.View entering={rise(160)}>
+            <View style={[styles.nudge, { backgroundColor: palette.glass.bg, borderColor: `${palette.accent}55` }]}>
+              <Text style={styles.nudgeEmoji}>🗓️</Text>
+              <Text style={[styles.nudgeText, { color: palette.ink2 }]}>
+                Remember when earlier periods started? Swipe back a month and tap those
+                days — even rough dates help Dottie learn your rhythm faster.
+              </Text>
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Current phase summary — WHY you're in this phase, what's NEXT, a tip.
+            Owner ask (device-test-6): the calendar should explain the phase, not
+            just name it. Rich content only once there's real cycle data. */}
         <Animated.View entering={rise(190)}>
           <GlassCard style={styles.phaseSummary} padding={Spacing.cardPadding}>
             <View style={[styles.phaseSummaryDot, { backgroundColor: phaseHue }]} />
             <View style={styles.phaseSummaryText}>
-              <Text style={[styles.phaseSummaryTitle, { color: palette.ink }]}>
-                {phaseLabel(phase)} Phase · Day {dayInCycle}
-              </Text>
-              {predictionMessage ? (
-                <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
-                  {predictionMessage}
-                </Text>
+              {hasCycleData ? (
+                <>
+                  <Text style={[styles.phaseSummaryTitle, { color: palette.ink }]}>
+                    {todaySet.subphaseLabel
+                      ? `${todaySet.subphaseLabel} · Day ${dayInCycle}`
+                      : `${phaseLabel(phase)} Phase · Day ${dayInCycle}`}
+                  </Text>
+                  {todaySet.hormoneStory ? (
+                    <Text style={[styles.phaseWhy, { color: palette.ink2 }]}>{todaySet.hormoneStory}</Text>
+                  ) : null}
+                  {predictionMessage ? (
+                    <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>{predictionMessage}</Text>
+                  ) : null}
+                  <Text style={[styles.phaseNext, { color: palette.ink3 }]}>{nextPhaseHint(phase)}</Text>
+                  {todaySet.suggestions[0] ? (
+                    <Text style={[styles.phaseTip, { color: palette.accent }]}>
+                      💡 {todaySet.suggestions[0].title} — {todaySet.suggestions[0].detail}
+                    </Text>
+                  ) : null}
+                </>
               ) : (
-                <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
-                  Tap any day to see gentle suggestions, plan ahead, or log a period.
-                </Text>
+                <>
+                  <Text style={[styles.phaseSummaryTitle, { color: palette.ink }]}>Your cycle, decoded</Text>
+                  <Text style={[styles.phaseSummaryBody, { color: palette.ink2 }]}>
+                    Tap any day to log a period. Once Dottie knows your last start, this
+                    card explains what phase you&apos;re in, why, and what&apos;s coming next.
+                  </Text>
+                </>
               )}
             </View>
           </GlassCard>
@@ -492,11 +547,9 @@ function rise(delay: number) {
 
 function DayCell({
   cell,
-  planned,
   onPress,
 }: {
   cell: MonthCell;
-  planned?: boolean;
   onPress: (e: GestureResponderEvent) => void;
 }) {
   const { palette } = useAurora();
@@ -546,18 +599,9 @@ function DayCell({
       <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
       </Text>
-      {/* A planning dot takes precedence over the subtle future dot. */}
-      {cell.inMonth && planned ? (
-        <View style={[styles.dayCellPlanDot, { backgroundColor: PLAN_DOT }]} />
-      ) : cell.inMonth && cell.isFuture && !isPredicted ? (
-        <View style={[styles.dayCellFutureDot, { backgroundColor: palette.ink3 }]} />
-      ) : null}
     </PressableScale>
   );
 }
-
-/** Warm, high-contrast dot marking days the user has planned/noted. */
-const PLAN_DOT = '#FF7A8A';
 
 function LegendChip({
   color,
@@ -605,6 +649,25 @@ const PHASE_LABELS: Record<Phase, string> = {
 
 function phaseLabel(phase: Phase): string {
   return PHASE_LABELS[phase] ?? 'Cycle';
+}
+
+/**
+ * A soft, non-diagnostic "what's coming next" line for the phase card. Uses
+ * "usually / many people / tends to" language — a hint, never a promise.
+ */
+function nextPhaseHint(phase: Phase): string {
+  switch (phase) {
+    case 'menstrual':
+      return 'Next up: your follicular phase — energy usually starts to climb.';
+    case 'follicular':
+      return 'Next up: ovulation — many people feel their most energetic then.';
+    case 'ovulatory':
+      return 'Next up: the luteal phase — a slower, winding-down stretch for many.';
+    case 'luteal':
+      return 'Next up: your period — resting and restocking supplies tends to help.';
+    default:
+      return '';
+  }
 }
 
 interface MonthCell {
@@ -815,18 +878,17 @@ const styles = StyleSheet.create({
     // Top padding applied inline via safe-area insets (insets.top + Spacing.lg).
   },
   monthHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: Spacing.base,
-  },
-  monthNavArrow: {
-    fontSize: 32,
-    width: 32,
-    textAlign: 'center',
+    gap: 2,
   },
   monthLabel: {
     ...Typography.preset.h3,
+    textAlign: 'center',
+  },
+  monthHint: {
+    ...Typography.preset.caption,
+    letterSpacing: 0.5,
   },
   weekdayRow: {
     flexDirection: 'row',
@@ -835,7 +897,7 @@ const styles = StyleSheet.create({
   },
   weekdayLabel: {
     ...Typography.preset.captionBold,
-    width: 40,
+    width: 44,
     textAlign: 'center',
   },
   grid: {
@@ -844,30 +906,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginBottom: Spacing.sectionGap,
   },
+  // Bigger, cleaner cells (owner ask). 44×7 = 308 ≤ a 360dp content row, so the
+  // grid still lays out 7-per-week without wrapping on narrow phones.
   dayCell: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 2,
+    marginVertical: 3,
   },
   dayCellText: {
     ...Typography.preset.bodySemibold,
-  },
-  dayCellFutureDot: {
-    position: 'absolute',
-    bottom: 4,
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-  },
-  dayCellPlanDot: {
-    position: 'absolute',
-    bottom: 4,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    fontSize: 15,
   },
   weekAhead: {
     marginBottom: Spacing.base,
@@ -894,6 +945,38 @@ const styles = StyleSheet.create({
   phaseSummaryBody: {
     ...Typography.preset.body,
     lineHeight: 22,
+  },
+  phaseWhy: {
+    ...Typography.preset.caption,
+    lineHeight: 19,
+    marginBottom: Spacing.xs,
+  },
+  phaseNext: {
+    ...Typography.preset.caption,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
+  },
+  phaseTip: {
+    ...Typography.preset.caption,
+    lineHeight: 18,
+    marginTop: Spacing.xs,
+    fontWeight: '700',
+  },
+  // Backfill nudge card (shown when only a cycle or two is logged).
+  nudge: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.base,
+  },
+  nudgeEmoji: { fontSize: 18 },
+  nudgeText: {
+    ...Typography.preset.caption,
+    lineHeight: 18,
+    flex: 1,
   },
   legend: {
     flexDirection: 'row',

@@ -302,7 +302,7 @@ export default function HomeScreen() {
             should show what it actually means." Non-diagnostic. */}
         <Animated.View entering={rise(150)}>
           <Text style={[styles.dayMeaning, { color: palette.ink2 }]}>
-            {dayMeaning(phase)}
+            {dayMeaning(phase, dayInCycle)}
           </Text>
         </Animated.View>
 
@@ -498,11 +498,28 @@ function capitalize(s: string): string {
 }
 
 /**
- * A warm, plain-language meaning for the current phase, shown under the day
+ * A warm, plain-language meaning for the current cycle day, shown under the day
  * ring so the day number carries significance instead of standing alone.
- * Non-diagnostic — general tendencies, never "your body is doing X."
+ *
+ * Owner ask (device-test-6): the day number must explicitly tell the user what
+ * it counts — "days since you last logged your period" — not just a phase mood.
+ * So we lead with the concrete anchor (Day N == N-1 days since the period
+ * started, and it RESETS every time a newer period start is logged), then add
+ * the non-diagnostic phase tendency. Never "your body is doing X."
  */
-function dayMeaning(phase: string): string {
+function dayMeaning(phase: string, dayInCycle: number): string {
+  const since =
+    dayInCycle <= 1
+      ? 'Your period started today — this is Day 1 of your new cycle.'
+      : `Day ${dayInCycle} — it's been ${dayInCycle - 1} ${
+          dayInCycle - 1 === 1 ? 'day' : 'days'
+        } since your last period started.`;
+  const tendency = phaseTendency(phase);
+  return `${since} ${tendency}`;
+}
+
+/** Non-diagnostic phase tendency, appended after the concrete day anchor. */
+function phaseTendency(phase: string): string {
   switch (phase) {
     case 'menstrual':
       return 'Your body is resetting — rest is completely valid right now.';

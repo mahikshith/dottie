@@ -55,7 +55,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
@@ -156,7 +156,104 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
   // bridge → the liquid "flow" across the icons.
   const glowX = useSharedValue(0);
 
+  // ─── FINGER-FOLLOW SCRUB (owner ask: "liquid flow following the finger") ──
+  //  A PanResponder layered over the tap buttons lets the user DRAG a finger
+  //  across the bar and have the liquid pill flow under it in real time, then
+  //  spring + commit to whichever tab they release on. We use core-RN
+  //  PanResponder (not Gesture Handler) because there's no GestureHandlerRootView
+  //  at the app root — same reason AuroraSlider does. Taps still go straight to
+  //  the child <Pressable>s (the responder only captures once the finger has
+  //  moved >8px horizontally), so navigation + a11y can never break: the scrub
+  //  is purely additive. Live refs keep the once-created responder from reading
+  //  stale state.
+  const barRef = useRef<View>(null);
+  const barLeftRef = useRef(0); // bar's window-left, for absolute→local finger x
+  const hoveredRef = useRef(state.index);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const navRef = useRef(navigation);
+  navRef.current = navigation;
+  const reduceRef = useRef(reduce);
+  reduceRef.current = reduce;
+
+  const measureBar = () => {
+    barRef.current?.measureInWindow((x) => {
+      if (typeof x === 'number' && !Number.isNaN(x)) barLeftRef.current = x;
+    });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Let simple taps reach the child buttons; only capture a real drag.
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderGrant: measureBar,
+      onPanResponderMove: (_e, g) => {
+        const bounds = stateRef.current.routes.map((r) => positionsRef.current[r.key]);
+        const first = bounds[0];
+        const last = bounds[bounds.length - 1];
+        if (!first || !last) return;
+        const fingerX = g.moveX - barLeftRef.current; // → bar-local coords
+        // Nearest tab center = the tab the finger is over.
+        let idx = 0;
+        let bestD = Infinity;
+        bounds.forEach((b, i) => {
+          if (!b) return;
+          const d = Math.abs(b.x + b.w / 2 - fingerX);
+          if (d < bestD) {
+            bestD = d;
+            idx = i;
+          }
+        });
+        const b = bounds[idx];
+        if (!b) return;
+        hoveredRef.current = idx;
+        // Pill follows the finger 1:1 (centred on it), clamped inside the bar.
+        const w = b.w;
+        const left = Math.max(first.x, Math.min(fingerX - w / 2, last.x + last.w - w));
+        glowX.value = pillX.value; // one-frame trail → the glow bridges/smears
+        pillX.value = left;
+        pillW.value = w;
+      },
+      onPanResponderRelease: commitScrub,
+      onPanResponderTerminate: commitScrub,
+    })
+  ).current;
+
+  // Snap the pill to the released-on tab and commit navigation. Declared as a
+  // hoisted function so the once-created PanResponder above can reference it.
+  function commitScrub() {
+    const bounds = stateRef.current.routes.map((r) => positionsRef.current[r.key]);
+    const idx = hoveredRef.current;
+    const b = bounds[idx];
+    if (!b) return;
+    if (reduceRef.current) {
+      pillX.value = b.x;
+      pillW.value = b.w;
+      glowX.value = b.x;
+    } else {
+      pillX.value = withSpring(b.x, { dampingRatio: 0.82, duration: 300 });
+      pillW.value = withSpring(b.w, { dampingRatio: 0.9, duration: 300 });
+      glowX.value = withSpring(b.x, { dampingRatio: 0.6, duration: 520 });
+    }
+    const routes = stateRef.current.routes;
+    const target = routes[idx];
+    if (target && idx !== stateRef.current.index) {
+      const event = navRef.current.emit({
+        type: 'tabPress',
+        target: target.key,
+        canPreventDefault: true,
+      });
+      if (!event.defaultPrevented) {
+        Haptics.selectionAsync().catch(() => {});
+        navRef.current.navigate(target.name);
+      }
+    }
+  }
+
   useEffect(() => {
+    hoveredRef.current = state.index;
     const route = state.routes[state.index];
     if (!route) return;
     const pos = positionsRef.current[route.key];
@@ -208,6 +305,9 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
       pointerEvents="box-none"
     >
       <View
+        ref={barRef}
+        onLayout={measureBar}
+        {...panResponder.panHandlers}
         style={[
           styles.bar,
           {
