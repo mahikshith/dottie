@@ -128,7 +128,18 @@ export function CompanionScoreReaction({
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={r.headline}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={charStyle}>
-          <CompanionLottie type={companionType} state={r.state} size={size} loop={!excited} />
+          {/* The real animated character, with the emotion layered over it.
+              A PERFECT run gets the 🤯 moment animation on top — visibly a
+              bigger event than the 🎉 an 80% gets, which is the whole point of
+              a top-of-the-ladder reaction. Reduce Motion falls back to the
+              drawn rig holding a still 'mindblown' pose (see CompanionLottie). */}
+          <CompanionLottie
+            type={companionType}
+            state={r.state}
+            size={size}
+            loop={!excited}
+            moment={score >= 1 ? 'quiz_perfect' : score >= 0.8 ? 'confetti' : null}
+          />
         </Animated.View>
         <Animated.View
           style={[styles.badge, { backgroundColor: badgeBg, borderColor: headlineColor }, badgeStyle]}

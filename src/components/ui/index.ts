@@ -32,3 +32,6 @@ export type { CompanionBuddyProps } from './CompanionBuddy';
 
 // ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
 export * from './aurora';
+
+export * from './creature/CompanionCreature';
+export * from './creature/expressions';

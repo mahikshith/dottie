@@ -14,6 +14,7 @@ import {
   GlowRing,
   BreathingView,
   CompanionWave,
+  CompanionLottie,
   PopOnChange,
   PressableScale,
 } from '../../src/components/ui';
@@ -38,6 +39,7 @@ import {
   selectPredictsDeck,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
+import { animForMood } from '../../src/content/companion-lottie';
 import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
@@ -261,11 +263,19 @@ export default function HomeScreen() {
         {/* Hero — greeting + a breathing companion + the day in a glow ring */}
         <Animated.View entering={rise(60)} style={styles.hero}>
           <View style={styles.heroText}>
-            <BreathingView style={styles.companionWrap}>
+            {/* The DRAWN companion, reacting to how the user said they feel.
+                This was the emoji with a breathing scale on it — which meant it
+                looked identical whether the user had logged "rough" or "great".
+                Now the face actually changes. */}
+            <View style={styles.companionWrap}>
               <CompanionWave>
-                <Text style={styles.companionEmoji}>{companion.emoji}</Text>
+                <CompanionLottie
+                  type={companionType}
+                  state={animForMood(todayCheckIn?.moodScore ?? null)}
+                  size={64}
+                />
               </CompanionWave>
-            </BreathingView>
+            </View>
             <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>
           {hasCycleData && (

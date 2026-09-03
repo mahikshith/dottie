@@ -71,17 +71,45 @@ export type LottieAsset = number | { uri: string };
  * added the moment its file lands in `assets/lottie/` (see header). Keeping the
  * six keys present (not the values) documents the intended set for content.
  */
+// Google Noto Animated Emoji — CC BY 4.0. See assets/lottie/ATTRIBUTION.md.
+// One file per companion: each is a single looping PERFORMANCE, not a set of
+// expressions, so the same asset backs every state. Emotional range is carried
+// around it (tempo, scale, halo, and a MOMENT overlay) — see CompanionLottie.
+// When per-emotion art is commissioned, give a state its own file here and it
+// takes over with no screen changes.
+const FOX = require('../../assets/lottie/companions/fox.json') as LottieAsset;
+const BUNNY = require('../../assets/lottie/companions/bunny.json') as LottieAsset;
+const BUTTERFLY = require('../../assets/lottie/companions/butterfly.json') as LottieAsset;
+const CAT = require('../../assets/lottie/companions/cat.json') as LottieAsset;
+const OWL = require('../../assets/lottie/companions/owl.json') as LottieAsset;
+const BLOSSOM = require('../../assets/lottie/companions/blossom.json') as LottieAsset;
+
+/** Every state maps to the companion's performance file. */
+function allStates(asset: LottieAsset): Record<CompanionAnim, LottieAsset> {
+  return { idle: asset, celebrate: asset, encourage: asset, cozy: asset, proud: asset, sad: asset };
+}
+
 export const COMPANION_LOTTIE: Record<CompanionType, Partial<Record<CompanionAnim, LottieAsset>>> = {
-  fox: {},
-  bunny: {},
-  butterfly: {},
-  cat: {},
-  owl: {},
-  blossom: {},
+  fox: allStates(FOX),
+  bunny: allStates(BUNNY),
+  butterfly: allStates(BUTTERFLY),
+  cat: allStates(CAT),
+  owl: allStates(OWL),
+  blossom: allStates(BLOSSOM),
 };
 
-/** Shared moment animations (confetti, hydration, etc.). Empty until sourced. */
-export const MOMENT_LOTTIE: Partial<Record<MomentAnim, LottieAsset>> = {};
+/** Shared moment animations — these carry the BIG emotion over the character. */
+export const MOMENT_LOTTIE: Partial<Record<MomentAnim, LottieAsset>> = {
+  confetti: require('../../assets/lottie/moments/party.json') as LottieAsset,
+  quiz_perfect: require('../../assets/lottie/moments/mindblown.json') as LottieAsset,
+  level_up: require('../../assets/lottie/moments/sparkles.json') as LottieAsset,
+  streak_flame: require('../../assets/lottie/moments/fire.json') as LottieAsset,
+  heart: require('../../assets/lottie/moments/heart.json') as LottieAsset,
+  hydration: require('../../assets/lottie/moments/sparkles.json') as LottieAsset,
+};
+
+/** The gentle overlay for a low-mood day. */
+export const HUG_LOTTIE = require('../../assets/lottie/moments/hug.json') as LottieAsset;
 
 // ─── LOOKUPS ─────────────────────────────────────────────────────────
 
@@ -98,4 +126,19 @@ export function getMomentLottie(anim: MomentAnim): LottieAsset | null {
 /** True once at least one companion animation has been wired (art has landed). */
 export function hasCompanionArt(): boolean {
   return Object.values(COMPANION_LOTTIE).some((set) => Object.keys(set).length > 0);
+}
+
+/**
+ * A check-in mood score (1..5) → the companion performance to play.
+ *
+ * Deliberately gentle at the bottom: a low day gets the SLOW, quiet performance
+ * ('sad' plays at 0.55x), never a bouncing animal. Someone who just logged
+ * "rough" and gets celebrated at is being talked over.
+ */
+export function animForMood(moodScore: number | null): CompanionAnim {
+  if (moodScore === null || !Number.isFinite(moodScore)) return 'idle';
+  if (moodScore <= 2) return 'sad';
+  if (moodScore === 3) return 'idle';
+  if (moodScore === 4) return 'encourage';
+  return 'celebrate';
 }

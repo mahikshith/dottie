@@ -18,11 +18,12 @@
     "test:journey": "tsx scripts/app-journey-harness.ts",
     "test:explainer": "tsx scripts/prediction-explainer-harness.ts",
     "audit:ui": "tsx scripts/ui-onpress-audit.ts",
-    "test:all": "npm run type-check && npm run validate:content && npm run test:adaptive && npm run test:rhythm && npm run test:predictor && npm run test:journey && npm run test:explainer && npm run test:sister && npm run test:blocks && npm run test:dedupe && npm run test:diag && npm run audit:ui",
+    "test:all": "npm run type-check && npm run validate:content && npm run test:adaptive && npm run test:rhythm && npm run test:predictor && npm run test:journey && npm run test:explainer && npm run test:sister && npm run test:blocks && npm run test:dedupe && npm run test:diag && npm run test:creature && npm run audit:ui",
     "test:sister": "tsx scripts/sister-overlay-harness.ts",
     "test:blocks": "tsx scripts/period-blocks-harness.ts",
     "test:dedupe": "tsx scripts/reminder-dedupe-harness.ts",
-    "test:diag": "tsx scripts/diagnostics-harness.ts"
+    "test:diag": "tsx scripts/diagnostics-harness.ts",
+    "test:creature": "tsx scripts/creature-harness.ts"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
