@@ -225,6 +225,30 @@ New suites in `test:all`: `test:sister`, `test:blocks`.
 
 ---
 
+### 2.7 — Round 4: the last open items ✅
+
+- **Bleeding symptom** — the catalog had 30+ entries but no way to record
+  bleeding, on a cycle app. Added Bleeding / Spotting / Clots, first in the list.
+  Filed under `physical`, NOT a new `flow` category: `symptom_logs` has
+  `CHECK (category IN (...))`, so a new one needs a table-rebuild migration on
+  every install for no user-visible gain.
+- **Check-in space** — sections were `cardPaddingLarge` (24) + `base` (16), which
+  pushed the symptom grid below the fold. Now `cardPadding` (16) + `md` (12).
+- **Reminder de-duplication** — the medications screen appended blindly, so the
+  same reminder could fire twice daily. New pure `engine/reminders/dedupe.ts`
+  compares normalised name + kind + the moment it actually FIRES (so a preset
+  bucket and an explicit 9:00 count as one). 6 tested scenarios.
+- **Exact reminder times** — `MedicationPlan` gains optional `hour`/`minute`
+  (optional ⇒ saved plans keep working); the scheduler prefers them. UI is a
+  ±15-minute stepper, not a gesture control.
+- **Home font consistency** — `ringDay`/`ringLabel`/`fullCheckInText` overrode the
+  type ramp with arbitrary 26/10/16px. Back on the ramp. Emoji keep explicit
+  sizes because they're graphics, not text.
+
+`test:all` now runs 9 suites (added `test:sister`, `test:blocks`, `test:dedupe`).
+
+---
+
 ## 3. Prioritized backlog (not yet fixed)
 
 ### P0 — correctness, blocks trust
