@@ -59,6 +59,7 @@ import {
   defaultMemberEmoji,
 } from '../../types/sisterhood.types';
 import { Phase } from '../../types/cycle.types';
+import { prevDay } from '../../utils/civil-date';
 
 // ─── REPOSITORY CLASS ────────────────────────────────────────────────
 
@@ -418,7 +419,7 @@ export class SisterhoodRepository {
     // Find the FIRST day of the most recent period block
     const set = new Set(rows.map(r => r.date));
     for (const row of rows) {
-      const prev = subtractDay(row.date);
+      const prev = prevDay(row.date);
       if (!set.has(prev)) return row.date;
     }
     return rows[rows.length - 1]?.date ?? null;
@@ -862,8 +863,4 @@ function randomSuffix(): string {
 
 // ─── DATE HELPERS ────────────────────────────────────────────────────
 
-function subtractDay(date: string): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0]!;
-}
+

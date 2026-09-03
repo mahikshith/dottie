@@ -18,29 +18,31 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
-### 🔴 THE ONE OPEN P0 — period-log freeze on the 2nd date
+### The period-log freeze is FIXED (root cause found, 2026-09-03)
 
-Logging a period on a second date freezes the app; owner must force-close. It has
-survived **two** wrong diagnoses (Reanimated teardown; `dimezisBlurView` ANR —
-both fixes kept, both correct on their own merits, neither was the cause).
+It was never a UI bug. `addDay()` in `cycle.repo.ts` parsed a date as **local**
+midnight and serialised it as **UTC**, so east of Greenwich it returned the date
+it was given — the identity function. A `while (true)` walk over it therefore
+never advanced and spun the JS thread forever. Owner is at UTC+5:30; CI is at
+UTC+0, where the broken helper is accidentally correct, which is why nothing
+caught it. Full post-mortem: `docs/DEVICE-TEST-7.md` §8.
 
-**Do not guess a third time.** The diagnostic logger exists for exactly this.
-Ask the owner for a trace before touching code:
+Fixed by `src/utils/civil-date.ts` (UTC-only, shared — six files each had their
+own buggy copy), a bounded loop that cannot hang whatever the date maths does,
+and `npm run test:dates`, which re-execs itself under 8 timezones.
 
-> Profile → Diagnostics → **Clear**, reproduce the freeze, force-close, reopen,
-> **Share** the log.
-
-MMKV write-through means the trail survives a force-close; `startFreezeDetector()`
-(1s heartbeat, 2500ms threshold) stamps the gap. The last `daySheet:*` /
-`calendar:logPeriod` bracket before the gap names the culprit.
-Full history: `docs/DEVICE-TEST-7.md` §8.
+**Needs on-device confirmation.** Same repro: log a period day, then log a
+*later* one.
 
 ### Other open items
 
 - `#30` verify the white-circle fix on device (`21d5432`).
-- `#37` prediction staleness — should be resolved by the freeze fix (the tester
-  could only ever log one period ⇒ `cycleCount = 0` ⇒ "0 cycles / Day 168").
-  Re-check once the freeze is closed.
+- `#37` prediction staleness — same root cause: `getLastPeriodStart()` compared
+  against the wrong day (`subtractDay` returned d−2), so the "Day 168 / 0 cycles"
+  reading was the date bug, not staleness. Fixed; confirm on device.
+- The sisterhood member profile still routes to a separate `/shadow-log/…/period`
+  screen. The owner wants sisters logged on the main calendar (that path works);
+  decide whether to retire the standalone screen.
 - `#32` app-store rollout groundwork. `#34` Learn auto-advance re-verify.
 
 ## 2. How to work
@@ -51,7 +53,7 @@ Full history: `docs/DEVICE-TEST-7.md` §8.
   `test:adaptive` (17), `test:rhythm` (22), `test:predictor` (14 scenarios),
   `test:journey` (10), `test:explainer`, `test:sister` (11), `test:blocks` (12),
   `test:dedupe` (6), `test:diag` (7), `test:creature`, `test:charts` (12),
-  `audit:ui` (167 tappables all have onPress). `npm run simulate` is eyeball-only.
+  `test:dates` (8 timezones — the freeze regression), `audit:ui` (167 tappables). `npm run simulate` is eyeball-only.
 - **On-device runtime = the GitHub Actions APK.** Push to `gemini-v2` without
   `[skip ci]` → build. `[skip ci]` **on the tip commit skips the whole push** —
   keep a code commit last. Owner downloads via the GitHub mobile app
@@ -97,6 +99,9 @@ Full history: `docs/DEVICE-TEST-7.md` §8.
 - `src/constants/spacing.ts` — grid, radii, **`tabBarClearance`**
 
 **Data**
+- `src/utils/civil-date.ts` — **the only place date maths on `YYYY-MM-DD` may
+  happen.** UTC-only by construction. Never write a local `new Date(\`${d}T00:00:00\`)`
+  + `toISOString()` helper again — that combination caused the freeze.
 - `src/stores/*` — Zustand v5; selectors must not return fresh arrays/objects
 - `src/database/{storage,client,migrations,repositories/*}` — MMKV + SQLite
 
@@ -117,7 +122,10 @@ Full history: `docs/DEVICE-TEST-7.md` §8.
 6. Quiz questions `q_*` need `level`; lessons need `difficulty` (`validate:content`).
 7. Walkthrough is opt-in only; `checkNotificationPermission()` is silent,
    `requestNotificationPermission()` only from an explicit tap.
-8. TypeScript strict, no `any`/`as any`. Gradient `colors` must be a tuple.
+8. **All civil-date arithmetic goes through `src/utils/civil-date.ts`.** Mixing
+   local parsing with UTC serialisation froze the app for four device tests.
+   Any loop walking dates must also be bounded and require forward progress.
+9. TypeScript strict, no `any`/`as any`. Gradient `colors` must be a tuple.
    Inline components return `: JSX.Element`.
 
 ## 5. Companion docs (open only when named)

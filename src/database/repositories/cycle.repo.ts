@@ -49,6 +49,7 @@ import {
   CyclePrediction,
   Phase,
 } from '../../types/cycle.types';
+import { nextDay, prevDay, daysApart } from '../../utils/civil-date';
 
 // ─── DOMAIN INPUT TYPES ──────────────────────────────────────────────
 
@@ -222,10 +223,14 @@ export class CycleRepository {
 
     // Find the most recent "start" — the latest date whose previous
     // calendar day is NOT also a period day.
+    // (This is the second victim of the old local/UTC date helpers: with
+    // `subtractDay` returning d−2 east of Greenwich, the "is the previous day
+    // also a period day?" test compared against the WRONG day, so the most
+    // recent period start came back wrong — which is what drove the bogus
+    // "Day 168 / 0 cycles" reading on Home.)
     const periodDates = new Set(rows.map(r => r.date));
     for (const row of rows) {
-      const prevDay = subtractDay(row.date);
-      if (!periodDates.has(prevDay)) {
+      if (!periodDates.has(prevDay(row.date))) {
         return row.date;
       }
     }
@@ -342,29 +347,40 @@ export class CycleRepository {
     const priorDates = new Set(priorPeriodDays.map(p => p.date));
     let priorStart: string | null = null;
     for (const day of priorPeriodDays) {
-      const prevDay = subtractDay(day.date);
-      if (!priorDates.has(prevDay)) {
+      const dayBefore = prevDay(day.date);
+      if (!priorDates.has(dayBefore)) {
         priorStart = day.date;
         break;
       }
     }
     if (!priorStart) return;
 
-    // Find the END of the prior period (last consecutive period day)
+    // Find the END of the prior period (last consecutive period day).
+    //
+    // ⚠️ This walk is why the app used to freeze on the second period day
+    // logged (device-test-7). It was `while (true)` over `addDay(cursor)`, and
+    // `addDay` was the identity function in any timezone east of Greenwich —
+    // so `cursor` never advanced, the set always contained it, and the JS
+    // thread spun forever with no way out but a force-close.
+    //
+    // `addDays` is timezone-independent now, which fixes the cause. The loop is
+    // ALSO rewritten so no future date bug can hang it: a bounded `for` over at
+    // most MAX_PERIOD_SPAN days, and each step must move strictly forward or we
+    // stop. A wrong date helper can now only produce a wrong answer, never an
+    // unresponsive app.
+    const MAX_PERIOD_SPAN = 30;
     let priorEnd = priorStart;
     let cursor = priorStart;
-    while (true) {
-      const nextDay = addDay(cursor);
-      if (priorDates.has(nextDay)) {
-        priorEnd = nextDay;
-        cursor = nextDay;
-      } else {
-        break;
-      }
+    for (let step = 0; step < MAX_PERIOD_SPAN; step++) {
+      const candidate = nextDay(cursor);
+      if (candidate <= cursor) break;          // no forward progress — bail out
+      if (!priorDates.has(candidate)) break;   // end of this contiguous block
+      priorEnd = candidate;
+      cursor = candidate;
     }
 
-    const cycleLength = daysBetween(priorStart, newPeriodStart);
-    const periodLength = daysBetween(priorStart, priorEnd) + 1;
+    const cycleLength = daysApart(priorStart, newPeriodStart);
+    const periodLength = daysApart(priorStart, priorEnd) + 1;
 
     // Sanity check — skip records with implausible lengths
     if (cycleLength < 15 || cycleLength > 60) return;
@@ -502,7 +518,7 @@ export class CycleRepository {
     predictedDate: string,
     actualDate: string
   ): Promise<void> {
-    const errorDays = daysBetween(predictedDate, actualDate);
+    const errorDays = daysApart(predictedDate, actualDate);
     const signedError = actualDate > predictedDate ? errorDays : -errorDays;
 
     const db = await this.getDb();
@@ -589,22 +605,9 @@ function randomSuffix(): string {
 }
 
 // ─── DATE HELPERS ────────────────────────────────────────────────────
-
-function addDay(date: string): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0]!;
-}
-
-function subtractDay(date: string): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0]!;
-}
-
-function daysBetween(dateA: string, dateB: string): number {
-  const a = new Date(`${dateA}T00:00:00`);
-  const b = new Date(`${dateB}T00:00:00`);
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.round(Math.abs(b.getTime() - a.getTime()) / msPerDay);
-}
+//
+//  These used to be local copies that parsed as local midnight and serialised
+//  as UTC, which made `addDay` the IDENTITY function east of Greenwich and hung
+//  the period-day walk below forever. They now come from `civil-date`, which is
+//  UTC-only end to end. See that module's header for the full post-mortem.
+//  Do not reimplement them here.

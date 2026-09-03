@@ -41,6 +41,7 @@ import {
 import { Phase } from '../../types/cycle.types';
 import { TrackedMetric } from '../../types/content.types';
 import { RecentSymptom } from '../../engine/content';
+import { addDays } from '../../utils/civil-date';
 
 // ─── DOMAIN TYPES ────────────────────────────────────────────────────
 
@@ -341,7 +342,7 @@ export class CheckInRepository {
     today: string = new Date().toISOString().split('T')[0]!
   ): Promise<RecentSymptom[]> {
     const start = Date.now();
-    const startDate = subtractDays(today, daysBack);
+    const startDate = addDays(today, -daysBack);
 
     const db = await this.getDb();
     const rows = await db.getAllAsync<SymptomLogRow>(
@@ -612,8 +613,3 @@ function randomSuffix(): string {
   return Math.floor(Math.random() * 0xffffff).toString(36).padStart(5, '0');
 }
 
-function subtractDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0]!;
-}

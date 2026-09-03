@@ -40,6 +40,7 @@ import { cycleRepository } from '../database/repositories/cycle.repo';
 import { checkinRepository } from '../database/repositories/checkin.repo';
 import { useUserStore } from './useUserStore';
 import { useGamificationStore } from './useGamificationStore';
+import { addDays } from '../utils/civil-date';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -172,7 +173,7 @@ async function runGenerate(
     // Window of recent days the engine looks at. 90 days ≈ 3 cycles,
     // enough for stable pattern detection without burning memory.
     const lookbackDays = 90;
-    const lookbackStart = subtractDays(today, lookbackDays);
+    const lookbackStart = addDays(today, -lookbackDays);
 
     // Parallel reads — these don't depend on each other.
     const [
@@ -278,11 +279,7 @@ function todayISO(): string {
   return new Date().toISOString().split('T')[0]!;
 }
 
-function subtractDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() - days);
-  return d.toISOString().split('T')[0]!;
-}
+
 
 function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(`${dateA}T00:00:00`);

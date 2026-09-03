@@ -44,6 +44,8 @@ non-diagnostic voice throughout.
 - `npm run test:predictor` — 14 real-user predictor scenarios, ~60 assertions
 - `npm run test:journey` — 10 pure-engine end-to-end journeys
 - `npm run test:charts` — explainer figure data, 12 invariants
+- `npm run test:dates` — civil-date arithmetic re-run under 8 timezones (the
+  regression test for the period-log freeze; a UTC-only run would not catch it)
 - `npm run test:sister` / `test:blocks` / `test:dedupe` / `test:diag` / `test:creature`
 - `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (167 tappables)
 - `npm run test:all` — runs all of the above, non-zero exit on any failure
@@ -108,7 +110,12 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    `insets.top + Spacing.lg` and `insets.bottom + Spacing.tabBarClearance`.
    `AuroraBackground` paints a GRADIENT status veil — never restore the opaque
    block, it reads as the app eating the heading.
-11. **The prediction explainer must never render nothing.** It recomputes the
+11. **All date maths on `YYYY-MM-DD` goes through `src/utils/civil-date.ts`.**
+   Never write `new Date(`${d}T00:00:00`)` + `.toISOString()` — local in, UTC
+   out makes `addDay` the identity function east of Greenwich, which is what
+   froze the app for four device-test rounds (`DEVICE-TEST-7.md` §8). Any loop
+   walking dates must be bounded and require strict forward progress.
+12. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 

@@ -57,6 +57,7 @@ import {
   getCompanionGreeting,
 } from './companion-dialogue';
 import { getCompanion } from '../../content/companions';
+import { addDays } from '../../utils/civil-date';
 
 // ─── RENDERED DAILY DECODE (UI-READY) ────────────────────────────────
 
@@ -427,11 +428,7 @@ function getDefaultEmoji(phase: Phase): string {
 
 // ─── DATE HELPERS ────────────────────────────────────────────────────
 
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0]!;
-}
+
 
 // ─── PUBLIC HELPER: bulk card validation ─────────────────────────────
 

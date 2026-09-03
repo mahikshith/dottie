@@ -36,6 +36,7 @@ import {
   ProfileTransferCode,
 } from '../../types/sisterhood.types';
 import { Phase } from '../../types/cycle.types';
+import { addDays, prevDay } from '../../utils/civil-date';
 
 // ─── BUILD MEMBER VIEW ───────────────────────────────────────────────
 
@@ -325,7 +326,7 @@ function findMostRecentPeriodStart(
 
   const set = new Set(periodDates);
   for (const d of periodDates) {
-    if (!set.has(subtractDay(d))) return d;
+    if (!set.has(prevDay(d))) return d;
   }
   return periodDates[periodDates.length - 1] ?? null;
 }
@@ -345,7 +346,7 @@ function estimateCycleLengthFromHistory(
   const set = new Set(periodDates);
   const starts: string[] = [];
   for (const d of periodDates) {
-    if (!set.has(subtractDay(d))) starts.push(d);
+    if (!set.has(prevDay(d))) starts.push(d);
   }
 
   if (starts.length < 2) return null;
@@ -364,17 +365,7 @@ function todayISO(): string {
   return new Date().toISOString().split('T')[0]!;
 }
 
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0]!;
-}
 
-function subtractDay(date: string): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0]!;
-}
 
 function daysBetween(a: string, b: string): number {
   const t1 = new Date(`${a}T00:00:00`).getTime();
