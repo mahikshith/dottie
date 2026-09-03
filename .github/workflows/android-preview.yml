@@ -70,6 +70,9 @@ jobs:
       - name: App journey harness (10 pure-engine journeys, all combos)
         run: npm run --if-present test:journey
 
+      - name: Prediction explainer harness (7 scenarios, ~60 invariants)
+        run: npm run --if-present test:explainer
+
       - name: UI onPress audit (every Pressable / Button has a handler)
         run: npm run --if-present audit:ui
 
