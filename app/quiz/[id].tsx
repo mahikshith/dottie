@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground } from '../../src/components/ui';
+import { QuizAnswerReaction } from '../../src/components/learn/QuizAnswerReaction';
 import {
   useUserStore,
   useGamificationStore,
@@ -92,6 +94,8 @@ export default function QuizScreen() {
   const [lastAnswer, setLastAnswer] = useState<SubmitAnswerResult | null>(null);
   const [finalResult, setFinalResult] = useState<QuizResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Running tally of correct answers, shown in the feedback panel to motivate.
+  const [correctSoFar, setCorrectSoFar] = useState(0);
 
   // ─── Start the attempt on mount ─────────────────────────────────
   // Device-test #3 finding: this used to have `[id]` deps only, so if
@@ -134,6 +138,7 @@ export default function QuizScreen() {
     }
 
     setSession(attempt);
+    setCorrectSoFar(0);
     setPhase('asking');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, quizEngine]);
@@ -164,6 +169,7 @@ export default function QuizScreen() {
         : Haptics.NotificationFeedbackType.Warning
     ).catch(() => {});
 
+    if (result.correct) setCorrectSoFar((n) => n + 1);
     setLastAnswer(result);
     setPhase('reviewing');
   };
@@ -380,23 +386,56 @@ export default function QuizScreen() {
           </View>
         )}
 
-        {/* Explanation + companion reaction (only while reviewing) */}
+        {/* Answer feedback — the expressive Duolingo-style panel that fills the
+            space under the question when reviewing. The companion REACTS
+            (celebrates a win, warmly encourages a miss), then the explanation
+            ("the why"), the companion's line, and a running progress pill. */}
         {phase === 'reviewing' && lastAnswer && (
-          <View
+          <Animated.View
+            entering={FadeInDown.duration(360).springify().damping(16)}
             style={[
-              styles.explanationCard,
-              lastAnswer.correct ? styles.explanationCorrect : styles.explanationWrong,
+              styles.feedbackPanel,
+              lastAnswer.correct ? styles.feedbackCorrect : styles.feedbackWrong,
             ]}
           >
-            <Text style={styles.explanationEmoji}>{lastAnswer.explanationEmoji}</Text>
-            <Text style={styles.explanationText}>{lastAnswer.explanation}</Text>
+            <QuizAnswerReaction
+              companionType={companionType}
+              correct={lastAnswer.correct}
+              seed={questionIndex}
+              headlineColor={lastAnswer.correct ? A.success : A.gold}
+              badgeBg={A.ground}
+            />
+
+            {/* The learning payload — why this answer is what it is. */}
+            <View style={styles.feedbackExplainRow}>
+              <Text style={styles.explanationEmoji}>{lastAnswer.explanationEmoji}</Text>
+              <Text style={styles.feedbackExplainText}>{lastAnswer.explanation}</Text>
+            </View>
+
+            {/* Companion's own encouraging line. */}
             <View style={styles.companionReactionRow}>
               <Text style={styles.companionReactionEmoji}>{companion.emoji}</Text>
-              <Text style={styles.companionReactionText}>
-                {lastAnswer.companionReaction}
-              </Text>
+              <Text style={styles.companionReactionText}>{lastAnswer.companionReaction}</Text>
             </View>
-          </View>
+
+            {/* Running progress — motivating, and it uses the empty space. */}
+            <Animated.View
+              entering={FadeIn.delay(200).duration(260)}
+              style={[
+                styles.progressPill,
+                { borderColor: lastAnswer.correct ? A.success : A.gold },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.progressPillText,
+                  { color: lastAnswer.correct ? A.success : A.gold },
+                ]}
+              >
+                {correctSoFar} of {questionIndex + 1} correct so far
+              </Text>
+            </Animated.View>
+          </Animated.View>
         )}
 
         {/* Next / Finish button (only while reviewing) */}
@@ -679,6 +718,52 @@ const styles = StyleSheet.create({
     color: A.ink2,
     flex: 1,
     fontStyle: 'italic',
+  },
+  // ─── Rich answer feedback panel (fills the empty space) ─────────
+  feedbackPanel: {
+    alignItems: 'center',
+    padding: Spacing.cardPaddingLarge,
+    borderRadius: Spacing.radius['2xl'],
+    borderWidth: 1,
+    marginBottom: Spacing.base,
+    gap: Spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  feedbackCorrect: {
+    backgroundColor: 'rgba(111,230,168,0.10)',
+    borderColor: 'rgba(111,230,168,0.35)',
+  },
+  feedbackWrong: {
+    // Warm gold, never alarming red — a miss stays encouraging.
+    backgroundColor: 'rgba(255,194,77,0.09)',
+    borderColor: 'rgba(255,194,77,0.32)',
+  },
+  feedbackExplainRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  feedbackExplainText: {
+    ...Typography.preset.body,
+    color: A.ink,
+    flex: 1,
+    lineHeight: 24,
+  },
+  progressPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Spacing.radius.full,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  progressPillText: {
+    ...Typography.preset.captionBold,
+    letterSpacing: 0.3,
   },
   nextButton: {
     backgroundColor: A.accent,
