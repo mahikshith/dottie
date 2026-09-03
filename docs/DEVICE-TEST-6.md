@@ -182,6 +182,49 @@ non-diagnostic. Past-month logging already worked once the month is navigable.
 
 ---
 
+### 2.6 — Round 3: the real freeze cause, and the rest of the round ✅
+
+**THE FREEZE — earlier diagnosis was wrong.** `DayDetailSheet`'s backdrop used
+`experimentalBlurMethod="dimezisBlurView"`, which on Android **snapshots the
+entire view tree behind the overlay**. First open = nearly-empty calendar = cheap.
+That first log then fills the screen (week-ahead, explainer, rich phase card), so
+the **second** open snapshots a heavy tree and **ANR-wedges the JS thread** —
+frozen screen, dead Done button, force-close, data already written (hence it
+appears after restart). Deterministic, and it explains 1st-vs-2nd exactly; a
+wedged JS thread would also have defeated the earlier `setTimeout` teardown fix.
+Removed. Only this component used that method. **Needs device verification.**
+
+Also landed this round:
+- **Status-bar overlap** — fixed once for every screen via an opaque ground cap
+  inside `AuroraBackground` (all screens already padded by `insets.top`, but that
+  only protects the *initial* position; scrolling slid content under the clock).
+- **White flash Today→Cycle** — tab `sceneStyle` painted `A.ground`.
+- **Science card** — never returns `null` now (that's why it vanished). Added a
+  real log-normal **distribution graph** from the live posterior with the quoted
+  window shaded, predicted period window, **heavy-days** forecast, the 3–7 day
+  reference facts, and a "WHAT SHAPED THIS PREDICTION" heading. +8 assertions.
+- **Flow intensity** — logging no longer hardcodes `flowLevel: 3`.
+- **Notifications** — `requestNotificationPermission()` existed but was **called
+  from nowhere**, so Android was never prompted. Wired to the toggle tap; denied
+  state deep-links via `Linking.openSettings()`.
+- **Learn** — New/Basics/Deep → two modes; "My phase" surfaces 6 lessons matched
+  to sub-phase + conditions. Streak banner removed.
+- **Privacy** — the "You & 12,363 others" counts came from `sample-data.ts`
+  (a comment there called them *"tuned to feel believable"*). Removed.
+- **Sisterhood on the main calendar** — new pure `sister-overlay.ts` + 11 tested
+  scenarios; sister days in gold, "who am I logging for" chips, heads-up card.
+- **Quiz** — Next/Finish pinned to the bottom for thumb reach.
+- **Companion lines** — rotation was keyed off `day_in_cycle`, which sat frozen
+  while cycle data was stale, so the same sentence repeated forever. Now salted
+  with the calendar day-of-year.
+- **Period ranges** — new pure `period-blocks.ts` + 12 tested scenarios: real
+  start/end/length, and data-entry nudges (never diagnoses — a test enforces the
+  tone).
+
+New suites in `test:all`: `test:sister`, `test:blocks`.
+
+---
+
 ## 3. Prioritized backlog (not yet fixed)
 
 ### P0 — correctness, blocks trust
