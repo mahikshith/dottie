@@ -15,6 +15,7 @@ import {
   selectLevelProgress,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
+import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
 import { useAurora } from '../../src/theme';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
@@ -66,11 +67,14 @@ export default function LevelUpScreen() {
   const newLevelNumber = paramToInt(params.newLevel, 1);
   const xpAwarded = paramToInt(params.xp, 0);
 
-  // Stronger success haptic for the level-up moment.
+  // Stronger success haptic + a full-screen Aurora celebration for the
+  // level-up moment, tuned to today's mood (soothing/gentle if they're low).
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
       () => {}
     );
+    const mood = useCycleStore.getState().todayCheckIn?.moodScore ?? null;
+    showCelebration(celebrationTierForMood(mood, 'big'));
   }, []);
 
   const handleDismiss = () => {

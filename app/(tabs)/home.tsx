@@ -13,6 +13,7 @@ import {
   ClayButton,
   GlowRing,
   BreathingView,
+  CompanionWave,
   PopOnChange,
   PressableScale,
 } from '../../src/components/ui';
@@ -248,7 +249,9 @@ export default function HomeScreen() {
         <Animated.View entering={rise(60)} style={styles.hero}>
           <View style={styles.heroText}>
             <BreathingView style={styles.companionWrap}>
-              <Text style={styles.companionEmoji}>{companion.emoji}</Text>
+              <CompanionWave>
+                <Text style={styles.companionEmoji}>{companion.emoji}</Text>
+              </CompanionWave>
             </BreathingView>
             <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>

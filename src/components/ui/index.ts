@@ -24,5 +24,8 @@ export type { PopOnChangeProps } from './PopOnChange';
 export { CompanionLottie } from './CompanionLottie';
 export type { CompanionLottieProps } from './CompanionLottie';
 
+export { CompanionWave } from './CompanionWave';
+export type { CompanionWaveProps } from './CompanionWave';
+
 // ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
 export * from './aurora';
