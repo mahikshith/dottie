@@ -127,16 +127,29 @@ export default function HomeScreen() {
   // useWalkthroughStore.getState().restart()). No user is auto-nagged
   // and no crashed-mid-tour state can re-surface silently.
 
-  // ─── Compose greeting (time + companion + phase) ────────────────
+  // ─── Compose greeting (time + MOOD + phase) ─────────────────────
+  //
+  // device-test-6: this was a fixed per-phase string with a hardcoded newline —
+  // it burned two lines of prime space and said the same cheerful thing whether
+  // the user felt great or awful. Someone who just logged "rough" and gets
+  // bounced at is gone in three seconds. So: no forced line break (let it wrap
+  // naturally), and when we know today's mood we LEAD with it, rotating the
+  // wording daily so it never reads like a canned banner.
   const greeting = useMemo(() => {
     const timePart = getTimeGreeting(getTimeOfDay());
+    const mood = todayCheckIn?.moodScore ?? null;
+    // Deterministic daily rotation — same all day, different tomorrow.
+    const seed = new Date().getDate();
+
+    if (mood != null) {
+      return `${timePart} — ${moodAwareLine(mood, seed)}`;
+    }
     if (!hasCycleData) {
       // No period logged yet — stay honest, don't imply a phase.
-      return `${timePart}, friend!\nLet's learn your rhythm together 🌱`;
+      return `${timePart}! Let's learn your rhythm together 🌱`;
     }
-    const phaseGreeting = companion.greetings[phase];
-    return `${timePart}, friend!\n${phaseGreeting}`;
-  }, [companion, phase, hasCycleData]);
+    return `${timePart}! ${companion.greetings[phase]}`;
+  }, [companion, phase, hasCycleData, todayCheckIn?.moodScore]);
 
   // ─── Build the weather view (snapshot + user's phase) ───────────
   const weatherView = useMemo(() => {
@@ -498,6 +511,38 @@ function capitalize(s: string): string {
 }
 
 /**
+ * Mood-led greeting lines. Three bands x several variants, rotated by the day of
+ * the month so the home screen never greets the user with the same sentence two
+ * days running. Non-diagnostic and never bouncy at someone having a hard day.
+ */
+const MOOD_LINES: Record<'low' | 'mid' | 'high', readonly string[]> = {
+  low: [
+    'rough one today. Nothing here needs you at your best. 🤍',
+    'a heavy day. Go gently — logging one thing is plenty.',
+    'not your day, huh. Rest counts as looking after yourself.',
+    'tough going. I\'ll keep things short today.',
+  ],
+  mid: [
+    'a steady sort of day. That\'s a good place to be.',
+    'ticking along. Anything you log today helps future you.',
+    'an ordinary day — those are underrated.',
+    'holding steady. I\'m here if you want to note anything.',
+  ],
+  high: [
+    'you\'re feeling good today — love that. ✨',
+    'good energy today. Worth remembering this one.',
+    'a bright day. Let\'s make the most of it.',
+    'you\'re on form today. 🌞',
+  ],
+};
+
+function moodAwareLine(moodScore: number, seed: number): string {
+  const band = moodScore <= 2 ? 'low' : moodScore >= 4 ? 'high' : 'mid';
+  const pool = MOOD_LINES[band];
+  return pool[seed % pool.length]!;
+}
+
+/**
  * A warm, plain-language meaning for the current cycle day, shown under the day
  * ring so the day number carries significance instead of standing alone.
  *
@@ -563,7 +608,7 @@ const styles = StyleSheet.create({
   },
   companionWrap: {
     alignSelf: 'flex-start',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   companionEmoji: {
     fontSize: 40,

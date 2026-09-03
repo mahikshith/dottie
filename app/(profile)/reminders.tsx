@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, Platform, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +24,7 @@ import { AuroraBackground, GlassCard, PressableScale } from '../../src/component
 import { useAurora } from '../../src/theme';
 import { useCycleStore } from '../../src/stores';
 import { Storage, type ReminderPrefs, type ReminderTime } from '../../src/database/storage';
-import { applyReminderPrefs } from '../../src/notifications/scheduler';
+import { applyReminderPrefs, requestNotificationPermission } from '../../src/notifications/scheduler';
 import { getNotificationCopy } from '../../src/notifications/copy';
 
 const TIME_OPTIONS: { key: ReminderTime; label: string; emoji: string }[] = [
@@ -45,12 +45,35 @@ export default function RemindersScreen() {
   const [permissionDenied, setPermissionDenied] = useState(false);
 
   // Persist + (re)schedule whenever anything changes.
+  //
+  // ⚠️ device-test-6: this used to go straight to applyReminderPrefs, which only
+  // ever calls the SILENT checkNotificationPermission. So flipping a reminder on
+  // never showed the Android permission dialog — the toggle appeared to work,
+  // no OS prompt appeared, and reminders silently never fired. Every call to
+  // sync() originates from an explicit user tap on a Switch, which is exactly
+  // (and only) where CLAUDE.md rule 7 allows us to PROMPT, so we ask here.
   const sync = async (nextPrefs: ReminderPrefs, nextDiscrete: boolean) => {
     Storage.reminderPrefs.set(nextPrefs);
     Storage.discreteNotifications.set(nextDiscrete);
-    const res = await applyReminderPrefs(nextPrefs, { discrete: nextDiscrete, predictedNextPeriod });
     const anyOn = nextPrefs.checkIn || nextPrefs.hydration || nextPrefs.periodHeadsUp;
-    setPermissionDenied(anyOn && !res.granted);
+
+    let granted = true;
+    if (anyOn) {
+      // Shows the real Android/iOS dialog the first time; resolves to the
+      // existing decision afterwards (the OS only asks once).
+      granted = await requestNotificationPermission();
+    }
+
+    const res = await applyReminderPrefs(nextPrefs, { discrete: nextDiscrete, predictedNextPeriod });
+    setPermissionDenied(anyOn && !(granted && res.granted));
+  };
+
+  // Once the OS has been asked and refused, the dialog can't be shown again —
+  // the only route left is the system settings page, so link straight there
+  // instead of telling the user to go find it.
+  const openSystemSettings = () => {
+    Haptics.selectionAsync().catch(() => {});
+    void Linking.openSettings();
   };
 
   const update = (patch: Partial<ReminderPrefs>) => {
@@ -90,8 +113,20 @@ export default function RemindersScreen() {
         {permissionDenied && (
           <GlassCard style={[styles.notice, { borderColor: palette.accent2 }]} padding={Spacing.md}>
             <Text style={[styles.noticeText, { color: palette.ink }]}>
-              Notifications are off for Dottie. Turn them on in your phone's Settings to receive reminders.
+              Notifications are switched off for Dottie, so these reminders can&apos;t reach
+              you. Your phone only asks once — after that it has to be changed in Settings.
             </Text>
+            <PressableScale
+              onPress={openSystemSettings}
+              haptic="none"
+              style={[styles.noticeCta, { backgroundColor: palette.accent }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open Dottie's notification settings"
+            >
+              <Text style={[styles.noticeCtaText, { color: palette.ground }]}>
+                Open notification settings →
+              </Text>
+            </PressableScale>
           </GlassCard>
         )}
 
@@ -233,6 +268,16 @@ const styles = StyleSheet.create({
   title: { ...Typography.preset.h2, marginBottom: Spacing.xs },
   subtitle: { ...Typography.preset.body, lineHeight: 22, marginBottom: Spacing.lg },
   notice: { borderWidth: 1, marginBottom: Spacing.base },
+  noticeCta: {
+    marginTop: Spacing.sm,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Spacing.radius.full,
+  },
+  noticeCtaText: {
+    ...Typography.preset.captionBold,
+  },
   noticeText: { ...Typography.preset.caption, lineHeight: 18 },
   card: { marginBottom: Spacing.base },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
