@@ -47,14 +47,42 @@ import type {
   FactorEffect,
   PredictionExplanation,
 } from '../../engine/prediction/explain-prediction';
+import type { CycleRecord, HealthProfile } from '../../types/cycle.types';
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
-export function PredictionExplainerCard(): JSX.Element | null {
+export interface PredictionExplainerCardProps {
+  /**
+   * Whose model this is. Omit for the user.
+   *
+   * Device-test-16: selecting a sister switched the calendar GRID to her days
+   * while every panel underneath stayed the user's, and the screen admitted it
+   * in small print. Reading someone else's calendar above your own statistics
+   * makes both numbers less trustworthy. When a subject is passed, the card
+   * runs the SAME pure explainer and the SAME three charts on her history
+   * instead — one component, one set of figures, one definition of correct.
+   */
+  subject?: {
+    name: string;
+    cycleHistory: CycleRecord[];
+    healthProfile: HealthProfile;
+    lastPeriodStart: string | null;
+    /** One honest line about how much data her model stands on. */
+    dataNote: string;
+  } | null;
+}
+
+export function PredictionExplainerCard({
+  subject = null,
+}: PredictionExplainerCardProps = {}): JSX.Element | null {
   const { palette } = useAurora();
-  const storeExplanation = useCycleStore(selectPredictionExplanation);
-  const lastPeriodStart = useCycleStore((s) => s.lastPeriodStart);
-  const cycleHistory = useCycleStore((s) => s.cycleHistory);
+  const storeExplanationRaw = useCycleStore(selectPredictionExplanation);
+  const userLastPeriodStart = useCycleStore((s) => s.lastPeriodStart);
+  const userCycleHistory = useCycleStore((s) => s.cycleHistory);
+  // A subject overrides every input; there is no blending of two people's data.
+  const storeExplanation = subject ? null : storeExplanationRaw;
+  const lastPeriodStart = subject ? subject.lastPeriodStart : userLastPeriodStart;
+  const cycleHistory = subject ? subject.cycleHistory : userCycleHistory;
   const predictionErrors = useCycleStore((s) => s.predictionErrors);
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
   const user = useUserStore((s) => s.user);
@@ -86,7 +114,7 @@ export function PredictionExplainerCard(): JSX.Element | null {
     try {
       return explainPrediction({
         cycleHistory,
-        healthProfile: user.healthProfile,
+        healthProfile: subject ? subject.healthProfile : user.healthProfile,
         lastPeriodStart: new Date(anchor),
         recentStressLevel: todayCheckIn?.stressLevel ?? undefined,
         recentSleepQuality: todayCheckIn?.sleepQuality ?? undefined,
@@ -96,7 +124,7 @@ export function PredictionExplainerCard(): JSX.Element | null {
       if (__DEV__) console.warn('[Explainer] local recompute failed:', err);
       return null;
     }
-  }, [storeExplanation, user, lastPeriodStart, cycleHistory, predictionErrors, todayCheckIn]);
+  }, [storeExplanation, user, lastPeriodStart, cycleHistory, predictionErrors, todayCheckIn, subject]);
 
   // The two figures that don't need a prediction to be meaningful. They are
   // built for BOTH states, so the empty card carries graphs too — the owner
@@ -124,7 +152,9 @@ export function PredictionExplainerCard(): JSX.Element | null {
       >
         <View style={styles.header}>
           <CompanionBuddy type={companionType} size={40} accessibilityLabel="Your companion" />
-          <Text style={[styles.title, { color: palette.ink }]}>How your prediction will work</Text>
+          <Text style={[styles.title, { color: palette.ink }]}>
+            {subject ? `How ${subject.name}'s prediction will work` : 'How your prediction will work'}
+          </Text>
         </View>
         <Text style={[styles.summary, { color: palette.ink2 }]}>
           Log your first period and Dottie starts modelling your rhythm. Nothing is
@@ -177,11 +207,16 @@ export function PredictionExplainerCard(): JSX.Element | null {
           size={40}
           accessibilityLabel="Your companion explains your prediction"
         />
-        <Text style={[styles.title, { color: palette.ink }]}>How this prediction is made</Text>
+        <Text style={[styles.title, { color: palette.ink }]}>
+          {subject ? `How ${subject.name}'s prediction is made` : 'How this prediction is made'}
+        </Text>
       </View>
 
       {/* Plain summary */}
       <Text style={[styles.summary, { color: palette.ink2 }]}>{explanation.plainSummary}</Text>
+      {subject ? (
+        <Text style={[styles.factorPlain, { color: palette.ink3 }]}>{subject.dataNote}</Text>
+      ) : null}
 
       {/* Window visual: start —●— end */}
       <WindowBar explanation={explanation} palette={palette} />

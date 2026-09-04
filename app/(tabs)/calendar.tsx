@@ -62,10 +62,16 @@ import {
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { sisterhoodRepository } from '../../src/database/repositories/sisterhood.repo';
 import { buildSisterOverlay, type SisterDayMark } from '../../src/engine/calendar/sister-overlay';
+import type { ShadowContext } from '../../src/types/sisterhood.types';
+import {
+  buildSisterCycleHistory,
+  sisterHistorySummary,
+} from '../../src/engine/calendar/sister-cycle';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 import { analysePeriodPattern, groupPeriodBlocks } from '../../src/engine/calendar/period-blocks';
 import { recallSymptoms, recallForDay } from '../../src/engine/symptoms/symptom-recall';
 import { checkinRepository } from '../../src/database/repositories/checkin.repo';
-import { addDays } from '../../src/utils/civil-date';
+import { addDays, daysBetween } from '../../src/utils/civil-date';
 import {
   buildFertileWindow,
   NOT_CONTRACEPTION,
@@ -103,6 +109,7 @@ export default function CalendarScreen() {
   // Sister count drives the copy on the loved-ones bridge card below.
   const sisterCount = useSisterhoodStore(selectMemberCount);
   const sisterViews = useSisterhoodStore(selectMemberViewsOrdered);
+  const rawMembersById = useSisterhoodStore((st) => st.membersById);
 
   // ─── Live state ─────────────────────────────────────────────────
   const phase = useCycleStore(selectCurrentPhase);
@@ -452,6 +459,30 @@ export default function CalendarScreen() {
     [sisterViews]
   );
 
+  // ─── The selected sister's FULL history ─────────────────────────
+  //
+  //  The month-range fetch below is enough to PAINT her days, but a cycle is
+  //  measured between two period blocks, so modelling her needs everything she
+  //  has. Loaded only for the one sister currently selected — six sisters'
+  //  full histories on every month swipe would be wasteful and pointless.
+  const [sisterAllDays, setSisterAllDays] = useState<string[]>([]);
+  useEffect(() => {
+    if (!logTargetId) {
+      setSisterAllDays([]);
+      return;
+    }
+    let cancelled = false;
+    sisterhoodRepository
+      .getShadowPeriodDaysInRange(logTargetId, '1900-01-01', '2999-12-31')
+      .then((days) => {
+        if (!cancelled) setSisterAllDays(days);
+      })
+      .catch((err) => logSilentFailure('calendar:sisterHistory', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [logTargetId, sisterVersion]);
+
   useEffect(() => {
     if (overlaySisters.length === 0) {
       setSisterDaysByMember({});
@@ -496,6 +527,26 @@ export default function CalendarScreen() {
       }),
     [latestPrediction, userHealth, overlaySisters]
   );
+
+  /**
+   * Every day where your predicted window and a sister's overlap.
+   *
+   * findCycleOverlaps already computes the exact shared stretch for the
+   * sentence it writes; this expands that range into a set so the GRID can say
+   * the same thing visually. The prose and the glow are therefore guaranteed to
+   * agree — they come from one calculation, not two (device-test-16).
+   */
+  const coincidingDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of cycleOverlaps) {
+      const span = daysBetween(o.overlapStart, o.overlapEnd);
+      // Bounded, and requires forward progress — the civil-date rule.
+      for (let i = 0; i >= 0 && i <= span && i < 40; i++) {
+        set.add(addDays(o.overlapStart, i));
+      }
+    }
+    return set;
+  }, [cycleOverlaps]);
 
   const sisterOverlay = useMemo(
     () =>
@@ -566,6 +617,36 @@ export default function CalendarScreen() {
   );
 
   const logTarget = logTargetId ? loggableSisters.find((v) => v.memberId === logTargetId) ?? null : null;
+
+  /**
+   * Her own model, from the days you marked for her — the same pure explainer
+   * and the same three charts the user gets, not a simplified stand-in.
+   */
+  const sisterSubject = useMemo(() => {
+    if (!logTarget) return null;
+    const history = buildSisterCycleHistory(sisterAllDays);
+    // MemberView is the privacy-filtered projection and deliberately carries
+    // no shadow context, so the raw member is read for age/conditions.
+    const ctx = (rawMembersById[logTarget.memberId]?.shadowContext ?? null) as ShadowContext | null;
+    return {
+      name: logTarget.displayName,
+      cycleHistory: history.records,
+      lastPeriodStart: history.lastPeriodStart,
+      dataNote: sisterHistorySummary(history, logTarget.displayName),
+      healthProfile: {
+        age: ctx?.age ?? null,
+        mode: ctx?.mode ?? 'adult',
+        conditions: ctx?.conditions ?? EMPTY_CONDITIONS,
+        weightKg: null,
+        heightCm: null,
+        activityLevel: null,
+        averageCycleLength: ctx?.averageCycleLength ?? null,
+        averagePeriodLength: null,
+        onMedications: false,
+      },
+    };
+  }, [logTarget, sisterAllDays, rawMembersById]);
+
 
   // Today's suggestion set — powers the richer phase card (why you're in this
   // phase + a tip). Only meaningful once there's cycle data; cheap to compute.
@@ -702,6 +783,7 @@ export default function CalendarScreen() {
                 key={cell.iso}
                 cell={cell}
                 sisterMark={sisterMarkFor(sisterOverlay.marksByDate.get(cell.iso))}
+                coincides={coincidingDays.has(cell.iso)}
                 onPress={(e) => onDayTap(cell.iso, cell, e)}
               />
             ))}
@@ -728,6 +810,7 @@ export default function CalendarScreen() {
             </>
           ) : null}
           {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
+          {coincidingDays.size > 0 && <LegendChip color={A.gold} label="Same days" ring />}
         </Animated.View>
 
         {/* Week-ahead strip — only once there's real cycle data, else every day
@@ -975,8 +1058,9 @@ export default function CalendarScreen() {
               {sisterCycleLine(logTarget)}
             </Text>
             <Text style={[styles.sisterPanelNote, { color: palette.ink3 }]}>
-              Her prediction uses the days you&apos;ve marked for her here. The
-              full model below — the window, the spread, the graphs — is yours.
+              Everything below is hers too — the window, the spread and the
+              graphs are all built from the days you&apos;ve marked for her.
+              Tap &ldquo;You&rdquo; above to switch back to your own.
             </Text>
           </Animated.View>
         )}
@@ -1050,7 +1134,7 @@ export default function CalendarScreen() {
             Bottom clearance now comes from contentContainerStyle (it has to
             include insets.bottom), so no spacer view here. */}
         <View onLayout={(e) => { explainerY.current = e.nativeEvent.layout.y; }}>
-          <PredictionExplainerCard />
+          <PredictionExplainerCard subject={sisterSubject} />
         </View>
       </ScrollView>
 
@@ -1101,11 +1185,19 @@ function rise(delay: number) {
 function DayCell({
   cell,
   sisterMark,
+  coincides,
   onPress,
 }: {
   cell: MonthCell;
   /** A sister's period on this day — drawn in her own colour, never a phase hue. */
   sisterMark?: 'logged' | 'predicted';
+  /**
+   * This day is BOTH yours and hers. Device-test-16: "if the predicted period
+   * coincides ... we should show it in a glowing format." Overlap is the single
+   * most interesting thing this grid can tell two people who care about each
+   * other, and it was previously indistinguishable from any other sister mark.
+   */
+  coincides?: boolean;
   onPress: (e: GestureResponderEvent) => void;
 }) {
   const { palette } = useAurora();
@@ -1158,6 +1250,18 @@ function DayCell({
           ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor }
           : null,
         ovulationRing ? { borderWidth: 1.5, borderColor: ovulationRing } : null,
+        // The glow: a warm halo around a day you and she share.
+        coincides
+          ? {
+              borderWidth: 2,
+              borderColor: A.gold,
+              shadowColor: A.gold,
+              shadowOpacity: 0.9,
+              shadowRadius: 7,
+              shadowOffset: { width: 0, height: 0 },
+              elevation: 6,
+            }
+          : null,
         isToday ? { borderWidth: 2, borderColor: palette.accent } : null,
       ]}
       scaleTo={0.9}
@@ -1192,11 +1296,14 @@ function DayCell({
           <Path
             d={SISTER_ARC_PATH}
             stroke={A.gold}
-            strokeWidth={2}
+            strokeWidth={coincides ? 2.6 : 2}
             strokeLinecap="round"
             fill="none"
-            opacity={sisterMark === 'logged' ? 1 : 0.5}
-            strokeDasharray={sisterMark === 'predicted' ? '3,3' : undefined}
+            /* A coinciding day is drawn "on" — solid and full strength — even
+               when her mark is only predicted. An overlap you can barely see is
+               an overlap you won't notice (device-test-16). */
+            opacity={coincides || sisterMark === 'logged' ? 1 : 0.5}
+            strokeDasharray={!coincides && sisterMark === 'predicted' ? '3,3' : undefined}
           />
         </Svg>
       ) : null}
@@ -1217,6 +1324,7 @@ function dayCellLabel(cell: MonthCell): string {
   else if (cell.fertile === 'ovulation') parts.push('estimated ovulation day');
   else if (cell.fertile === 'fertile') parts.push('estimated fertile day');
   else if (cell.phase) parts.push(`${phaseLabel(cell.phase)} phase`);
+  if (cell.coincides) parts.push('also a predicted day for your sister');
   return parts.join(', ');
 }
 
@@ -1339,6 +1447,8 @@ interface MonthCell {
   phase: Phase | null;
   /** Estimated fertile day / ovulation day, or null. Never overrides a period. */
   fertile: FertileKind | null;
+  /** Set by the renderer, not the grid builder — see DayCell. */
+  coincides?: boolean;
 }
 
 interface BuildGridInput {
