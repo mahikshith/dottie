@@ -33,6 +33,7 @@ import {
   posteriorPredictiveCycleLength,
 } from './bayesian-predictor';
 import { toISODate } from '../../utils/date.utils';
+import { hasOvulatoryCondition, hasThyroidCondition } from './condition-families';
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 
@@ -115,12 +116,12 @@ export function predictNextPeriod(input: PredictionInput): PredictionOutput {
   let windowInflation = 0;
   let confidenceReduction = 0;
 
-  if (healthProfile.conditions.includes('pcos')) {
+  if (hasOvulatoryCondition(healthProfile.conditions)) {
     windowInflation += 1;
     confidenceReduction += 0.08;
     factorsUsed.push('pcos_uncertainty');
   }
-  if (healthProfile.conditions.includes('thyroid')) {
+  if (hasThyroidCondition(healthProfile.conditions)) {
     confidenceReduction += 0.04;
     factorsUsed.push('thyroid_uncertainty');
   }

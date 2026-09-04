@@ -140,10 +140,23 @@ const SHADOW_MODE_OPTIONS: { value: UserMode; label: string; emoji: string; hint
   { value: 'endocrine', label: 'Endocrine Mode', emoji: '🌿', hint: 'PCOS, thyroid, irregular cycles' },
 ];
 
+/**
+ * Multi-select — tick as many as apply (device-test-16: "we need more options
+ * ... PCOS, PCOD, thyroid, hypothyroidism ... multiple of these together").
+ *
+ * Ordered by family so related ones sit together: ovulatory, then thyroid,
+ * then the uterine ones. The predictor groups them the same way — see
+ * src/engine/prediction/condition-families.ts.
+ */
 const SHADOW_CONDITION_OPTIONS: { value: HealthCondition; label: string }[] = [
   { value: 'pcos', label: 'PCOS' },
+  { value: 'pcod', label: 'PCOD' },
   { value: 'thyroid', label: 'Thyroid' },
+  { value: 'hypothyroid', label: 'Hypothyroid' },
+  { value: 'hyperthyroid', label: 'Hyperthyroid' },
   { value: 'endometriosis', label: 'Endometriosis' },
+  { value: 'adenomyosis', label: 'Adenomyosis' },
+  { value: 'fibroids', label: 'Fibroids' },
 ];
 
 export default function AddMemberScreen() {
@@ -754,7 +767,8 @@ function ShadowStep({
       ) : null}
 
       {/* Conditions */}
-      <Text style={styles.sectionLabel}>Anything they're managing?</Text>
+      <Text style={styles.sectionLabel}>Anything they&apos;re managing?</Text>
+      <Text style={styles.sectionHint}>Tick as many as apply — or none at all.</Text>
       <View style={styles.conditionRow}>
         {SHADOW_CONDITION_OPTIONS.map((opt) => {
           const isActive = conditions.includes(opt.value);
@@ -1085,6 +1099,13 @@ const styles = StyleSheet.create({
     backgroundColor: A.accent,
   },
   // Condition chips
+  sectionHint: {
+    ...Typography.preset.caption,
+    fontSize: 11,
+    color: A.ink3,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
   conditionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

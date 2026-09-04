@@ -4,6 +4,7 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
 import { PrivacyLevel } from '../../types/sisterhood.types';
+import { A } from '../../theme';
 
 /**
  * PrivacyLevelCard
@@ -133,7 +134,7 @@ const PRIVACY_CONFIG: Record<
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius['2xl'],
     borderWidth: 2,
@@ -164,11 +165,11 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.preset.bodySemibold,
     fontSize: 17,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   subtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   checkOuter: {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: Colors.border.medium,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     fontSize: 14,
-    color: Colors.text.inverse,
+    color: A.ground,
     fontWeight: '700',
   },
   // Lists
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.text.tertiary,
+    color: A.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: Spacing.xs,
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   },
   bulletHidden: {
     width: 14,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     fontWeight: '700',
     textAlign: 'center',
     fontSize: 18,
@@ -226,12 +227,12 @@ const styles = StyleSheet.create({
   },
   listItemText: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
   },
   listItemTextDim: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     flex: 1,
     fontStyle: 'italic',
   },

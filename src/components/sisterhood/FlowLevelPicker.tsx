@@ -3,6 +3,7 @@ import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
+import { A } from '../../theme';
 
 /**
  * FlowLevelPicker
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     borderWidth: 2,
@@ -107,11 +108,11 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     flex: 1,
   },
   labelActive: {
-    color: Colors.text.primary,
+    color: A.ink,
     fontWeight: '600',
   },
   checkOuter: {
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: Colors.border.medium,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     fontSize: 14,
-    color: Colors.text.inverse,
+    color: A.ground,
     fontWeight: '700',
   },
 });

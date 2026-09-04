@@ -4,6 +4,7 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
 import { CareNudgeTemplate } from '../../types/sisterhood.types';
+import { A } from '../../theme';
 
 /**
  * CareNudgePicker
@@ -68,19 +69,23 @@ const styles = StyleSheet.create({
   container: {
     gap: Spacing.sm,
   },
+  // Aurora glass, not the legacy cream card (device-test-16). Three opaque
+  // white slabs stacked under "Send a little warmth" were the brightest thing
+  // on the screen and read as a different app bolted on.
   nudgeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
+    borderWidth: 1,
+    borderColor: A.edge,
     padding: Spacing.md,
     borderRadius: Spacing.radius.xl,
     gap: Spacing.md,
-    ...Shadows.sm,
   },
   nudgePressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2,
   },
   nudgeDisabled: {
     opacity: 0.5,
@@ -92,19 +97,19 @@ const styles = StyleSheet.create({
   },
   message: {
     ...Typography.preset.body,
-    color: Colors.text.primary,
+    color: A.ink,
     flex: 1,
     lineHeight: 20,
   },
   sendChip: {
-    backgroundColor: Colors.primary.coral,
+    backgroundColor: A.accent,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: Spacing.radius.full,
   },
   sendChipText: {
     ...Typography.preset.captionBold,
-    color: Colors.text.inverse,
+    color: A.ground,
     fontSize: 12,
     letterSpacing: 0.3,
   },

@@ -4,6 +4,7 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
 import { MemberView } from '../../types/sisterhood.types';
+import { A, PHASE_AURORA } from '../../theme';
 
 /**
  * MemberCard
@@ -119,10 +120,12 @@ function PrivacyChip({ level }: { level: MemberView['privacyLevel'] }) {
     MemberView['privacyLevel'],
     { label: string; emoji: string; color: string }
   > = {
-    full:      { label: 'Full',     emoji: '🌷', color: Colors.primary.coral },
-    summary:   { label: 'Summary',  emoji: '🌼', color: Colors.primary.peach },
-    mood:      { label: 'Mood',     emoji: '💛', color: Colors.primary.sunburst },
-    connected: { label: 'Linked',   emoji: '🔗', color: Colors.primary.calm },
+    // Aurora accents — the legacy warm palette read as a different app on the
+    // dark ground (device-test-16).
+    full:      { label: 'Full',     emoji: '🌷', color: A.rose },
+    summary:   { label: 'Summary',  emoji: '🌼', color: A.gold },
+    mood:      { label: 'Mood',     emoji: '💛', color: A.accent2 },
+    connected: { label: 'Linked',   emoji: '🔗', color: A.accent },
   };
   const c = config[level];
   return (
@@ -170,10 +173,14 @@ function formatRelative(iso: string): string {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface.card,
+    // Aurora glass, not the legacy cream slab (device-test-16). A white card
+    // on the aurora ground was the single loudest thing on the screen and it
+    // belonged to a different app.
+    backgroundColor: A.glass,
+    borderWidth: 1,
+    borderColor: A.edge,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
-    ...Shadows.card,
   },
   cardPressed: {
     opacity: 0.94,
@@ -200,19 +207,19 @@ const styles = StyleSheet.create({
   },
   name: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
     flexShrink: 1,
   },
   relationship: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   // Sync chip
   syncChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.phase.ovulatory.light,
+    backgroundColor: `${PHASE_AURORA.ovulatory}22`,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: Spacing.radius.full,
@@ -225,7 +232,7 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.phase.ovulatory.primary,
+    color: PHASE_AURORA.ovulatory,
     letterSpacing: 0.3,
   },
   // Privacy chip
@@ -271,12 +278,12 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: A.ink,
   },
   moodPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.full,
@@ -289,7 +296,7 @@ const styles = StyleSheet.create({
     ...Typography.preset.caption,
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.text.secondary,
+    color: A.ink2,
   },
   // Footer
   footer: {
@@ -299,19 +306,23 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
+    borderTopColor: A.edge,
   },
   footerText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
+  // The call to action, in the accent (device-test-16). It read as grey body
+  // copy, so nobody knew the card was tappable — owner: "highlight it in a
+  // bright color so the user will be prompted to tap it."
   footerHintText: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.accent,
     fontStyle: 'italic',
+    fontWeight: '600',
   },
   footerArrow: {
     fontSize: 20,
-    color: Colors.text.tertiary,
+    color: A.ink3,
   },
 });

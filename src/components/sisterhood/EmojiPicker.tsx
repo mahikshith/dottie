@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
+import { A } from '../../theme';
 
 /**
  * EmojiPicker
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: Spacing.radius.xl,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

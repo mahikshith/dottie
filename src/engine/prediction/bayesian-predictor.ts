@@ -48,6 +48,8 @@
  *  would be worth adding — project convention is no tests unless asked).
  */
 
+import { hasOvulatoryCondition, hasThyroidCondition } from './condition-families';
+
 // ─── PLAUSIBILITY BOUNDS ─────────────────────────────────────────────
 // Filter obvious data-entry errors before they poison the model. Real
 // human cycles essentially never fall outside this range.
@@ -123,8 +125,10 @@ export function buildPopulationPrior(opts: PriorOptions): NIGPrior {
 
   // Population SD grows with real biological variability.
   let sd = BASE_POPULATION_SD;
-  if (opts.conditions.includes('pcos')) sd += 3.0; // PCOS: long, variable cycles
-  if (opts.conditions.includes('thyroid')) sd += 1.5;
+  // Grouped by FAMILY, not by exact string — see condition-families.ts. A
+  // direct includes('pcos') would silently ignore PCOD, and hypo/hyperthyroid.
+  if (hasOvulatoryCondition(opts.conditions)) sd += 3.0; // PCOS/PCOD: long, variable
+  if (hasThyroidCondition(opts.conditions)) sd += 1.5;
   if (opts.age !== null && opts.age !== undefined) {
     if (opts.age < 16) sd += 2.0; // teens still regulating
     if (opts.age > 40) sd += 2.5; // perimenopausal drift

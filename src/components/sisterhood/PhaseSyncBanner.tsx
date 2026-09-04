@@ -4,6 +4,7 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
 import { Phase } from '../../types/cycle.types';
+import { A } from '../../theme';
 
 /**
  * PhaseSyncBanner
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     bottom: -4,
     right: -4,
     fontSize: 22,
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     borderRadius: 14,
     width: 28,
     height: 28,
@@ -129,12 +130,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.bodySemibold,
-    color: Colors.text.primary,
+    color: A.ink,
     marginBottom: 2,
   },
   body: {
     ...Typography.preset.caption,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 18,
   },
   dismissArrow: {

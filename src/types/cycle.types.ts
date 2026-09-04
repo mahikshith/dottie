@@ -14,7 +14,31 @@ export type UserMode = 'teen' | 'adult' | 'endocrine';
 export type CycleLengthCategory = 'short' | 'average' | 'long' | 'irregular' | 'unknown';
 
 /** Health conditions that affect predictions */
-export type HealthCondition = 'pcos' | 'thyroid' | 'endometriosis' | 'none';
+/**
+ * Conditions a user (or a sister) can tell us about.
+ *
+ * Widened in device-test-16 — the owner asked for "PCOS, PCOD, thyroid,
+ * hypothyroidism, something like that... multiple of these things together".
+ * They are multi-select everywhere.
+ *
+ * IMPORTANT: the predictor does NOT branch on these one by one. It groups them
+ * into FAMILIES (see `conditionFamilies` in
+ * src/engine/prediction/condition-families.ts) because what the model actually
+ * needs to know is "how much extra cycle-length variability should the prior
+ * carry", and PCOD behaves like PCOS for that purpose while hypo- and
+ * hyperthyroidism both behave like thyroid. Adding a value here without adding
+ * it to a family means the model silently ignores it.
+ */
+export type HealthCondition =
+  | 'pcos'
+  | 'pcod'
+  | 'thyroid'
+  | 'hypothyroid'
+  | 'hyperthyroid'
+  | 'endometriosis'
+  | 'adenomyosis'
+  | 'fibroids'
+  | 'none';
 
 /** A single cycle entry (one day of data) */
 export interface CycleEntry {

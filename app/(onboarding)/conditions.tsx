@@ -53,8 +53,13 @@ interface ConditionOption {
 
 const OPTIONS: ConditionOption[] = [
   { id: 'pcos',            emoji: '🌀', label: 'PCOS',            hint: 'Polycystic ovary syndrome' },
+  { id: 'pcod',            emoji: '🌀', label: 'PCOD',            hint: 'Polycystic ovarian disease' },
+  { id: 'thyroid',         emoji: '⚙️', label: 'Thyroid',          hint: 'Not sure which — that is fine' },
+  { id: 'hypothyroid',     emoji: '⚙️', label: 'Hypothyroid',      hint: 'Underactive thyroid' },
+  { id: 'hyperthyroid',    emoji: '⚙️', label: 'Hyperthyroid',     hint: 'Overactive thyroid' },
   { id: 'endometriosis',   emoji: '💗', label: 'Endometriosis',   hint: 'Painful periods, endo tissue' },
-  { id: 'thyroid',         emoji: '🦋', label: 'Thyroid',         hint: 'Hypo- or hyperthyroid' },
+  { id: 'adenomyosis',     emoji: '💗', label: 'Adenomyosis',     hint: 'Tissue in the uterine wall' },
+  { id: 'fibroids',        emoji: '💗', label: 'Fibroids',        hint: 'Heavy or long periods' },
   { id: 'pmdd',            emoji: '🌙', label: 'PMDD',            hint: 'Severe premenstrual mood changes' },
   { id: 'birth_control',   emoji: '💊', label: 'On the pill or BC', hint: 'Hormonal birth control' },
   { id: 'nothing',         emoji: '🌱', label: 'Nothing diagnosed yet', hint: "That's totally fine — I'll still learn your patterns", exclusive: true },
@@ -65,7 +70,10 @@ const OPTIONS: ConditionOption[] = [
 // Everything else (pmdd, birth_control, nothing, prefer_not_say) is captured
 // as a soft flag in the draft but doesn't persist to healthConditions until
 // the engine paths for it exist (birth-control mode is on the TODO roadmap).
-const ENGINE_CONDITIONS: readonly ConditionKey[] = ['pcos', 'endometriosis', 'thyroid'];
+const ENGINE_CONDITIONS: readonly ConditionKey[] = [
+  'pcos', 'pcod', 'thyroid', 'hypothyroid', 'hyperthyroid',
+  'endometriosis', 'adenomyosis', 'fibroids',
+];
 
 export default function ConditionsScreen() {
   const router = useRouter();
@@ -102,8 +110,13 @@ export default function ConditionsScreen() {
   const persistAndAdvance = () => {
     // Persist to the draft (engines only look at the engine-mapped keys;
     // the soft flags are stored for future condition-aware paths).
+    // Narrow on the LIST, not on a hardcoded triple. The old version repeated
+    // the three original ids inline, so every condition added after it would
+    // have been ticked, saved to the draft, and then silently dropped here
+    // before it ever reached the engine (device-test-16).
+    const engineSet = new Set<string>(ENGINE_CONDITIONS);
     const engine = Array.from(selected).filter((k): k is HealthCondition =>
-      ENGINE_CONDITIONS.includes(k) && (k === 'pcos' || k === 'endometriosis' || k === 'thyroid')
+      engineSet.has(k)
     );
     Storage.onboardingDraft.merge({
       healthConditions: engine.length > 0 ? engine : [],

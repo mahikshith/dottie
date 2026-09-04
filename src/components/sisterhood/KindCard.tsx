@@ -4,6 +4,7 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 import { Shadows } from '../../constants/shadows';
 import { MemberKind } from '../../types/sisterhood.types';
+import { A } from '../../theme';
 
 /**
  * KindCard
@@ -88,7 +89,7 @@ const KIND_CONFIG: Record<
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface.card,
+    backgroundColor: A.glass,
     padding: Spacing.cardPaddingLarge,
     borderRadius: Spacing.radius['2xl'],
     borderWidth: 2,
@@ -111,11 +112,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.preset.h4,
-    color: Colors.text.primary,
+    color: A.ink,
   },
   subtitle: {
     ...Typography.preset.caption,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     marginTop: 2,
   },
   checkOuter: {
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: Colors.border.medium,
+    borderColor: A.edge,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
   },
   checkMark: {
     fontSize: 14,
-    color: Colors.text.inverse,
+    color: A.ground,
     fontWeight: '700',
   },
   body: {
@@ -141,13 +142,13 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     ...Typography.preset.body,
-    color: Colors.text.secondary,
+    color: A.ink2,
     lineHeight: 22,
   },
   tag: {
     marginTop: Spacing.sm,
     alignSelf: 'flex-start',
-    backgroundColor: Colors.surface.cardElevated,
+    backgroundColor: A.glass2,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: Spacing.radius.full,
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   tagText: {
     ...Typography.preset.caption,
     fontSize: 11,
-    color: Colors.text.tertiary,
+    color: A.ink3,
     fontStyle: 'italic',
   },
 });

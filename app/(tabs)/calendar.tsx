@@ -708,6 +708,37 @@ export default function CalendarScreen() {
           </View>
         </Animated.View>
 
+        {/* ─── WHAT THE COLOURS MEAN, RIGHT UNDER THE GRID ──────────
+            Device-test-16. The legend and the week-ahead strip used to sit
+            near the BOTTOM of this screen, so to find out what "Luteal" or the
+            gold sister mark meant you had to scroll away from the very thing
+            you were trying to read. A key belongs beside the map. Both now sit
+            immediately under the month grid, in reading order: the grid, then
+            what its colours mean, then the days coming up. */}
+        <Animated.View entering={rise(118)} style={styles.legend}>
+          <LegendChip color={PHASE_AURORA.menstrual} label="Period" />
+          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" />
+          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
+          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
+          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+          {fertileWindow.ovulation ? (
+            <>
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" />
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" ring />
+            </>
+          ) : null}
+          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
+        </Animated.View>
+
+        {/* Week-ahead strip — only once there's real cycle data, else every day
+            would show the same assumed phase (the repeated-placeholder feel). */}
+        {lastPeriodStart != null && weekAhead.length > 0 && (
+          <Animated.View entering={rise(126)} style={styles.weekAhead}>
+            <WeekAheadStrip items={weekAhead} onDayPress={onWeekDayPress} />
+          </Animated.View>
+        )}
+
+
         {/* One tap to the maths. Sits directly under the grid because that is
             where the question gets asked — "why is my period drawn there?" —
             and the answer used to be ten screens away with nothing pointing at
@@ -883,29 +914,6 @@ export default function CalendarScreen() {
           </GlassCard>
         </Animated.View>
 
-        {/* Week-ahead strip — only once there's real cycle data, else every day
-            would show the same assumed phase (the repeated-placeholder feel). */}
-        {lastPeriodStart != null && weekAhead.length > 0 && (
-          <Animated.View entering={rise(230)} style={styles.weekAhead}>
-            <WeekAheadStrip items={weekAhead} onDayPress={onWeekDayPress} />
-          </Animated.View>
-        )}
-
-        {/* Legend */}
-        <Animated.View entering={rise(300)} style={styles.legend}>
-          <LegendChip color={PHASE_AURORA.menstrual} label="Period" />
-          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" />
-          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
-          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
-          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
-          {fertileWindow.ovulation ? (
-            <>
-              <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" />
-              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" ring />
-            </>
-          ) : null}
-          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
-        </Animated.View>
 
         {/* Loved-ones bridge — a non-clunky calendar → Sisterhood entry point.
             Kept SEPARATE from the primary user's grid on purpose: user feedback

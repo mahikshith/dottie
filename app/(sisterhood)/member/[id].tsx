@@ -33,6 +33,7 @@ import {
   CareNudgeSituation,
 } from '../../../src/types/sisterhood.types';
 import { getPhaseColors, PhaseKey } from '../../../src/constants/colors';
+import { logSilentFailure } from '../../../src/diagnostics/silent-failure';
 
 /**
  * Sisterhood Member Detail Screen
@@ -124,6 +125,24 @@ export default function MemberDetailScreen() {
       useSisterhoodStore.getState().refresh(userId, primaryCurrentPhase);
     }, [userId, primaryCurrentPhase])
   );
+
+  // ─── Change how much of her you track ───────────────────────────
+  //
+  //  Steps through full → summary → mood only → connected → full. A cycle
+  //  rather than a picker sheet because there are four levels, the order is
+  //  meaningful (most to least), and the label always names the current one —
+  //  so it is discoverable by pressing it once, which is exactly what people
+  //  were already trying to do (device-test-16).
+  const onCyclePrivacy = useCallback(() => {
+    if (!view) return;
+    const next =
+      PRIVACY_ORDER[(PRIVACY_ORDER.indexOf(view.privacyLevel) + 1) % PRIVACY_ORDER.length]!;
+    Haptics.selectionAsync().catch(() => {});
+    useSisterhoodStore
+      .getState()
+      .updateMember(memberId, primaryCurrentPhase, { privacyLevel: next })
+      .catch((err) => logSilentFailure('sisterhood:privacyCycleFailed', err));
+  }, [view, memberId, primaryCurrentPhase]);
 
   // ─── Suggested care nudges ──────────────────────────────────────
   const suggestion = useMemo(() => {
@@ -260,8 +279,11 @@ export default function MemberDetailScreen() {
         <Text style={styles.heroRelationship}>{view.relationship}</Text>
         <View style={styles.heroBadges}>
           <KindBadge kind={view.kind} />
-          <PrivacyBadge level={view.privacyLevel} />
+          <PrivacyBadge level={view.privacyLevel} onCycle={onCyclePrivacy} />
         </View>
+        <Text style={styles.privacyBlurb}>
+          {PRIVACY_META[view.privacyLevel].blurb} · tap to change
+        </Text>
       </Animated.View>
 
       {/* Phase sync banner inline */}
@@ -367,26 +389,71 @@ export default function MemberDetailScreen() {
 function KindBadge({ kind }: { kind: MemberView['kind'] }) {
   const label = kind === 'shadow' ? 'Shadow Profile' : 'Linked';
   const color = kind === 'shadow' ? A.gold : A.accent2;
+  // A LABEL, not a control — this describes the member and cannot be changed
+  // here. Drawn as an outline so it stops masquerading as half of a toggle.
   return (
-    <View style={[styles.badge, { backgroundColor: color }]}>
-      <Text style={styles.badgeText}>{label}</Text>
+    <View style={[styles.badge, styles.kindBadge, { borderColor: `${color}88` }]}>
+      <Text style={[styles.badgeText, { color }]}>{label}</Text>
     </View>
   );
 }
 
-function PrivacyBadge({ level }: { level: MemberView['privacyLevel'] }) {
-  const map: Record<MemberView['privacyLevel'], { label: string; emoji: string }> = {
-    full: { label: 'Full view', emoji: '🌷' },
-    summary: { label: 'Summary', emoji: '🌼' },
-    mood: { label: 'Mood only', emoji: '💛' },
-    connected: { label: 'Connected', emoji: '🔗' },
-  };
-  const { label, emoji } = map[level];
+/**
+ * How much of this sister you track — and, now, a CONTROL rather than a label.
+ *
+ * Device-test-16: "there is a shadow profile and a full view, users have
+ * complained that they were not able to move to the full view." They were
+ * right, and it was worse than a broken button: these two pills were plain
+ * <View>s. `Shadow Profile` is a fact about the member (you log for her, she
+ * has no phone) and can't be toggled at all, while `Full view` is a genuine
+ * setting that simply had no way to be changed. Rendered side by side as two
+ * filled pills, they read as a segmented toggle, so people tapped and nothing
+ * happened.
+ *
+ * Now: the kind is drawn as a plain label so it stops inviting a tap, and the
+ * privacy level is a real button that steps through the levels.
+ */
+const PRIVACY_ORDER: MemberView['privacyLevel'][] = ['full', 'summary', 'mood', 'connected'];
+
+const PRIVACY_META: Record<
+  MemberView['privacyLevel'],
+  { label: string; emoji: string; blurb: string }
+> = {
+  full: { label: 'Full view', emoji: '🌷', blurb: 'Cycle, mood and check-ins' },
+  summary: { label: 'Summary', emoji: '🌼', blurb: 'Phase and next period only' },
+  mood: { label: 'Mood only', emoji: '💛', blurb: 'How she is feeling, nothing else' },
+  connected: { label: 'Connected', emoji: '🔗', blurb: 'Linked, nothing shared yet' },
+};
+
+function PrivacyBadge({
+  level,
+  onCycle,
+}: {
+  level: MemberView['privacyLevel'];
+  onCycle?: () => void;
+}) {
+  const { label, emoji } = PRIVACY_META[level];
+  if (!onCycle) {
+    return (
+      <View style={[styles.badge, styles.privacyBadge]}>
+        <Text style={styles.badgeEmoji}>{emoji}</Text>
+        <Text style={[styles.badgeText, { color: A.ink2 }]}>{label}</Text>
+      </View>
+    );
+  }
   return (
-    <View style={[styles.badge, styles.privacyBadge]}>
+    <PressableScale
+      onPress={onCycle}
+      haptic="none"
+      scaleTo={0.95}
+      style={[styles.badge, styles.privacyBadge, styles.privacyBadgeTappable]}
+      accessibilityRole="button"
+      accessibilityLabel={`Sharing: ${label}. Tap to change how much you see.`}
+    >
       <Text style={styles.badgeEmoji}>{emoji}</Text>
-      <Text style={[styles.badgeText, { color: A.ink2 }]}>{label}</Text>
-    </View>
+      <Text style={[styles.badgeText, { color: A.accent }]}>{label}</Text>
+      <Text style={[styles.badgeText, { color: A.accent }]}>⇄</Text>
+    </PressableScale>
   );
 }
 
@@ -636,6 +703,20 @@ const styles = StyleSheet.create({
   },
   privacyBadge: {
     backgroundColor: A.glass2, borderColor: A.edge, borderWidth: 1,
+  },
+  privacyBlurb: {
+    ...Typography.preset.caption,
+    fontSize: 11,
+    color: A.ink3,
+    textAlign: 'center',
+    marginTop: Spacing.xs,
+  },
+  privacyBadgeTappable: {
+    borderColor: `${A.accent}66`,
+  },
+  kindBadge: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
   },
   badgeEmoji: {
     fontSize: 12,
