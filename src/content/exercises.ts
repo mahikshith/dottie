@@ -19,6 +19,7 @@
 import { Exercise } from '../types/content.types';
 import type { ExerciseProvider } from '../engine/content/exercise-engine';
 import { remoteContentStore } from './remote/remote-content-store';
+import { CURRICULUM_EXERCISES } from './curriculum.generated';
 
 // ─── EXERCISES ───────────────────────────────────────────────────────
 
@@ -293,6 +294,11 @@ export const EXERCISES: Exercise[] = [
 ];
 
 // ─── LOOKUPS ─────────────────────────────────────────────────────────
+
+// 153 exercises from the imported curriculum — three per lesson (a matching
+// pair, a fill-in-the-blank, and a tap-the-answer), which is what gives the
+// conversational lesson flow something to actually ask about.
+EXERCISES.push(...CURRICULUM_EXERCISES);
 
 // OTA-aware lookups: cached downloaded exercises are preferred over bundled
 // (cached wins by id), so new practice can ship without an app update. With no

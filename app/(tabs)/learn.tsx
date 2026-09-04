@@ -305,9 +305,12 @@ export default function LearnScreen() {
     );
   }, [availablePaths, progressMap]);
 
+  // Lessons open as a CONVERSATION with the companion now, not as an article
+  // (device-test-14). The reader still exists and is one tap away from inside
+  // the chat — some days you want to be told, some days you want to read.
   const openLesson = (lessonId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    router.push(`/lesson/${lessonId}`);
+    router.push(`/lesson/chat/${lessonId}`);
   };
 
   // ─── Today's spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) ─

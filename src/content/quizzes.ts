@@ -25,6 +25,7 @@
  */
 
 import { Quiz } from '../types/content.types';
+import { CURRICULUM_QUIZZES } from './curriculum.generated';
 
 // ─── QUIZ DEFINITIONS ────────────────────────────────────────────────
 
@@ -622,6 +623,10 @@ QUIZZES.push(
     ],
   },
 );
+
+// The 51 quizzes that came in with the imported curriculum (306 questions,
+// every one carrying its `level` so the adaptive engine can tier it).
+QUIZZES.push(...CURRICULUM_QUIZZES);
 
 // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
 

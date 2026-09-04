@@ -34,6 +34,7 @@ import {
   Lesson,
 } from '../types/content.types';
 import { Colors } from '../constants/colors';
+import { CURRICULUM_PATHS, CURRICULUM_LESSONS } from './curriculum.generated';
 
 // ─── PATH DEFINITIONS ────────────────────────────────────────────────
 
@@ -427,6 +428,18 @@ export const LESSONS: Lesson[] = [
     ],
   },
 ];
+
+// ─── THE IMPORTED CURRICULUM ─────────────────────────────────────────
+//
+// 14 paths / 51 lessons emitted by scripts/import-curriculum.ts from the vetted
+// source curriculum. They are APPENDED rather than merged in place so the
+// hand-written seed paths keep their position at the top of the Learn tab —
+// a returning user's ladder must not reshuffle under them because content
+// arrived. The importer refuses to emit a lesson id that already exists here,
+// so there is nothing to de-duplicate at runtime.
+
+LEARNING_PATHS.push(...CURRICULUM_PATHS);
+LESSONS.push(...CURRICULUM_LESSONS);
 
 // ─── HELPER FUNCTIONS ────────────────────────────────────────────────
 
