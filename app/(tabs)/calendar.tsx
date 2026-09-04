@@ -66,6 +66,11 @@ import { analysePeriodPattern, groupPeriodBlocks } from '../../src/engine/calend
 import { recallSymptoms, recallForDay } from '../../src/engine/symptoms/symptom-recall';
 import { checkinRepository } from '../../src/database/repositories/checkin.repo';
 import { addDays } from '../../src/utils/civil-date';
+import {
+  buildFertileWindow,
+  NOT_CONTRACEPTION,
+  type FertileKind,
+} from '../../src/engine/calendar/fertile-window';
 import { log, timed } from '../../src/diagnostics/logger';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
@@ -108,6 +113,9 @@ export default function CalendarScreen() {
   // Number of full cycles observed — drives the "backfill recent months" nudge
   // (predictions stay coarse until a couple of real cycles are logged).
   const cycleCount = useCycleStore((s) => s.cycleCount);
+  // Raw records (stable array reference from the store — do NOT map inside the
+  // selector, a fresh array there trips useSyncExternalStore).
+  const cycleHistory = useCycleStore((s) => s.cycleHistory);
   const userHealth = useUserStore((s) => s.user?.healthProfile);
   const userId = useUserStore((s) => s.userId);
   const mode = useUserStore(selectUserMode);
@@ -117,6 +125,23 @@ export default function CalendarScreen() {
   // symptoms feed the dominant-symptom pattern nudge. Both are safe if empty.
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
   const recentSymptoms = useCycleStore(selectRecentSymptoms);
+
+  // ─── "Where's the science?" ─────────────────────────────────────
+  // The explainer card and its three graphs are the last thing in a long
+  // scroll — grid, fertile window, heads-up, nudges, phase summary, week
+  // strip, legend, sisterhood bridge, overlaps, symptom recall, THEN the
+  // science. The owner's report that "the scientific information is completely
+  // invisible and the graphs are not visible at all" was not a render bug:
+  // the charts self-measure and draw fine (they're asserted by test:charts).
+  // They were simply below the fold, several screens down, with no sign they
+  // existed. So the card gets an anchor and the grid gets a one-tap jump to it.
+  const scrollRef = useRef<ScrollView>(null);
+  const explainerY = useRef<number>(0);
+  const jumpToScience = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    // -Spacing.lg so the card's title isn't flush against the status veil.
+    scrollRef.current?.scrollTo({ y: Math.max(0, explainerY.current - Spacing.lg), animated: true });
+  };
 
   // ─── Month navigation state ─────────────────────────────────────
   const [viewedMonth, setViewedMonth] = useState<Date>(startOfMonth(new Date()));
@@ -178,6 +203,27 @@ export default function CalendarScreen() {
     };
   }, [userId, viewedMonth]);
 
+  // Newest first — the fertile window weighs recent regularity.
+  const cycleLengths = useMemo(
+    () => cycleHistory.map((c) => c.cycleLength).reverse(),
+    [cycleHistory]
+  );
+
+  // ─── Fertile window ─────────────────────────────────────────────
+  // Dottie already computed `predictedOvulation` inside the predictor and then
+  // drew nothing with it. This turns it into the thing every other tracker
+  // shows — with the confidence and the not-contraception wording attached,
+  // because a crisp six-day band drawn from two cycles would be the most
+  // misleading pixels in the app. Pure + deterministic: same inputs, same days.
+  const fertileWindow = useMemo(
+    () =>
+      buildFertileWindow({
+        predictedNextPeriod: latestPrediction?.predictedNextPeriod ?? null,
+        cycleLengths,
+      }),
+    [latestPrediction?.predictedNextPeriod, cycleLengths]
+  );
+
   // ─── Compute calendar grid ──────────────────────────────────────
   const monthGrid = useMemo(
     () =>
@@ -189,9 +235,11 @@ export default function CalendarScreen() {
         periodDays,
         predictedNextPeriod: latestPrediction?.predictedNextPeriod ?? null,
         predictionWindowDays: latestPrediction?.windowDays ?? 3,
+        fertileDays: fertileWindow.days,
       }),
     [
       viewedMonth,
+      fertileWindow,
       lastPeriodStart,
       userHealth?.averageCycleLength,
       userHealth?.averagePeriodLength,
@@ -544,6 +592,7 @@ export default function CalendarScreen() {
     <AuroraBackground>
       <StatusBar style="light" />
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[
           styles.contentContainer,
@@ -659,6 +708,100 @@ export default function CalendarScreen() {
           </View>
         </Animated.View>
 
+        {/* One tap to the maths. Sits directly under the grid because that is
+            where the question gets asked — "why is my period drawn there?" —
+            and the answer used to be ten screens away with nothing pointing at
+            it. Measured scroll, not a guess at an offset, so it lands on the
+            card whatever is or isn't rendered above it. */}
+        <Animated.View entering={rise(122)}>
+          <PressableScale
+            onPress={jumpToScience}
+            haptic="none"
+            scaleTo={0.98}
+            style={[
+              styles.scienceJump,
+              { backgroundColor: palette.glass.bg, borderColor: `${palette.accent}55` },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Jump to how this prediction is made, with the graphs"
+          >
+            <Text style={styles.scienceJumpEmoji}>📈</Text>
+            <View style={styles.scienceJumpText}>
+              <Text style={[styles.scienceJumpTitle, { color: palette.ink }]}>
+                Why these dates?
+              </Text>
+              <Text style={[styles.scienceJumpBody, { color: palette.ink3 }]}>
+                The window, the spread, and three graphs of your own data.
+              </Text>
+            </View>
+            <Text style={[styles.scienceJumpArrow, { color: palette.accent }]}>↓</Text>
+          </PressableScale>
+        </Animated.View>
+
+        {/* ─── FERTILE WINDOW ────────────────────────────────────────
+            The marks on the grid, explained in words, immediately under the
+            grid they belong to. Three things are non-negotiable here and all
+            three are asserted by test:fertile:
+
+              · it says ESTIMATED, every time, in the title;
+              · it shows how much history it is standing on, so a six-day band
+                drawn from two cycles can't look like knowledge;
+              · it carries the shared not-contraception wording verbatim.
+
+            Rendered only when there IS a prediction to count back from. With
+            nothing logged there is no window — and an empty fertile card would
+            be exactly the chart-shaped skeleton we don't ship. */}
+        {fertileWindow.ovulation && fertileWindow.start && fertileWindow.end ? (
+          <Animated.View entering={rise(130)}>
+            <View
+              style={[
+                styles.fertileCard,
+                {
+                  borderColor: `${PHASE_AURORA.ovulatory}55`,
+                  backgroundColor: `${PHASE_AURORA.ovulatory}12`,
+                },
+              ]}
+            >
+              <Text style={[styles.fertileTitle, { color: palette.ink }]}>
+                🌱 Estimated fertile window
+              </Text>
+              <Text style={[styles.fertileDates, { color: palette.ink }]}>
+                {formatFriendlyDate(fertileWindow.start)} – {formatFriendlyDate(fertileWindow.end)}
+                {'  ·  '}
+                <Text style={{ color: PHASE_AURORA.ovulatory }}>
+                  ovulation around {formatFriendlyDate(fertileWindow.ovulation)}
+                </Text>
+              </Text>
+
+              {/* Confidence as a bar, not just a number — the width IS the
+                  claim, so a thin bar can't be misread as a confident one. */}
+              <View style={styles.fertileConfRow}>
+                <View style={[styles.fertileConfTrack, { backgroundColor: palette.glass.bg }]}>
+                  <View
+                    style={[
+                      styles.fertileConfFill,
+                      {
+                        width: `${Math.round(fertileWindow.confidence * 100)}%`,
+                        backgroundColor: PHASE_AURORA.ovulatory,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.fertileConfText, { color: palette.ink3 }]}>
+                  {Math.round(fertileWindow.confidence * 100)}% confidence
+                </Text>
+              </View>
+
+              <Text style={[styles.fertileBody, { color: palette.ink2 }]}>
+                {fertileWindow.summary}
+              </Text>
+              <Text style={[styles.fertileWarning, { color: palette.ink3 }]}>
+                {NOT_CONTRACEPTION}
+              </Text>
+            </View>
+          </Animated.View>
+        ) : null}
+
         {/* Sister heads-up — the thing the Cycle tab said nothing about before:
             whose period is coming, and when. */}
         {sisterOverlay.headsUp.length > 0 && (
@@ -755,6 +898,12 @@ export default function CalendarScreen() {
           <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
           <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
           <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+          {fertileWindow.ovulation ? (
+            <>
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" />
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" ring />
+            </>
+          ) : null}
           {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
         </Animated.View>
 
@@ -892,7 +1041,9 @@ export default function CalendarScreen() {
             none it explains what will be used and still draws the figures.
             Bottom clearance now comes from contentContainerStyle (it has to
             include insets.bottom), so no spacer view here. */}
-        <PredictionExplainerCard />
+        <View onLayout={(e) => { explainerY.current = e.nativeEvent.layout.y; }}>
+          <PredictionExplainerCard />
+        </View>
       </ScrollView>
 
       {/* Day detail popover — magnifies from the tapped cell over a scrim */}
@@ -904,6 +1055,11 @@ export default function CalendarScreen() {
           phase={selected.phase}
           hasCycleData={lastPeriodStart != null}
           isPeriodDay={selected.isPeriodDay}
+          /* Same precedence the grid uses — a day you're bleeding on is never
+             also drawn as fertile, so the sheet can't contradict the cell. */
+          fertile={
+            selected.isPeriodDay ? null : (fertileWindow.days.get(selected.iso) ?? null)
+          }
           isFuture={selected.isFuture}
           daysUntilPredictedPeriod={selected.daysUntilPredictedPeriod}
           dayInCycle={selected.dayInCycle}
@@ -956,6 +1112,7 @@ function DayCell({
   let textColor = palette.ink2;
   let borderStyle: 'dashed' | undefined;
   let borderColor: string | undefined;
+  let ovulationRing: string | undefined;
 
   if (!cell.inMonth) {
     textColor = palette.ink3;
@@ -967,6 +1124,18 @@ function DayCell({
     textColor = PHASE_AURORA.menstrual;
     borderStyle = 'dashed';
     borderColor = PHASE_AURORA.menstrual;
+  } else if (cell.fertile === 'ovulation') {
+    // The single most likely ovulation day. Given a solid ring rather than a
+    // fill so it reads as a MARK on the day, not a state of the day — the day
+    // still shows its phase tint underneath.
+    bgColor = `${PHASE_AURORA.ovulatory}2E`;
+    textColor = palette.ink;
+    ovulationRing = PHASE_AURORA.ovulatory;
+  } else if (cell.fertile === 'fertile') {
+    // Deliberately fainter than any phase tint. This is the least certain
+    // thing on the grid and it must not look like the most confident.
+    bgColor = `${PHASE_AURORA.ovulatory}16`;
+    textColor = palette.ink;
   } else if (cell.phase) {
     bgColor = `${PHASE_AURORA[cell.phase]}24`;
     textColor = palette.ink;
@@ -980,6 +1149,7 @@ function DayCell({
         borderStyle === 'dashed' && borderColor
           ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor }
           : null,
+        ovulationRing ? { borderWidth: 1.5, borderColor: ovulationRing } : null,
         isToday ? { borderWidth: 2, borderColor: palette.accent } : null,
       ]}
       scaleTo={0.9}
@@ -987,6 +1157,7 @@ function DayCell({
       onPress={onPress}
       disabled={!cell.inMonth}
       accessibilityRole="button"
+      accessibilityLabel={dayCellLabel(cell)}
     >
       <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
@@ -1026,6 +1197,22 @@ function DayCell({
 }
 
 /**
+ * What a screen reader hears when it lands on a day. Without this every cell
+ * announces a bare number and the whole grid is meaningless — the period days,
+ * the prediction, the fertile estimate all vanish for anyone not looking at the
+ * colours. Order matches the visual precedence resolved in buildMonthGrid.
+ */
+function dayCellLabel(cell: MonthCell): string {
+  const parts: string[] = [formatFriendlyDate(cell.iso)];
+  if (cell.isPeriodDay) parts.push('period logged');
+  else if (cell.isPredictedPeriod) parts.push('predicted period');
+  else if (cell.fertile === 'ovulation') parts.push('estimated ovulation day');
+  else if (cell.fertile === 'fertile') parts.push('estimated fertile day');
+  else if (cell.phase) parts.push(`${phaseLabel(cell.phase)} phase`);
+  return parts.join(', ');
+}
+
+/**
  * One line describing where a sister is, from the fields her privacy level
  * actually exposes. Deliberately narrow: we say what we know and nothing more.
  */
@@ -1057,10 +1244,13 @@ function LegendChip({
   color,
   label,
   dashed,
+  ring,
 }: {
   color: string;
   label: string;
   dashed?: boolean;
+  /** Outlined swatch — matches the ovulation day's ring on the grid. */
+  ring?: boolean;
 }) {
   const { palette } = useAurora();
   return (
@@ -1073,12 +1263,13 @@ function LegendChip({
       <View
         style={[
           styles.legendSwatch,
-          { backgroundColor: dashed ? 'transparent' : color },
+          { backgroundColor: dashed || ring ? 'transparent' : color },
           dashed && {
             borderWidth: 1.5,
             borderStyle: 'dashed',
             borderColor: color,
           },
+          ring && { borderWidth: 1.5, borderColor: color, backgroundColor: `${color}2E` },
         ]}
       />
       <Text style={[styles.legendLabel, { color: palette.ink2 }]}>{label}</Text>
@@ -1138,6 +1329,8 @@ interface MonthCell {
   isPeriodDay: boolean;
   isPredictedPeriod: boolean;
   phase: Phase | null;
+  /** Estimated fertile day / ovulation day, or null. Never overrides a period. */
+  fertile: FertileKind | null;
 }
 
 interface BuildGridInput {
@@ -1148,6 +1341,8 @@ interface BuildGridInput {
   periodDays: Set<string>;
   predictedNextPeriod: string | null;
   predictionWindowDays: number;
+  /** Pre-built fertile-window lookup — O(1) per cell, computed once per month. */
+  fertileDays: ReadonlyMap<string, FertileKind>;
 }
 
 /**
@@ -1203,6 +1398,13 @@ function buildMonthGrid(input: BuildGridInput): MonthCell[] {
       }
     }
 
+    // Fertile marking never competes with a logged or predicted period — a
+    // day you are bleeding on is not drawn as a fertile day, whatever the
+    // arithmetic says. Precedence is resolved here, once, so DayCell can't
+    // drift from the legend.
+    const fertile =
+      isPeriodDay || isPredictedPeriod ? null : (input.fertileDays.get(iso) ?? null);
+
     cells.push({
       iso,
       dayOfMonth: cellDate.getDate(),
@@ -1211,6 +1413,7 @@ function buildMonthGrid(input: BuildGridInput): MonthCell[] {
       isPeriodDay,
       isPredictedPeriod,
       phase,
+      fertile,
     });
   }
 
@@ -1392,6 +1595,51 @@ const styles = StyleSheet.create({
   sisterPanelBody: { ...Typography.preset.caption, lineHeight: 18 },
   sisterPanelNote: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16 },
   // Overlapping predicted windows.
+  // ─── "Why these dates?" jump to the explainer ──────────────────
+  scienceJump: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    paddingHorizontal: Spacing.cardPadding,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.base,
+  },
+  scienceJumpEmoji: { fontSize: 20 },
+  scienceJumpText: { flex: 1 },
+  scienceJumpTitle: { ...Typography.preset.bodySemibold },
+  scienceJumpBody: { ...Typography.preset.caption, fontSize: 11, lineHeight: 15 },
+  scienceJumpArrow: { fontSize: 20, fontWeight: '700' },
+
+  // ─── Fertile window card ───────────────────────────────────────
+  fertileCard: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.cardPadding,
+    gap: 8,
+    marginBottom: Spacing.base,
+  },
+  fertileTitle: { ...Typography.preset.h4 },
+  fertileDates: { ...Typography.preset.bodySemibold },
+  fertileConfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  fertileConfTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  fertileConfFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  fertileConfText: { ...Typography.preset.caption, fontSize: 11 },
+  fertileBody: { ...Typography.preset.caption, lineHeight: 19 },
+  fertileWarning: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16, fontStyle: 'italic' },
   overlapCard: {
     borderWidth: 1,
     borderRadius: Spacing.radius.xl,

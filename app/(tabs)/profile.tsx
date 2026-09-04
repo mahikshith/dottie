@@ -138,6 +138,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/medications');
   };
 
+  const handleExportTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/export-data');
+  };
+
   const handleDiagnosticsTap = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push('/(profile)/diagnostics');
@@ -311,6 +316,19 @@ export default function ProfileScreen() {
               title="Reminders"
               subtitle="Gentle local nudges, your way"
               onPress={handleRemindersTap}
+            />
+          </Animated.View>
+
+          {/* Your data, as a spreadsheet with the graphs already drawn. Sits
+              next to Doctor Report because they answer the same question from
+              two directions: one summarises for a clinician, this one hands
+              over the raw record. */}
+          <Animated.View entering={rise(690)}>
+            <SettingsItem
+              emoji="📗"
+              title="Download your data"
+              subtitle="Every log as an Excel file, graphs included — built on this phone"
+              onPress={handleExportTap}
             />
           </Animated.View>
 

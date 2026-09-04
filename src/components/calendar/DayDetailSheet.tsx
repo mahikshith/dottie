@@ -55,6 +55,10 @@ import {
 } from '../../engine/calendar/day-suggestions';
 import type { Phase, UserMode, HealthCondition } from '../../types/cycle.types';
 import type { DayPlan } from '../../database/storage';
+import {
+  NOT_CONTRACEPTION,
+  type FertileKind,
+} from '../../engine/calendar/fertile-window';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -96,6 +100,14 @@ export interface DayDetailSheetProps {
    * (1 spotting … 4 heavy). Parent persists + reloads. Re-calling with a new
    * level updates the same day, so the user can refine after the quick tap.
    */
+  /**
+   * Whether this day sits in the estimated fertile window, and if so whether
+   * it is the estimated ovulation day. Passed in rather than recomputed here so
+   * the sheet and the grid can never disagree about a day — the owner's ask
+   * that the calendar be consistent and deterministic rather than each surface
+   * making its own assumptions.
+   */
+  fertile?: FertileKind | null;
   onLogPeriod: (flowLevel: number) => void;
   /** Undo — remove the period mark from this day. */
   onUnlogPeriod: () => void;
@@ -308,6 +320,23 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
                   <View style={[styles.chipDot, { backgroundColor: phaseHue }]} />
                   <Text style={[styles.chipText, { color: palette.ink }]}>{set.subphaseLabel} · {set.headline}</Text>
                 </View>
+                {props.fertile ? (
+                  <View
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: `${PHASE_AURORA.ovulatory}22`,
+                        borderColor: `${PHASE_AURORA.ovulatory}80`,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: palette.ink }]}>
+                      {props.fertile === 'ovulation'
+                        ? '🌱 Ovulation likely (estimated)'
+                        : '🌱 Fertile window (estimated)'}
+                    </Text>
+                  </View>
+                ) : null}
                 {set.prediction && (
                   <View style={[styles.chip, { backgroundColor: `${palette.accent2}22`, borderColor: `${palette.accent2}80` }]}>
                     <Text style={[styles.chipText, { color: palette.ink }]}>
@@ -327,6 +356,12 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
               the piece Clue leans on that gives the day meaning. */}
           {props.hasCycleData && set.hormoneStory ? (
             <Text style={[styles.hormone, { color: palette.ink2 }]}>{set.hormoneStory}</Text>
+          ) : null}
+          {/* The caveat travels WITH the chip. A fertile mark that is honest on
+              the calendar screen and bare inside the sheet is the same failure
+              as not saying it at all — so both read from the one constant. */}
+          {props.fertile ? (
+            <Text style={[styles.fertileNote, { color: palette.ink3 }]}>{NOT_CONTRACEPTION}</Text>
           ) : null}
         </View>
 
@@ -643,6 +678,7 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   date: { ...Typography.preset.h4 },
   close: { fontSize: 18, fontWeight: '700' },
+  fertileNote: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16, fontStyle: 'italic', marginTop: Spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, paddingHorizontal: Spacing.sm + 2, paddingVertical: 5, borderRadius: Spacing.radius.full },
   chipDot: { width: 8, height: 8, borderRadius: 4 },
