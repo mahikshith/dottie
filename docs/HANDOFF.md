@@ -18,6 +18,23 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
+### Round 12 (2026-09-04)
+
+- **Symptoms now reach the predictor.** `premenstrualSymptomsDetected` was a
+  live predictor parameter that NOTHING ever set — so symptom logs were written
+  and never used. Now fed by `detectPremenstrualSignal()` (2+ distinct markers,
+  3 days, severity ≥2). Still unwired: `recentWeightChangeKg` (no weight history
+  collected); stress/sleep still read TODAY's check-in only despite docs saying
+  7-day average.
+- **Symptom recall** on the Cycle tab — "on day 2 you've logged nausea in 2 of
+  your last 3 periods". Own history only, sample size always attached, silent on
+  n=1. `test:recall` asserts it never claims population stats.
+- **Mood map** on Home — 91-day heatmap + distribution bar. Diverging ramp (not
+  GitHub's sequential green), validated with the dataviz ordinal checks.
+  `test:moodmap` protects "a gap is not a zero" and the logged-days denominator.
+
+Detail: `docs/DEVICE-TEST-12.md`.
+
 ### Round 11 (2026-09-04) — tab transition
 
 `animation: 'none'` was a hard cut, so the pill glided for 300ms while the
@@ -117,7 +134,8 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
   `test:journey` (10), `test:explainer`, `test:sister` (11), `test:blocks` (12),
   `test:dedupe` (6), `test:diag` (7), `test:creature`, `test:charts` (12),
   `test:dates` (8 timezones — the freeze regression), `test:nudges`,
-  `test:overlap`, `test:liquid`, `audit:ui`, `test:app:tz`. 16 suites.
+  `test:overlap`, `test:liquid`, `test:moodmap`, `test:recall`, `audit:ui`,
+  `test:app:tz`. 18 suites.
 - `npm run test:app` — the simulated-user integration run on its own (fastest
   way to check a data-layer change; the tz matrix is what CI gates on). `npm run simulate` is eyeball-only.
 - **On-device runtime = the GitHub Actions APK.** Push to `gemini-v2` without
@@ -202,7 +220,7 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 
 ## 5. Companion docs (open only when named)
 
-`DEVICE-TEST-11.md` (latest) · `DEVICE-TEST-10.md` · `DEVICE-TEST-9.md` (the harness + its findings) ·
+`DEVICE-TEST-12.md` (latest) · `DEVICE-TEST-11.md` · `DEVICE-TEST-10.md` · `DEVICE-TEST-9.md` (the harness + its findings) ·
 `DEVICE-TEST-8.md` ·
 `DEVICE-TEST-7.md` (the freeze post-mortem)
 · `DEVICE-TEST-6.md`

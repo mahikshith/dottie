@@ -50,6 +50,10 @@ non-diagnostic voice throughout.
 - `npm run test:overlap` — user/sister cycle-window overlap + no-synchrony tone
 - `npm run test:liquid` — mood-reveal blob geometry; proves the wash covers every
   screen corner at full extent (a gap flashes the OLD palette on commit)
+- `npm run test:moodmap` — mood heatmap: a gap is never painted as a zero, and
+  the distribution divides by LOGGED days not calendar days
+- `npm run test:recall` — symptom recall; asserts the copy never claims a
+  population statistic and always carries its sample size
 - `npm run test:app` — SIMULATED USER: drives the real stores + SQLite repos
   through onboarding → logging → sisterhood → quizzes → deletion, with a
   per-step watchdog so a freeze is reported instead of hanging the run
@@ -151,7 +155,12 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    the missing undo entirely because it only ever added.
 16. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
    (`?logFor=<memberId>`). Do not add a second date picker anywhere.
-17. **The prediction explainer must never render nothing.** It recomputes the
+17. **Never invent a population statistic.** Dottie is local-first with no
+   cohort, so "68% of people report X" would be fabricated — the same fault as
+   the "You & 12,363 others" counters removed in DT6. Insight speaks about the
+   USER'S OWN logged history with the sample size attached, and stays silent on
+   a single occurrence. Enforced by `test:recall`, not just by review.
+18. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 

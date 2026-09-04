@@ -62,7 +62,10 @@ import {
 import { cycleRepository } from '../../src/database/repositories/cycle.repo';
 import { sisterhoodRepository } from '../../src/database/repositories/sisterhood.repo';
 import { buildSisterOverlay, type SisterDayMark } from '../../src/engine/calendar/sister-overlay';
-import { analysePeriodPattern } from '../../src/engine/calendar/period-blocks';
+import { analysePeriodPattern, groupPeriodBlocks } from '../../src/engine/calendar/period-blocks';
+import { recallSymptoms, recallForDay } from '../../src/engine/symptoms/symptom-recall';
+import { checkinRepository } from '../../src/database/repositories/checkin.repo';
+import { addDays } from '../../src/utils/civil-date';
 import { log, timed } from '../../src/diagnostics/logger';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
@@ -465,6 +468,50 @@ export default function CalendarScreen() {
 
   // Sanity-check what's been logged this month. Clipping at the month edge can
   // only make gaps look BIGGER, so this under-reports rather than crying wolf.
+  // ─── WHAT HAPPENED LAST TIME ────────────────────────────────────
+  //
+  //  Every symptom the user logs is aligned to the day of the period it fell
+  //  in, so the calendar can say "on day 2 you've logged nausea in 2 of your
+  //  last 3 periods". Before this, those logs were written to the database and
+  //  never read back for anything the user could see (device-test-12).
+  //
+  //  It speaks ONLY about her own history, always with the sample size, and
+  //  stays silent on a single occurrence — see symptom-recall.ts for why it
+  //  will not claim what "people" experience.
+  const [symptomHistory, setSymptomHistory] = useState<
+    { date: string; symptomType: string; severity: number }[]
+  >([]);
+
+  useEffect(() => {
+    const uid = useUserStore.getState().userId;
+    if (!uid) return;
+    let cancelled = false;
+    const today = formatISO(new Date());
+    checkinRepository
+      .getSymptomsInRange(uid, addDays(today, -200), today)
+      .then((rows) => {
+        if (cancelled) return;
+        setSymptomHistory(
+          rows.map((r) => ({ date: r.date, symptomType: r.symptomType, severity: r.severity }))
+        );
+      })
+      .catch(() => {
+        // Non-fatal — the recall card simply doesn't render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [periodDays]);
+
+  const symptomRecall = useMemo(
+    () =>
+      recallSymptoms({
+        symptoms: symptomHistory,
+        periodStarts: groupPeriodBlocks(Array.from(periodDays)).map((b) => b.start).reverse(),
+      }),
+    [symptomHistory, periodDays]
+  );
+
   const periodPattern = useMemo(
     () => analysePeriodPattern(Array.from(periodDays)),
     [periodDays]
@@ -792,6 +839,51 @@ export default function CalendarScreen() {
                 {o.summary}
               </Text>
             ))}
+          </Animated.View>
+        )}
+
+        {/* ─── WHAT YOUR LAST PERIODS FELT LIKE ──────────────────────
+            The symptoms already being logged every day, replayed against the
+            period that is coming. Only rendered when something actually
+            repeated — a single occurrence is a coincidence, and presenting it
+            as a forecast is how an app loses trust. Every line carries its own
+            sample size. */}
+        {symptomRecall.items.some((i) => i.repeated) && (
+          <Animated.View
+            entering={rise(90)}
+            style={[
+              styles.recallCard,
+              { borderColor: `${PHASE_AURORA.menstrual}44`, backgroundColor: `${PHASE_AURORA.menstrual}12` },
+            ]}
+          >
+            <Text style={[styles.recallTitle, { color: palette.ink }]}>
+              🔁 What your last periods felt like
+            </Text>
+            <Text style={[styles.recallSummary, { color: palette.ink3 }]}>
+              {symptomRecall.summary}
+            </Text>
+            {symptomRecall.items
+              .filter((i) => i.repeated)
+              .slice(0, 4)
+              .map((i) => (
+                <View key={i.symptomType} style={styles.recallRow}>
+                  <View style={[styles.recallDay, { borderColor: `${PHASE_AURORA.menstrual}88` }]}>
+                    <Text style={[styles.recallDayText, { color: palette.ink }]}>
+                      D{i.typicalDay}
+                    </Text>
+                  </View>
+                  <Text style={[styles.recallBody, { color: palette.ink2 }]}>
+                    {i.label} — {i.occurrences} of your last {i.cycles} periods
+                  </Text>
+                </View>
+              ))}
+            {/* The line for day 1 of the period that's coming, when there is
+                one worth showing. */}
+            {recallForDay(symptomRecall, 1) ? (
+              <Text style={[styles.recallLead, { color: palette.ink2 }]}>
+                {recallForDay(symptomRecall, 1)}
+              </Text>
+            ) : null}
           </Animated.View>
         )}
 
@@ -1308,6 +1400,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.base,
   },
   overlapTitle: { ...Typography.preset.bodySemibold },
+  // "What your last periods felt like" — symptom recall.
+  recallCard: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.cardPadding,
+    gap: 6,
+    marginBottom: Spacing.base,
+  },
+  recallTitle: { ...Typography.preset.bodySemibold },
+  recallSummary: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16 },
+  recallRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  recallDay: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 30,
+    alignItems: 'center',
+  },
+  recallDayText: { ...Typography.preset.captionBold, fontSize: 11 },
+  recallBody: { ...Typography.preset.caption, flex: 1, lineHeight: 17 },
+  recallLead: { ...Typography.preset.caption, lineHeight: 17, marginTop: 2 },
   overlapBody: { ...Typography.preset.caption, lineHeight: 18 },
   // "Who am I logging for" chips + banner.
   whoRow: {

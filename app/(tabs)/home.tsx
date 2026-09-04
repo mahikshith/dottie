@@ -43,6 +43,10 @@ import { animForMood } from '../../src/content/companion-lottie';
 import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
+import { MoodMap } from '../../src/components/mood/MoodMap';
+import { buildMoodMap } from '../../src/engine/mood/mood-map';
+import { checkinRepository } from '../../src/database/repositories/checkin.repo';
+import { addDays, todayCivil } from '../../src/utils/civil-date';
 import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard';
 import { TodayAtAGlanceCard } from '../../src/components/home/TodayAtAGlanceCard';
 import { todayISO } from '../../src/utils/date.utils';
@@ -108,6 +112,39 @@ export default function HomeScreen() {
   const latestPrediction = useCycleStore((s) => s.latestPrediction);
   const userMode = useUserStore(selectUserMode);
   const conditions = useUserStore((s) => s.user?.healthProfile.conditions) ?? EMPTY_CONDITIONS;
+
+  // ─── MOOD MAP DATA ──────────────────────────────────────────────
+  //
+  //  Loaded here rather than in the component so the card stays a pure
+  //  renderer, and re-loaded whenever today's check-in changes — logging a
+  //  mood should fill in today's square immediately, not after a restart.
+  const [moodEntries, setMoodEntries] = useState<{ date: string; moodScore: number | null }[]>([]);
+  const [mapWidth, setMapWidth] = useState(0);
+  const MOOD_MAP_DAYS = 91;
+
+  useEffect(() => {
+    const uid = useUserStore.getState().userId;
+    if (!uid) return;
+    let cancelled = false;
+    const today = todayCivil();
+    checkinRepository
+      .getCheckInsInRange(uid, addDays(today, -MOOD_MAP_DAYS), today)
+      .then((rows) => {
+        if (cancelled) return;
+        setMoodEntries(rows.map((r) => ({ date: r.date, moodScore: r.moodScore })));
+      })
+      .catch(() => {
+        // Non-fatal: the map just stays empty. Home must still render.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [todayCheckIn?.moodScore, todayCheckIn?.date]);
+
+  const moodMap = useMemo(
+    () => buildMoodMap(moodEntries, todayCivil(), MOOD_MAP_DAYS),
+    [moodEntries]
+  );
   // Today is treated as a period day when the current phase is menstrual —
   // good enough for the Home summary (the calendar day sheet uses the
   // actual period_days set for the precise per-day marker).
@@ -401,6 +438,20 @@ export default function HomeScreen() {
         ) : null}
 
 
+        {/* ─── MOOD MAP ──────────────────────────────────────────────
+            The last three months of check-ins as a contribution-style grid,
+            with the distribution underneath. Always rendered: with nothing
+            logged it shows an empty grid and an invitation, which is a truer
+            first impression than hiding the feature until it has data — you
+            can see the shape of what you're about to fill in. */}
+        <Animated.View entering={rise(250)}>
+          <GlassCard style={styles.moodMapCard}>
+            <View onLayout={(e) => setMapWidth(e.nativeEvent.layout.width)}>
+              {mapWidth > 0 ? <MoodMap map={moodMap} width={mapWidth} /> : null}
+            </View>
+          </GlassCard>
+        </Animated.View>
+
         {/* Dottie Predicts — themed in its own file */}
         <Animated.View entering={rise(380)}>
           <DottiePredictsCard
@@ -631,6 +682,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
   },
+  moodMapCard: { padding: Spacing.cardPadding, marginBottom: Spacing.base },
   hero: {
     flexDirection: 'row',
     alignItems: 'center',

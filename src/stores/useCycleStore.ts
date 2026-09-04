@@ -53,6 +53,8 @@ import {
 } from '../engine/prediction/phase-calculator';
 import { RecentSymptom } from '../engine/content';
 import { logSilentFailure } from '../diagnostics/silent-failure';
+import { detectPremenstrualSignal } from '../engine/symptoms/symptom-recall';
+import { todayCivil } from '../utils/civil-date';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -256,12 +258,32 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
       return null;
     }
 
+    // ─── WHAT ACTUALLY FEEDS THE PREDICTION ───────────────────────
+    //
+    //  `premenstrualSymptomsDetected` has been a parameter of the predictor
+    //  since it was written — it narrows the window and lifts confidence when
+    //  a period is imminent AND signalled — but NOTHING EVER SET IT. Every
+    //  symptom the user logged (cramps, bloating, tenderness…) went into the
+    //  database and stopped there, so the honest answer to "are my symptoms
+    //  used in the prediction?" was no (device-test-12).
+    //
+    //  It is set now, from real logs, via a deliberately conservative detector:
+    //  at least two DISTINCT premenstrual markers, in the last few days, above
+    //  severity 1. One headache is not a signal, and a false narrow window is
+    //  worse than none — it makes the app confidently wrong.
+    const recent = await checkinRepository.getRecentSymptoms(userId, 7, todayCivil());
+    const premenstrualSymptomsDetected = detectPremenstrualSignal(
+      recent.map((s) => ({ date: s.date, symptomType: s.symptomType, severity: s.severity })),
+      todayCivil()
+    );
+
     const input: PredictionInput = {
       cycleHistory,
       healthProfile: user.healthProfile,
       lastPeriodStart: new Date(lastPeriodStart),
       recentStressLevel: todayCheckIn?.stressLevel ?? undefined,
       recentSleepQuality: todayCheckIn?.sleepQuality ?? undefined,
+      premenstrualSymptomsDetected,
       predictionErrors,
     };
 

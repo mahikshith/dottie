@@ -61,6 +61,7 @@ import { findCycleOverlaps } from '../src/engine/calendar/cycle-overlap';
 import { groupPeriodBlocks, analysePeriodPattern } from '../src/engine/calendar/period-blocks';
 import { buildSisterOverlay } from '../src/engine/calendar/sister-overlay';
 import { nudgeForScore } from '../src/engine/learn/encouragement';
+import { buildMoodMap, buildMoodDynamics } from '../src/engine/mood/mood-map';
 import { stateForScore, stateForMood } from '../src/components/ui/creature/expressions';
 import * as notifShim from './harness/shims/expo-notifications';
 import { checkinRepository } from '../src/database/repositories/checkin.repo';
@@ -399,6 +400,42 @@ async function main(): Promise<void> {
     const rows = await checkinRepository.getCheckIn(uid(), TODAY);
     H.expect('mood updated', rows?.moodScore === 5, String(rows?.moodScore));
     H.expect('a good mood now reads as celebrate', stateForMood(5) === 'celebrate');
+  });
+
+  await H.step('symptoms now actually reach the predictor', async () => {
+    // The parameter existed since the predictor was written and nothing set
+    // it — so the honest answer to "are my symptoms used?" was no (DT12).
+    const before = useCycleStore.getState().latestPrediction?.factorsUsed ?? [];
+    H.expect('no PMS factor with no symptoms logged',
+      !before.includes('pms_detected_narrow'), before.join());
+
+    // Two distinct premenstrual markers, today — the detector's threshold.
+    for (const symptomType of ['cramps', 'bloating']) {
+      await useCycleStore.getState().logSymptom({
+        date: TODAY, category: 'physical', symptomType, severity: 3,
+      });
+    }
+    await useCycleStore.getState().recomputePrediction();
+    const after = useCycleStore.getState().latestPrediction?.factorsUsed ?? [];
+    H.expect('the PMS signal now reaches the prediction',
+      after.includes('pms_detected_narrow'), after.join());
+  });
+
+  await H.step('the mood map and its dynamics build from real check-ins', async () => {
+    const rows = await checkinRepository.getCheckInsInRange(uid(), addDays(TODAY, -91), TODAY);
+    const map = buildMoodMap(
+      rows.map((r) => ({ date: r.date, moodScore: r.moodScore })),
+      TODAY,
+      91
+    );
+    H.expect('today\'s check-in is on the map',
+      map.days.some((d) => d.date === TODAY && d.score !== null));
+    H.expect('the grid is rectangular', map.days.length % 7 === 0);
+    const dyn = buildMoodDynamics(map);
+    H.expect('shares sum to 1 when anything is logged',
+      dyn.logged === 0 || Math.abs(dyn.shares.reduce((n, s) => n + s.share, 0) - 1) < 1e-9);
+    H.expect('the summary states the sample size',
+      dyn.logged === 0 || /\d+ day/.test(dyn.summary), dyn.summary);
   });
 
   // ─── ACT 5 — SISTERHOOD ──────────────────────────────────────────
