@@ -29,6 +29,7 @@ import {
   ProfileTransferCode,
   TRANSFER_CODE_TTL_HOURS,
 } from '../../../../src/types/sisterhood.types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Transfer-Code Handoff Sheet
@@ -65,6 +66,7 @@ import {
  *  anything without physical access to the originating device.
  */
 export default function TransferScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const memberId = id ?? '';
@@ -199,7 +201,7 @@ export default function TransferScreen() {
       <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

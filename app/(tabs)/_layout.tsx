@@ -1,14 +1,8 @@
 import { Tabs, useRouter } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
 import { Spacing } from '../../src/constants/spacing';
 import { A } from '../../src/theme';
 import { AuroraTabBar } from '../../src/components/ui';
-import {
-  tabSceneInterpolator,
-  tabSceneInterpolatorReduced,
-  tabTransitionSpec,
-} from '../../src/components/ui/aurora/tabSceneTransition';
 import { FeedbackBubble } from '../../src/components/beta/FeedbackBubble';
 import { BetaPioneerToast } from '../../src/components/beta/BetaPioneerToast';
 import { IS_BETA_BUILD } from '../../src/constants/build-info';
@@ -49,10 +43,6 @@ import { IS_BETA_BUILD } from '../../src/constants/build-info';
  *    3. Never above the Ghost Lock (AppLockGate renders above this whole tree).
  */
 export default function TabLayout() {
-  // Reduced motion keeps the cross-fade (it still explains the change) and
-  // drops the drift and settle — the parts that actually cause discomfort.
-  const reduceMotion = useReducedMotion();
-  const sceneInterpolator = reduceMotion ? tabSceneInterpolatorReduced : tabSceneInterpolator;
   const router = useRouter();
 
   const handleFeedbackPress = () => {
@@ -65,28 +55,28 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          // ─── TAB TRANSITION ────────────────────────────────────
+          // ─── NO TAB TRANSITION (device-test-16) ────────────────
           //
-          //  This used to be `animation: 'none'`. The reasoning was that the
-          //  liquid pill was the only motion needed and a transition would add
-          //  latency — but on device the result is that the pill glides while
-          //  the screen behind it teleports, and the two read as unrelated
-          //  events. The owner reported it as "not smooth at all" across
-          //  several builds; a hard cut IS the un-smoothness.
+          //  DT11 added a cross-fade + drift here to answer "the transition is
+          //  not smooth". On device it made things worse: fading the outgoing
+          //  scene to transparent exposes the layer beneath it for a few
+          //  frames, and at the bottom of the screen — where the floating tab
+          //  pill sits over a transparent bar — that read as a persistent
+          //  white glitch on every Home→Cycle / Home→Learn switch.
           //
-          //  What replaces it is a cross-fade with an 18px directional drift,
-          //  NOT a slide — see tabSceneTransition.ts for why peers must not
-          //  slide and why the drift is that small. Native-driver, 170ms, so
-          //  it stays on the UI thread while the destination mounts.
+          //  Owner, DT16: "let's stick to the basics and remove that kind of
+          //  effect. The liquid glass is not really needed... we need a
+          //  smoother transition and keep it simple."
           //
-          //  `animation` is deliberately ABSENT rather than set: the library
-          //  reads a named preset only when that key is present, and falls back
-          //  to `Boolean(transitionSpec)` to decide whether the outgoing screen
-          //  stays mounted during the transition. Setting `animation: 'none'`
-          //  here would tear the leaving screen down instantly and there would
-          //  be nothing to cross-fade.
-          sceneStyleInterpolator: sceneInterpolator,
-          transitionSpec: tabTransitionSpec,
+          //  So there is no scene animation at all now. Tabs are peers, the
+          //  destination is already mounted after its first visit, and the
+          //  moving glass pill in AuroraTabBar carries the sense of travel on
+          //  its own. Nothing fades, so nothing can show through.
+          //
+          //  Do NOT reintroduce sceneStyleInterpolator or transitionSpec here
+          //  without a device test: any of them that animates opacity will
+          //  bring the glitch straight back.
+          animation: 'none',
           // Freeze blurred tabs (react-native-screens): stops inactive screens
           // re-rendering in the background, so the active tab + the tab-bar
           // scrub stay responsive. Screens still stay mounted after first visit,

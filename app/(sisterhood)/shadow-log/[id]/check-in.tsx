@@ -39,8 +39,10 @@ import {
 } from '../../../../src/stores';
 import { getCompanion } from '../../../../src/content/companions';
 import { MoodScale } from '../../../../src/components/sisterhood/MoodScale';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CheckInScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const memberId = id ?? '';
@@ -131,7 +133,7 @@ export default function CheckInScreen() {
       >
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

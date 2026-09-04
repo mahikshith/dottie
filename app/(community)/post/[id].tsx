@@ -276,7 +276,7 @@ export default function PostDetailScreen() {
     >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] }]}
         keyboardShouldPersistTaps="handled"
       >
         <Stack.Screen

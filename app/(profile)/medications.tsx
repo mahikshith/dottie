@@ -143,7 +143,10 @@ export default function MedicationsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.lg }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

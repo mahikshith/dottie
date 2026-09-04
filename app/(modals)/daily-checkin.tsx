@@ -34,6 +34,7 @@ import {
 } from '../../src/components/checkin/SymptomPicker';
 import { MoodWordPicker } from '../../src/components/checkin/MoodWordPicker';
 import type { SymptomSeverity } from '../../src/components/checkin/SymptomChip';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Daily Check-In Modal — Polished version (Batch 2)
@@ -78,6 +79,7 @@ import type { SymptomSeverity } from '../../src/components/checkin/SymptomChip';
  *    same wiring Batch 1 shipped.
  */
 export default function DailyCheckInScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   // ─── Live store reads ──────────────────────────────────────────
@@ -276,7 +278,7 @@ export default function DailyCheckInScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

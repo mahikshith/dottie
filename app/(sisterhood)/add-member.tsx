@@ -343,7 +343,7 @@ export default function AddMemberScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing['3xl'] }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

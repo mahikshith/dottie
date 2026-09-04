@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Typography } from '../../../src/constants/typography';
 import { Spacing } from '../../../src/constants/spacing';
 import { A } from '../../../src/theme';
@@ -100,6 +101,7 @@ function rise(delay: number) {
 }
 
 export default function MemberDetailScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const memberId = id ?? '';
@@ -240,7 +242,13 @@ export default function MemberDetailScreen() {
       <StatusBar style="light" />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // Safe area is not optional (device-test-16). This screen had NO
+          // inset handling at all and no nav header, so the sister's name sat
+          // under the status bar and the last card ran into the gesture bar.
+          { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
       >
       {/* Hero */}

@@ -9,6 +9,7 @@ import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { getAllCompanions } from '../../src/content/companions';
 import { CompanionType } from '../../src/types/companion.types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
  * Companion Selection Screen
@@ -25,6 +26,7 @@ import { CompanionType } from '../../src/types/companion.types';
  *  - Lower-impact haptic on selection (warm tap, not buzzing).
  */
 export default function CompanionSelectScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   const companions = getAllCompanions();
@@ -57,7 +59,7 @@ export default function CompanionSelectScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.grid}
+        contentContainerStyle={[styles.grid, { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] }]}
         showsVerticalScrollIndicator={false}
       >
         {companions.map((companion) => (

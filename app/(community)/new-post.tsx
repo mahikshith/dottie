@@ -240,7 +240,7 @@ export default function NewPostScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.spaceRow}
+            contentContainerStyle={[styles.spaceRow, { paddingBottom: insets.bottom + Spacing['3xl'] }]}
             style={styles.spaceScroll}
           >
             {availableSpaces.map((s) => (

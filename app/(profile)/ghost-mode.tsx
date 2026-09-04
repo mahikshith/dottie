@@ -60,6 +60,7 @@ import {
   GhostModeConfig,
   MIN_PIN_LENGTH,
 } from '../../src/types/ghost-mode.types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Step =
   | { kind: 'overview' }
@@ -71,6 +72,7 @@ type Step =
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
 export default function GhostModeSettingsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: 'overview' });
   const [pin, setPin] = useState('');
@@ -338,7 +340,7 @@ export default function GhostModeSettingsScreen() {
       <Stack.Screen options={{ title: 'Ghost Mode', headerBackTitle: 'Back' }} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + Spacing['3xl'] }]}
       >
         {/* Hero */}
         <View style={styles.hero}>

@@ -27,7 +27,6 @@ import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -41,9 +40,6 @@ import { useAurora } from '../../../theme/ThemeProvider';
 
 // Bloom layout as fractions of the screen box (kept resolution-independent).
 // {sizeFrac, leftFrac, topFrac, hue index into palette.aurora, drift px, secs}
-// How far the status veil fades out BELOW the safe-area inset. Small enough
-// that it never dims a heading, large enough to kill the hard seam.
-const STATUS_FADE = 14;
 
 const BLOOMS = [
   { size: 1.05, left: -0.18, top: -0.1, hue: 0, dx: 26, dy: 22, secs: 20 },
@@ -149,25 +145,34 @@ export function AuroraBackground({
         ))}
       </Animated.View>
       {children}
-      {/* Status-bar veil — the safe-area strip at the very top.
+      {/* Status-bar veil — EXACTLY the safe-area strip, and not one pixel more.
+
           WHY IT EXISTS: every aurora screen pads its content by insets.top, but
           that only protects the INITIAL position. As a ScrollView scrolls, its
-          headings slide UP under the translucent Android status bar and collide
+          headings slide up under the translucent Android status bar and collide
           with the clock/battery (device-test-6).
 
-          WHY IT'S A GRADIENT, NOT A BLOCK (device-test-7): the first version was
-          an opaque rectangle. On a phone with a tall inset that read as the app
-          "eating the top heading" — a hard ground-coloured band with a visible
-          seam right above the title. Now only the true status-bar height is
-          solid; below it the ground fades out over FADE px so content passes
-          under it softly instead of hitting an edge. Same protection, no band.
-          pointerEvents="none" so taps pass through. */}
+          WHY IT IS NO LONGER A GRADIENT (device-test-16): DT7 replaced the
+          opaque block with a veil that stayed solid over insets.top and then
+          FADED OUT over another 14dp. That tail was the mistake. It sits below
+          the status bar, over live content, so a heading scrolling past it got
+          progressively dimmed before it disappeared — and dimming text in the
+          middle of the screen reads exactly as "the app is eating my UI", which
+          is what the owner reported on the Cycle tab, the sisterhood screens
+          and every lesson.
+
+          The veil is now the status bar's own height, fully opaque. Content
+          passes under the OS status bar the way it does in every other app —
+          which the owner explicitly said is fine — and nothing below that strip
+          is ever tinted, faded or clipped. pointerEvents="none" so taps pass
+          through. */}
       {insets.top > 0 ? (
-        <LinearGradient
+        <View
           pointerEvents="none"
-          colors={[palette.ground, palette.ground, `${palette.ground}00`]}
-          locations={[0, insets.top / (insets.top + STATUS_FADE), 1]}
-          style={[styles.statusCap, { height: insets.top + STATUS_FADE }]}
+          style={[
+            styles.statusCap,
+            { height: insets.top, backgroundColor: palette.ground },
+          ]}
         />
       ) : null}
     </View>
