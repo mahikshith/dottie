@@ -202,6 +202,7 @@ const Keys = {
   // landing. Seen = true suppresses auto-launch; the Profile "Show me
   // around again" row clears it to replay.
   WALKTHROUGH_SEEN: 'ux.walkthrough_seen',
+  MOOD_MAP_OPEN: 'ux.mood_map_open',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -553,6 +554,18 @@ export const Storage = {
     get: (): boolean => db().getBoolean(Keys.WALKTHROUGH_SEEN) === true,
     set: (): void => db().set(Keys.WALKTHROUGH_SEEN, true),
     clear: (): void => db().delete(Keys.WALKTHROUGH_SEEN),
+  },
+
+  /**
+   * Whether the Home mood map is expanded. Remembered so the choice survives
+   * leaving the tab — re-collapsing a panel you deliberately opened, every
+   * single visit, is the kind of small disrespect that makes an app feel like
+   * it isn't listening. Defaults to CLOSED: the collapsed strip already shows
+   * real data, so opening is opt-in rather than something to dismiss.
+   */
+  moodMapOpen: {
+    get: (): boolean => db().getBoolean(Keys.MOOD_MAP_OPEN) === true,
+    set: (open: boolean): void => db().set(Keys.MOOD_MAP_OPEN, open),
   },
 
   // ─── Bulk operations ────────────────────────────────────────────

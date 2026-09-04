@@ -29,9 +29,13 @@ on top. Seven device-test rounds have landed. **11 test suites, all green.**
 - **Symptom recall** on the Cycle tab — "on day 2 you've logged nausea in 2 of
   your last 3 periods". Own history only, sample size always attached, silent on
   n=1. `test:recall` asserts it never claims population stats.
-- **Mood map** on Home — 91-day heatmap + distribution bar. Diverging ramp (not
-  GitHub's sequential green), validated with the dataviz ordinal checks.
-  `test:moodmap` protects "a gap is not a zero" and the logged-days denominator.
+- **Mood map** on Home, **behind a toggle** — collapsed shows a live 14-day
+  strip (real data, not a labelled button); expanded is the 91-day heatmap +
+  distribution. With nothing logged it is ONE LINE, never a grid-shaped hole.
+  Open/closed remembered in `Storage.moodMapOpen`. Diverging ramp (not GitHub's
+  sequential green), validated with the dataviz ordinal checks. `test:moodmap`
+  protects "a gap is not a zero", the logged-days denominator, and that the
+  collapsed strip ends on today rather than on future blanks.
 
 Detail: `docs/DEVICE-TEST-12.md`.
 

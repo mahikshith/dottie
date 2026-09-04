@@ -185,9 +185,26 @@ scenario('M8 · junk in the check-in table cannot break the grid', () => {
   ok('tiny spans are floored', buildMoodMap([], TODAY, 1).span >= 7);
 });
 
-// ─── M9 — the scale itself ───────────────────────────────────────────
+scenario('M9 · the collapsed 14-day strip ends on today, not on blanks', () => {
+  // The card's collapsed state slices the last 14 non-future days. If future
+  // padding leaked in, the strip would end in empty cells and read as "you
+  // stopped logging" — the opposite of what it is showing.
+  const map = buildMoodMap(
+    Array.from({ length: 14 }, (_, i) => entry(-i, 4)),
+    TODAY,
+    91
+  );
+  const strip = map.days.filter((d) => !d.future).slice(-14);
+  ok('exactly 14 cells', strip.length === 14, String(strip.length));
+  ok('the last cell IS today', strip[strip.length - 1]!.date === TODAY,
+    String(strip[strip.length - 1]!.date));
+  ok('no future padding in the strip', strip.every((d) => !d.future));
+  ok('every cell is logged in this fixture', strip.every((d) => d.score !== null));
+});
 
-scenario('M9 · the scale is diverging, and every score is covered', () => {
+// ─── M10 — the scale itself ──────────────────────────────────────────
+
+scenario('M10 · the scale is diverging, and every score is covered', () => {
   ok('all five check-in scores map to a step',
     [1, 2, 3, 4, 5].every((s) => stepForScore(s) !== null));
   ok('every step has a distinct colour',

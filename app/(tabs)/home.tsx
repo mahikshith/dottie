@@ -43,7 +43,7 @@ import { animForMood } from '../../src/content/companion-lottie';
 import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
-import { MoodMap } from '../../src/components/mood/MoodMap';
+import { MoodMapCard } from '../../src/components/mood/MoodMapCard';
 import { buildMoodMap } from '../../src/engine/mood/mood-map';
 import { checkinRepository } from '../../src/database/repositories/checkin.repo';
 import { addDays, todayCivil } from '../../src/utils/civil-date';
@@ -119,7 +119,6 @@ export default function HomeScreen() {
   //  renderer, and re-loaded whenever today's check-in changes — logging a
   //  mood should fill in today's square immediately, not after a restart.
   const [moodEntries, setMoodEntries] = useState<{ date: string; moodScore: number | null }[]>([]);
-  const [mapWidth, setMapWidth] = useState(0);
   const MOOD_MAP_DAYS = 91;
 
   useEffect(() => {
@@ -439,17 +438,13 @@ export default function HomeScreen() {
 
 
         {/* ─── MOOD MAP ──────────────────────────────────────────────
-            The last three months of check-ins as a contribution-style grid,
-            with the distribution underneath. Always rendered: with nothing
-            logged it shows an empty grid and an invitation, which is a truer
-            first impression than hiding the feature until it has data — you
-            can see the shape of what you're about to fill in. */}
+            Behind a toggle, and the COLLAPSED state shows a live 14-day strip
+            rather than a labelled button — you get the gist without opening
+            anything. With nothing logged at all it is one quiet line, not a
+            grid-shaped hole (device-test-12 follow-up: an empty skeleton costs
+            space and confidence). See MoodMapCard for the three states. */}
         <Animated.View entering={rise(250)}>
-          <GlassCard style={styles.moodMapCard}>
-            <View onLayout={(e) => setMapWidth(e.nativeEvent.layout.width)}>
-              {mapWidth > 0 ? <MoodMap map={moodMap} width={mapWidth} /> : null}
-            </View>
-          </GlassCard>
+          <MoodMapCard map={moodMap} />
         </Animated.View>
 
         {/* Dottie Predicts — themed in its own file */}
@@ -682,7 +677,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: Spacing.screenPadding,
   },
-  moodMapCard: { padding: Spacing.cardPadding, marginBottom: Spacing.base },
   hero: {
     flexDirection: 'row',
     alignItems: 'center',

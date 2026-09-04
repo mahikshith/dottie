@@ -109,6 +109,45 @@ midpoint 3.6:1, poles 8.6:1 and 12.6:1. Don't hand-tweak without re-running it.
 Thin data says so: under 5 days it prints "too few to call it a pattern, but
 it's a start" rather than a percentage.
 
+## 3b. The mood map is behind a toggle (follow-up)
+
+**Reported:** "rather than showing those empty shells … implement a toggle or a
+button to show the mood map which comes and goes away."
+
+Right, and the first version deserved that. For a new user the always-open grid
+was a chart-shaped hole — a hundred empty squares announcing how much they
+hadn't done, on the screen they see most. A skeleton with nothing in it is worse
+than no card: it costs space *and* confidence.
+
+**Three states now:**
+
+1. **Nothing logged** — one quiet line, no grid, no chevron. There is nothing to
+   expand, so offering a control that opens an empty box would be a lie. It
+   stays only so the feature is discoverable.
+2. **Collapsed (has data)** — a live **14-day strip**, the dominant mood emoji,
+   the day count and the streak. This is the part that makes the toggle worth
+   having: the collapsed state **shows real data** rather than being a labelled
+   button, so you get the gist without opening anything.
+3. **Expanded** — the full 91-day grid, legend and distribution.
+
+The choice is **remembered** (`Storage.moodMapOpen`). Re-collapsing a panel
+someone deliberately opened, every single visit, is the kind of small disrespect
+that makes an app feel like it isn't listening. It defaults to closed, because
+the strip already carries the summary — opening is opt-in rather than something
+to dismiss.
+
+**Motion:** the panel mounts and unmounts, so this is a layout animation, not an
+animated height — animating height re-runs layout for the node *and its
+siblings* every frame. `FadeInDown`/`FadeOut` on the panel plus
+`LinearTransition` on the card lets the rest of Home reflow while the work stays
+off the layout path. Chevron rotates on a 180ms ease-out. Reduce Motion drops
+all of it and just swaps.
+
+**One invariant worth testing:** the collapsed strip slices the last 14
+**non-future** days. If future padding leaked in, the strip would end in blank
+cells and read as "you stopped logging" — the exact opposite of what it shows.
+`test:moodmap` M9 asserts the strip is 14 cells and ends on today.
+
 ## 4. Still open / not done
 
 - `recentWeightChangeKg` stays unwired (no weight history collected).

@@ -155,12 +155,16 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    the missing undo entirely because it only ever added.
 16. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
    (`?logFor=<memberId>`). Do not add a second date picker anywhere.
-17. **Never invent a population statistic.** Dottie is local-first with no
+17. **No empty shells.** A feature with no data yet shows one honest line, never
+   a chart-shaped skeleton — an empty grid costs space AND confidence. Where a
+   panel collapses, the COLLAPSED state must carry real data (the mood map's
+   14-day strip), not just a label; and the open/closed choice is remembered.
+18. **Never invent a population statistic.** Dottie is local-first with no
    cohort, so "68% of people report X" would be fabricated — the same fault as
    the "You & 12,363 others" counters removed in DT6. Insight speaks about the
    USER'S OWN logged history with the sample size attached, and stays silent on
    a single occurrence. Enforced by `test:recall`, not just by review.
-18. **The prediction explainer must never render nothing.** It recomputes the
+19. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 
