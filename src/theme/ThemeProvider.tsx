@@ -87,8 +87,23 @@ const EASE_LIQUID = Easing.bezier(0.4, 0.05, 0.2, 1);
 const SPREAD_MS = 1050;
 const SETTLE_MS = 420;
 
-/** Reanimated-driven <Path> — the `d` string is rebuilt on the UI thread. */
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+/**
+ * Reanimated-driven <Path> — the `d` string is rebuilt on the UI thread.
+ *
+ * WRAPPED, because this runs at MODULE SCOPE and this module is on the boot
+ * path (app/_layout.tsx imports AuroraProvider). Anything that throws here
+ * throws before React has rendered a single frame and before any error
+ * boundary exists to catch it — which is a white screen with no message
+ * (device-test-15). A mood reveal that degrades to a plain, un-animated shape
+ * is a rounding error; an app that will not start is not.
+ */
+const AnimatedPath = (() => {
+  try {
+    return Animated.createAnimatedComponent(Path);
+  } catch {
+    return Path;
+  }
+})();
 
 export interface RevealOrigin {
   x: number;
@@ -151,7 +166,14 @@ export function AuroraProvider({
   return (
     <AuroraContext.Provider value={value}>
       {children}
-      <MoodReveal reveal={reveal} onCommit={commit} onFinish={finish} />
+      {/* Mounted ONLY while a reveal is in flight. It used to mount on every
+          launch and return null internally — which still ran its hooks, built
+          a Reanimated worklet and registered animated SVG props on the boot
+          path, for an overlay nobody was looking at. Cheaper, and it keeps the
+          launch path free of machinery that has no reason to be there. */}
+      {reveal ? (
+        <MoodReveal reveal={reveal} onCommit={commit} onFinish={finish} />
+      ) : null}
     </AuroraContext.Provider>
   );
 }
