@@ -67,6 +67,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useAurora } from '../../../theme/ThemeProvider';
 
@@ -301,7 +302,10 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
 
   return (
     <View
-      style={[styles.wrapper, { paddingBottom: insets.bottom + 8 }]}
+      // The bar sat flush against the Android gesture/button bar — on the
+      // owner's phone the nav buttons crowded it (device-test-8). Floor the gap
+      // so there is always breathing room even when insets.bottom reports 0.
+      style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 8) + 10 }]}
       pointerEvents="box-none"
     >
       <View
@@ -332,6 +336,27 @@ export function AuroraTabBar({ state, navigation }: AuroraTabBarProps): JSX.Elem
             StyleSheet.absoluteFillObject,
             { backgroundColor: 'rgba(20,14,44,0.42)', borderRadius: RADIUS },
           ]}
+        />
+
+        {/* ─── DEPTH ────────────────────────────────────────────────
+            The owner asked for the pane to "pop out towards the front"
+            without changing its colour. Depth on a glass slab is read from
+            ONE thing: where the light is. So there is a bright specular band
+            along the top edge (light landing on the lip nearest the viewer)
+            fading to nothing by the middle, and a darker wash along the
+            bottom (the face turning away). Together with the existing outer
+            shadow the bar reads as a raised, rounded slab rather than a flat
+            rectangle — and it costs one gradient, no extra blur pass. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={[
+            'rgba(255,255,255,0.16)',
+            'rgba(255,255,255,0.04)',
+            'rgba(0,0,0,0.00)',
+            'rgba(0,0,0,0.18)',
+          ]}
+          locations={[0, 0.22, 0.6, 1]}
+          style={[StyleSheet.absoluteFillObject, { borderRadius: RADIUS }]}
         />
 
         {/* MOVING LIQUID PILL — the highlight that springs between tabs.
@@ -423,10 +448,16 @@ function TabButton({
     }
   }, [focused, reduce, focus]);
 
+  // Press reads as the icon coming TOWARDS you, not sinking in: it scales up
+  // and lifts a couple of pixels (owner's ask — "the click should slightly pop
+  // up"). A dip is the conventional choice for a flat button, but this bar is
+  // deliberately a raised glass slab, and pressing something that already sits
+  // proud of the screen should push it further out, not punch a hole in it.
   const contentStyle = useAnimatedStyle(() => {
-    const base = 1 + focus.value * 0.08; // focus pop
-    const scale = base * (1 - pressed.value * 0.08); // press dip
-    return { transform: [{ scale }] };
+    const scale = 1 + focus.value * 0.08 + pressed.value * 0.1;
+    return {
+      transform: [{ scale }, { translateY: -pressed.value * 2 }],
+    };
   });
 
   const color = focused ? activeColor : inactiveColor;
@@ -435,7 +466,7 @@ function TabButton({
     <Pressable
       onLayout={onLayout}
       onPressIn={() => {
-        // Feedback on press-IN (immediate): haptic + a small dip.
+        // Feedback on press-IN (immediate): haptic + the pop.
         pressed.value = reduce ? 0 : withTiming(1, { duration: 90, easing: EASE_OUT });
         Haptics.selectionAsync().catch(() => {});
       }}

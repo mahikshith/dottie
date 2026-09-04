@@ -15,7 +15,7 @@ import { A } from '../../src/theme';
  *    Profile tab → "Sisterhood Circle" → /(sisterhood)/circle
  *    Circle "+" / empty CTA → /(sisterhood)/add-member
  *    Member card tap → /(sisterhood)/member/{id}
- *    "Log period" action → /(sisterhood)/shadow-log/{id}/period
+ *    "Log period" action → /(tabs)/calendar?logFor={id} (the ONE calendar)
  *    "Quick check-in" action → /(sisterhood)/shadow-log/{id}/check-in
  *    "Hand off" action → /(sisterhood)/shadow-log/{id}/transfer
  *
@@ -71,14 +71,12 @@ export default function SisterhoodLayout() {
           title: '',
         }}
       />
-      <Stack.Screen
-        name="shadow-log/[id]/period"
-        options={{
-          title: 'Log period day',
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-        }}
-      />
+      {/* shadow-log/[id]/period is GONE (device-test-8). A sister's period
+          days are marked on the main calendar, which already has the grid, the
+          flow chips and the sister colouring — a second date picker one tab
+          away was a worse copy of it and a second place for the same data to
+          disagree. "Log a period day" now deep-links to
+          /(tabs)/calendar?logFor=<memberId>. */}
       <Stack.Screen
         name="shadow-log/[id]/check-in"
         options={{

@@ -21,6 +21,8 @@ import {
   selectStreak,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
+import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
+import { nudgeForScore } from '../../src/engine/learn/encouragement';
 import { CompanionScoreReaction } from '../../src/components/learn/CompanionScoreReaction';
 import type {
   QuizAttemptSession,
@@ -421,8 +423,7 @@ export default function QuizScreen() {
               correct={lastAnswer.correct}
               seed={questionIndex}
               headlineColor={lastAnswer.correct ? A.success : A.gold}
-              badgeBg={A.ground}
-            />
+              />
 
             {/* The learning payload — why this answer is what it is. */}
             <View style={styles.feedbackExplainRow}>
@@ -506,6 +507,8 @@ function QuizResultScreen({
 }) {
   const pct = Math.round(result.score * 100);
   const accent = result.passed ? A.success : A.accent;
+  // Rotates by attempt so a repeat run doesn't replay the same sentence.
+  const nudge = nudgeForScore(result.score, result.totalCount);
 
   return (
     <AuroraBackground>
@@ -525,7 +528,6 @@ function QuizResultScreen({
             score={result.score}
             size={124}
             headlineColor={accent}
-            badgeBg={A.ground}
           />
           {/* Percentage sits BELOW the headline with a comfortable gap
               (device-test #5: the 56pt digits used to visually crowd the
@@ -541,9 +543,20 @@ function QuizResultScreen({
           )}
         </View>
 
+        {/* The companion's LINE. It used to sit next to a raw 🐱 emoji, so the
+            screen showed three different faces at once — the drawn creature,
+            the reaction badge, and this emoji — which is what read as "an
+            altogether different companion" (device-test-8). One character per
+            screen; the small rig here is the same creature as the hero above.
+            The line itself now rotates through the encouragement pool instead
+            of repeating one stored sentence. */}
         <View style={styles.companionCelebrationCard}>
-          <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-          <Text style={styles.companionCelebrationText}>{result.companionCelebration}</Text>
+          <CompanionCreature
+            type={companion.type}
+            state={result.score >= 0.5 ? 'happy' : 'caring'}
+            size={36}
+          />
+          <Text style={styles.companionCelebrationText}>{nudge.text}</Text>
         </View>
 
         <View style={styles.rewardsCard}>
@@ -877,6 +890,7 @@ const styles = StyleSheet.create({
   companionCelebrationCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
     backgroundColor: A.glass,
     padding: Spacing.cardPadding,
     borderRadius: Spacing.radius.xl,

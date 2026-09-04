@@ -82,6 +82,13 @@ const EMPTY_CONDITIONS: HealthCondition[] = [];
  */
 export default function HomeScreen() {
   const router = useRouter();
+
+  // The day ring, the "see more" link and the phase card all mean the same
+  // thing — "show me my cycle" — so they share one handler.
+  const goToCalendar = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(tabs)/calendar');
+  };
   const insets = useSafeAreaInsets();
   const { palette, applyMood } = useAurora();
 
@@ -263,29 +270,43 @@ export default function HomeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero — greeting + a breathing companion + the day in a glow ring */}
+        {/* ─── HERO ──────────────────────────────────────────────────
+            Companion on the left, day ring on the right, and they now sit on
+            the SAME baseline. Before, the companion was pinned to the top of a
+            text column that also held the greeting, so its height depended on
+            how long the greeting wrapped — the two never lined up, and the
+            version badge used to sit over the ring as well (device-test-8).
+            The badge is gone (You → About this build) and the row is a real
+            two-column layout: companion + greeting share the left column, the
+            ring is its own column, both vertically centred. */}
         <Animated.View entering={rise(60)} style={styles.hero}>
-          <View style={styles.heroText}>
+          <View style={styles.heroLeft}>
             {/* The DRAWN companion, reacting to how the user said they feel.
-                This was the emoji with a breathing scale on it — which meant it
-                looked identical whether the user had logged "rough" or "great".
-                Now the face actually changes. */}
-            <View style={styles.companionWrap}>
-              <CompanionWave>
-                <CompanionLottie
-                  type={companionType}
-                  state={animForMood(todayCheckIn?.moodScore ?? null)}
-                  size={64}
-                />
-              </CompanionWave>
-            </View>
+                Always the creature the user chose — see CompanionLottie. */}
+            <CompanionWave>
+              <CompanionLottie
+                type={companionType}
+                state={animForMood(todayCheckIn?.moodScore ?? null)}
+                size={64}
+              />
+            </CompanionWave>
             <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>
           {hasCycleData && (
-            <GlowRing progress={cycleProgress} size={92}>
-              <Text style={[styles.ringDay, { color: palette.ink }]}>{dayInCycle}</Text>
-              <Text style={[styles.ringLabel, { color: palette.ink3 }]}>day</Text>
-            </GlowRing>
+            // The ring answers "where am I in my cycle?", so tapping it should
+            // take you to the cycle — the owner kept tapping it expecting that.
+            <PressableScale
+              onPress={goToCalendar}
+              haptic="none"
+              scaleTo={0.94}
+              accessibilityRole="button"
+              accessibilityLabel={`Day ${dayInCycle} of your cycle. Open the calendar.`}
+            >
+              <GlowRing progress={cycleProgress} size={96}>
+                <Text style={[styles.ringDay, { color: palette.ink }]}>{dayInCycle}</Text>
+                <Text style={[styles.ringLabel, { color: palette.ink3 }]}>day</Text>
+              </GlowRing>
+            </PressableScale>
           )}
         </Animated.View>
 
@@ -616,12 +637,11 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     marginBottom: Spacing.base,
   },
-  heroText: {
+  // Companion and greeting stacked, centred against the ring beside them.
+  heroLeft: {
     flex: 1,
-  },
-  companionWrap: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.xs,
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
   },
   companionEmoji: {
     fontSize: 40,

@@ -4,7 +4,6 @@ import { Spacing } from '../../src/constants/spacing';
 import { A } from '../../src/theme';
 import { AuroraTabBar } from '../../src/components/ui';
 import { FeedbackBubble } from '../../src/components/beta/FeedbackBubble';
-import { VersionBadge } from '../../src/components/beta/VersionBadge';
 import { BetaPioneerToast } from '../../src/components/beta/BetaPioneerToast';
 import { IS_BETA_BUILD } from '../../src/constants/build-info';
 
@@ -31,7 +30,6 @@ import { IS_BETA_BUILD } from '../../src/constants/build-info';
  *
  *  In beta builds (IS_BETA_BUILD), three corner widgets mount on TOP of the
  *  tab tree but BELOW the AppLockGate (root layout):
- *    • VersionBadge       — top-right build tag
  *    • FeedbackBubble     — bottom-right floating feedback action
  *    • BetaPioneerToast   — one-time celebration if just awarded
  *
@@ -97,7 +95,10 @@ export default function TabLayout() {
       {/* ─── Beta overlays (chunk 12) ─────────────────────────────── */}
       {IS_BETA_BUILD ? (
         <View style={styles.overlayLayer} pointerEvents="box-none">
-          <VersionBadge position="top-right" />
+          {/* The version badge used to float here, top-right, over the Home
+              hero. It read as a cream patch stuck to the corner and it sat
+              right where the day ring wants to be (device-test-8). Build
+              details now live on their own screen: You → About this build. */}
           <FeedbackBubble
             onPress={handleFeedbackPress}
             bottomOffset={Spacing.tabBarHeight}

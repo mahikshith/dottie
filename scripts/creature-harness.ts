@@ -99,14 +99,26 @@ scenario('C4 — intensity scales the performance', () => {
 // ─── C5 — score → reaction ladder ────────────────────────────────────
 
 scenario('C5 — the score ladder is monotonic and tops out at mindblown', () => {
-  ok('0% → sad', stateForScore(0) === 'sad');
-  ok('30% → idle', stateForScore(30) === 'idle');
+  // The bottom two bands are 'caring' — a rough result gets support, never a
+  // grin (which is what device-test-8 caught) and never disappointment.
+  ok('0% → caring', stateForScore(0) === 'caring');
+  ok('30% → caring', stateForScore(30) === 'caring');
   ok('50% → happy', stateForScore(50) === 'happy');
   ok('70% → proud', stateForScore(70) === 'proud');
   ok('90% → celebrate', stateForScore(90) === 'celebrate');
   ok('100% → mindblown', stateForScore(100) === 'mindblown');
   ok('200% → still mindblown', stateForScore(200) === 'mindblown');
   ok('nonsense input is safe', stateForScore(NaN) === 'idle');
+  // The specific regression: a low score must never look pleased.
+  const grins: CreatureState[] = ['happy', 'proud', 'celebrate', 'mindblown'];
+  ok('no low score reads as pleased',
+    [0, 10, 20, 33, 39].every((pct) => !grins.includes(stateForScore(pct))),
+    [0, 10, 20, 33, 39].map((p) => `${p}:${stateForScore(p)}`).join(' '));
+  ok('caring is warm, not sad', expressionFor('caring').mouthCurve > 0);
+  ok('caring reads as empathy (inner brows up)', expressionFor('caring').browTilt < 0);
+  ok('caring is clearly not a grin',
+    expressionFor('caring').mouthCurve < expressionFor('happy').mouthCurve / 2,
+    `${expressionFor('caring').mouthCurve} vs ${expressionFor('happy').mouthCurve}`);
 });
 
 scenario('C6 — 200% plays harder than a bare 100%', () => {

@@ -68,7 +68,7 @@ import { getPhaseColors, PhaseKey } from '../../../src/constants/colors';
  *  - Privacy-filtered "what you see" panel (phase, mood, flow, etc.)
  *  - Care nudge picker (3 suggestions tailored to current state)
  *  - Shadow-only actions:
- *      • Log a period day for them → /shadow-log/{id}/period
+ *      • Log a period day for them → the main calendar, with them selected
  *      • Quick mood check-in       → /shadow-log/{id}/check-in
  *      • Generate a transfer code  → /shadow-log/{id}/transfer
  *  - Privacy + remove actions in a soft footer
@@ -167,10 +167,19 @@ export default function MemberDetailScreen() {
 
   // ─── Shadow-action routers (Batch 2C: route to polished sheets) ─
 
+  // Logging a period day goes to the MAIN CALENDAR with this sister already
+  // selected — there is no separate sisterhood date picker any more.
+  //
+  //  The old screen made you learn a second, worse date UI: a horizontal day
+  //  strip and a stack of white flow cards, sitting a tab away from a calendar
+  //  that already does all of this (device-test-8: "why can't they simply
+  //  toggle the option for their sisterhood ... the calendar is already
+  //  everything set up"). Two places to log the same thing is also two places
+  //  to disagree about what was logged.
   const handleLogPeriod = () => {
     if (!view || rawMember?.kind !== 'shadow') return;
     Haptics.selectionAsync().catch(() => {});
-    router.push(`/(sisterhood)/shadow-log/${memberId}/period`);
+    router.push({ pathname: '/(tabs)/calendar', params: { logFor: memberId } });
   };
 
   const handleQuickCheckIn = () => {
@@ -289,7 +298,7 @@ export default function MemberDetailScreen() {
             <ActionRow
               emoji="🩸"
               title="Log a period day"
-              subtitle="Pick the day + flow level"
+              subtitle="Opens your calendar with their days selected"
               onPress={handleLogPeriod}
             />
           </Animated.View>

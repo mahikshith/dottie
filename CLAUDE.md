@@ -46,6 +46,8 @@ non-diagnostic voice throughout.
 - `npm run test:charts` — explainer figure data, 12 invariants
 - `npm run test:dates` — civil-date arithmetic re-run under 8 timezones (the
   regression test for the period-log freeze; a UTC-only run would not catch it)
+- `npm run test:nudges` — encouragement pool: rotation + tone
+- `npm run test:overlap` — user/sister cycle-window overlap + no-synchrony tone
 - `npm run test:sister` / `test:blocks` / `test:dedupe` / `test:diag` / `test:creature`
 - `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (167 tappables)
 - `npm run test:all` — runs all of the above, non-zero exit on any failure
@@ -99,11 +101,13 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
 7. **Notifications: `checkNotificationPermission()` is silent** (used by
    `syncAllReminders`); `requestNotificationPermission()` prompts and must be
    called ONLY from an explicit user tap.
-8. **Companion Lottie via `<CompanionLottie type=... state=... />`** — never
-   hardcode emoji. Lottie plays for `idle` ONLY: every expressive state routes to
-   the SVG rig (`CompanionCreature`), because one happy .json replayed at a
-   different tempo is still a happy face. Moment animations (confetti, sparkles)
-   are a corner badge, never full-size over the character.
+8. **The companion is ALWAYS the SVG rig** (`CompanionCreature`), via
+   `<CompanionLottie type=... state=... />`. Never hardcode emoji, and never
+   route a state back to a Lottie character file: `idle` used to do that, and a
+   mood change then swapped the drawing for a different-looking animal
+   (`DEVICE-TEST-8.md` §1). Lottie is for MOMENT overlays only (confetti,
+   mind-blown, hug), drawn as a corner badge, never over the face. One character
+   per screen — no emoji reaction badges beside it.
 9. **No `experimentalBlurMethod="dimezisBlurView"`** on anything overlaying a
    heavy view tree — it snapshots the whole tree per frame and ANRs on Android.
 10. **Safe area is not optional.** Every scroll screen pads
@@ -115,7 +119,13 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    out makes `addDay` the identity function east of Greenwich, which is what
    froze the app for four device-test rounds (`DEVICE-TEST-7.md` §8). Any loop
    walking dates must be bounded and require strict forward progress.
-12. **The prediction explainer must never render nothing.** It recomputes the
+12. **Never let React Navigation use a light theme.** `NAV_THEME` in
+   `app/_layout.tsx` forces every navigator surface to the aurora ground; the
+   default light container was the one-frame white flash on tab switches that
+   survived several rounds of `contentStyle`/`sceneStyle` fixes.
+13. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
+   (`?logFor=<memberId>`). Do not add a second date picker anywhere.
+14. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 

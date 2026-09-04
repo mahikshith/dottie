@@ -56,6 +56,7 @@ import {
   selectIsGhostEnabled,
 } from '../../src/security/ghost-mode-store';
 import { getCompanion } from '../../src/content/companions';
+import { BUILD_LABEL } from '../../src/constants/build-info';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -140,6 +141,16 @@ export default function ProfileScreen() {
   const handleDiagnosticsTap = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push('/(profile)/diagnostics');
+  };
+
+  const handleCompanionTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/companion');
+  };
+
+  const handleAboutBuildTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/about-build');
   };
 
   const handleComingSoon = (title: string) => {
@@ -326,12 +337,33 @@ export default function ProfileScreen() {
               }}
             />
           </Animated.View>
+          {/* Change the spirit companion. It was a one-shot choice in
+              onboarding, which is the wrong call for a character you see on
+              every screen every day (device-test-8). */}
+          <Animated.View entering={rise(705)}>
+            <SettingsItem
+              emoji="🐾"
+              title={`Your companion · ${companion.name}`}
+              subtitle="Switch to a different spirit animal any time"
+              onPress={handleCompanionTap}
+            />
+          </Animated.View>
           <Animated.View entering={rise(710)}>
             <SettingsItem
               emoji="🎨"
               title="Theme"
               subtitle="Customize your look · coming soon"
               onPress={() => handleComingSoon('Theme')}
+            />
+          </Animated.View>
+          {/* Build identity. This was a floating badge over the Home hero; it
+              lives here now so the corner is free for the day ring. */}
+          <Animated.View entering={rise(795)}>
+            <SettingsItem
+              emoji="📦"
+              title="About this build"
+              subtitle={BUILD_LABEL}
+              onPress={handleAboutBuildTap}
             />
           </Animated.View>
           <Animated.View entering={rise(780)}>

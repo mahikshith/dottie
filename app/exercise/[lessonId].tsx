@@ -44,6 +44,7 @@ import { getCompanion } from '../../src/content/companions';
 import { getLesson } from '../../src/content/learning-paths';
 import { getExercisesForLesson } from '../../src/content/exercises';
 import { buildContext, wrapInsight } from '../../src/engine/content';
+import { nudgeForScore } from '../../src/engine/learn/encouragement';
 
 export default function ExerciseScreen() {
   const router = useRouter();
@@ -152,11 +153,13 @@ export default function ExerciseScreen() {
           <ResultCard
             summary={result}
             companionType={companionType}
+            // The line rotates through a pool rather than being one fixed
+            // sentence, and the LOW band actually invites another attempt
+            // (device-test-8). Keyed on attempts so it changes between runs but
+            // never mid-render. See src/engine/learn/encouragement.ts.
             celebration={wrapInsight(
               companionType,
-              result.correct === result.total
-                ? 'Flawless practice — you really know this!'
-                : `You got ${result.correct} of ${result.total}. Practice is how it sticks.`,
+              nudgeForScore(result.total > 0 ? result.correct / result.total : 0, result.total).text,
               context,
               result.correct === result.total ? 'celebrating' : 'supportive'
             )}
@@ -191,13 +194,33 @@ function ResultCard({
 }): JSX.Element {
   const { palette } = useAurora();
   const perfect = summary.correct === summary.total;
+  const score = summary.total > 0 ? summary.correct / summary.total : 0;
+
   return (
     <View style={styles.resultWrap}>
-      <CompanionLottie type={companionType} state={perfect ? 'celebrate' : 'proud'} size={120} loop={false} />
-      <Text style={[styles.resultBig, { color: palette.accent }]}>
-        {summary.correct}/{summary.total}
-      </Text>
-      <Text style={[styles.resultSub, { color: palette.ink2 }]}>{perfect ? 'Perfect practice!' : 'Nice work'}</Text>
+      {/* The companion's face is driven by the SCORE. It used to be
+          `perfect ? 'celebrate' : 'proud'`, so 1-of-3 got a full grin —
+          "even if the user got all the wrong answers ... still a smiley face"
+          (device-test-8). `stateForScore` bottoms out at 'caring': supportive,
+          visibly not pleased, never disappointed in the user. */}
+      <CompanionLottie
+        type={companionType}
+        state={perfect ? 'celebrate' : score >= 0.5 ? 'proud' : 'cozy'}
+        size={120}
+        loop={false}
+        moment={perfect ? 'confetti' : null}
+      />
+      {/* The score sits in its own block below the character. It used to ride
+          on the container's small gap and collided with the companion's feet
+          when the rig bobbed. */}
+      <View style={styles.resultScore}>
+        <Text style={[styles.resultBig, { color: palette.accent }]}>
+          {summary.correct}/{summary.total}
+        </Text>
+        <Text style={[styles.resultSub, { color: palette.ink2 }]}>
+          {perfect ? 'Perfect practice!' : score >= 0.5 ? 'Nice work' : 'Worth another go'}
+        </Text>
+      </View>
 
       <GlassCard style={styles.rewards}>
         <View style={styles.rewardItem}>
@@ -264,6 +287,8 @@ const styles = StyleSheet.create({
   title: { ...Typography.preset.h3, textAlign: 'center' },
 
   resultWrap: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.lg },
+  // Clear air under the character so the big numeral can never sit on it.
+  resultScore: { alignItems: 'center', gap: 2, marginTop: Spacing.base },
   resultBig: { ...Typography.preset.h1, fontSize: 52 },
   resultSub: { ...Typography.preset.body },
   rewards: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.md, alignSelf: 'stretch' },

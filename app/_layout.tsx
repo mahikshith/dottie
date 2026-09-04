@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, AppState } from 'react-native';
 import { Stack, usePathname } from 'expo-router';
+import { ThemeProvider, DarkTheme, type Theme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { Colors } from '../src/constants/colors';
@@ -17,7 +18,7 @@ import {
 } from '../src/diagnostics/logger';
 import { APP_VERSION } from '../src/constants/build-info';
 import { initEncryptedStorage } from '../src/database/storage';
-import { AuroraProvider } from '../src/theme';
+import { AuroraProvider, A } from '../src/theme';
 import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { AppDialogHost } from '../src/components/ui/appDialog';
 import { CelebrationHost } from '../src/components/ui/celebration/celebration';
@@ -99,6 +100,24 @@ SplashScreen.preventAutoHideAsync().catch(() => {
  *  tabs layout watches for the "just awarded" state and surfaces a
  *  one-time celebration on the user's first tab visit.
  */
+// ─── NAVIGATION THEME ────────────────────────────────────────────────
+//
+//  See the ThemeProvider comment in the tree below: this replaces Expo Router's
+//  default LIGHT theme, whose near-white container was the source of the
+//  one-frame white flash on every tab switch. `background` is what shows during
+//  a transition; `card` is the tab-bar / header container.
+const NAV_THEME: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: A.ground,
+    card: A.ground,
+    text: A.ink,
+    border: A.edge,
+    primary: A.accent,
+  },
+};
+
 export default function RootLayout() {
   // ─── Diagnostics (owner-requested shareable log) ────────────────
   //
@@ -304,6 +323,21 @@ export default function RootLayout() {
     // don't call useAurora() are unaffected, so this is safe to wrap now while
     // screens are themed one by one.
     <AuroraProvider>
+      {/* ─── THE NAVIGATION THEME — this is what kills the white flash ───
+          React Navigation paints its own container behind every screen and
+          behind the tab bar, using the theme's `colors.background` / `.card`.
+          Expo Router installs the LIGHT DefaultTheme unless you replace it, so
+          that container was rgb(242,242,242): a near-white sheet sitting one
+          layer under our dark screens. On a tab switch the outgoing screen is
+          detached a frame before the incoming one paints, and for that single
+          frame the container is what you see — the white glitch the owner has
+          reported across builds. Per-screen `contentStyle` and `sceneStyle`
+          could not fix it because they style the wrong layer.
+
+          NAV_THEME is DarkTheme with every surface colour forced to the aurora
+          ground, so there is nothing light left anywhere in the navigator to
+          flash through. */}
+      <ThemeProvider value={NAV_THEME}>
       {/* Force a SOLID dark strip under the OS status bar on Android.
           Device-test #3 kept reporting the time/battery icons + the
           punch-hole camera cutout showing through the aurora bloom.
@@ -340,6 +374,7 @@ export default function RootLayout() {
         />
       </Stack>
       </ErrorBoundary>
+      </ThemeProvider>
 
       {/* Ghost Mode overlay — renders the lock screen or decoy app
           above the navigation tree when ghost mode is engaged.

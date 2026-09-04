@@ -36,7 +36,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, PanResponder, type GestureResponderEvent } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
+import { findCycleOverlaps } from '../../src/engine/calendar/cycle-overlap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -132,6 +134,15 @@ export default function CalendarScreen() {
   const [sisterDaysByMember, setSisterDaysByMember] = useState<Record<string, string[]>>({});
   const [sisterVersion, setSisterVersion] = useState(0);
   const [logTargetId, setLogTargetId] = useState<string | null>(null);
+
+  // Deep link from a sister's profile: /(tabs)/calendar?logFor=<memberId>.
+  // The sisterhood screens no longer own a date picker — "Log a period day"
+  // brings you HERE with that sister already selected, so there is exactly one
+  // calendar in the app (device-test-8).
+  const { logFor } = useLocalSearchParams<{ logFor?: string }>();
+  useEffect(() => {
+    if (typeof logFor === 'string' && logFor.length > 0) setLogTargetId(logFor);
+  }, [logFor]);
 
   useEffect(() => {
     const all = Storage.dayPlans.getAll();
@@ -390,6 +401,26 @@ export default function CalendarScreen() {
       cancelled = true;
     };
   }, [overlaySisters, viewedMonth, sisterVersion]);
+
+  // Where your predicted days and a sister's could land together. Pure engine
+  // (findCycleOverlaps), tested by npm run test:overlap. Reports a scheduling
+  // fact about two predictions — never a claim that cycles "sync".
+  const cycleOverlaps = useMemo(
+    () =>
+      findCycleOverlaps({
+        userPredictedStart: latestPrediction?.predictedNextPeriod ?? null,
+        userPeriodLengthDays: userHealth?.averagePeriodLength ?? null,
+        userWindowDays: latestPrediction?.windowDays ?? 2,
+        sisters: overlaySisters.map((v) => ({
+          memberId: v.memberId,
+          displayName: v.displayName,
+          emoji: v.emoji,
+          predictedNextPeriod: v.predictedNextPeriod,
+        })),
+        today: formatISO(new Date()),
+      }),
+    [latestPrediction, userHealth, overlaySisters]
+  );
 
   const sisterOverlay = useMemo(
     () =>
@@ -697,6 +728,49 @@ export default function CalendarScreen() {
           </PressableScale>
         </Animated.View>
 
+        {/* WHOSE SCIENCE AM I LOOKING AT? When a sister is selected for
+            logging, the panel below describes HER — otherwise the whole screen
+            switches to her days while the explanation underneath still talks
+            about you, which is the inconsistency the owner flagged
+            (device-test-8). We show what her data actually supports (next
+            predicted days, where she is in her cycle) rather than dressing up a
+            distribution we don't have the history to compute. */}
+        {logTarget && (
+          <Animated.View
+            entering={rise(60)}
+            style={[styles.sisterPanel, { borderColor: `${A.gold}55`, backgroundColor: `${A.gold}12` }]}
+          >
+            <Text style={[styles.sisterPanelTitle, { color: palette.ink }]}>
+              {logTarget.emoji} {logTarget.displayName}&apos;s cycle
+            </Text>
+            <Text style={[styles.sisterPanelBody, { color: palette.ink2 }]}>
+              {sisterCycleLine(logTarget)}
+            </Text>
+            <Text style={[styles.sisterPanelNote, { color: palette.ink3 }]}>
+              Her prediction uses the days you&apos;ve marked for her here. The
+              full model below — the window, the spread, the graphs — is yours.
+            </Text>
+          </Animated.View>
+        )}
+
+        {/* Overlapping windows. Only rendered when there IS an overlap: a
+            "nothing coincides" message is not news. */}
+        {cycleOverlaps.length > 0 && (
+          <Animated.View
+            entering={rise(80)}
+            style={[styles.overlapCard, { borderColor: `${palette.accent2}55`, backgroundColor: `${palette.accent2}12` }]}
+          >
+            <Text style={[styles.overlapTitle, { color: palette.ink }]}>
+              🗓️ Same days coming up
+            </Text>
+            {cycleOverlaps.slice(0, 3).map((o) => (
+              <Text key={o.memberId} style={[styles.overlapBody, { color: palette.ink2 }]}>
+                {o.summary}
+              </Text>
+            ))}
+          </Animated.View>
+        )}
+
         {/* How this prediction is made — the dynamic explainer card. ALWAYS
             renders: with a period logged it explains the live prediction; with
             none it explains what will be used and still draws the figures.
@@ -803,17 +877,64 @@ function DayCell({
       {/* Sister marker — a slim gold bar, deliberately NOT one of the phase
           hues so "someone I care for" never reads as one of my own phases.
           Solid = she logged it, faded = it's her predicted window. */}
+      {/* A sister's day is marked with a CURVE cradling the date, not the flat
+          underscore it used to be (device-test-8: "instead of adding a white
+          underscore thing, we could add a simply curvy thing"). A straight bar
+          under a number reads as an underline — a typographic mark, i.e. part
+          of the text. An arc reads as an object placed around the day, so it
+          separates from the numeral instead of competing with it, and it echoes
+          the rounded language of the tab pill and the cells themselves.
+          Logged days get a solid stroke, predicted ones a dashed, lighter one —
+          the same solid/dashed grammar the user's own days use. */}
       {cell.inMonth && sisterMark ? (
-        <View
-          style={[
-            styles.daySisterBar,
-            { backgroundColor: A.gold, opacity: sisterMark === 'logged' ? 1 : 0.45 },
-          ]}
-        />
+        <Svg
+          width={SISTER_ARC_W}
+          height={SISTER_ARC_H}
+          style={styles.daySisterArc}
+          pointerEvents="none"
+        >
+          <Path
+            d={SISTER_ARC_PATH}
+            stroke={A.gold}
+            strokeWidth={2}
+            strokeLinecap="round"
+            fill="none"
+            opacity={sisterMark === 'logged' ? 1 : 0.5}
+            strokeDasharray={sisterMark === 'predicted' ? '3,3' : undefined}
+          />
+        </Svg>
       ) : null}
     </PressableScale>
   );
 }
+
+/**
+ * One line describing where a sister is, from the fields her privacy level
+ * actually exposes. Deliberately narrow: we say what we know and nothing more.
+ */
+function sisterCycleLine(v: {
+  displayName: string;
+  currentPhase: string | null;
+  dayInCycle: number | null;
+  predictedNextPeriod: string | null;
+}): string {
+  const bits: string[] = [];
+  if (v.dayInCycle !== null) bits.push(`Day ${v.dayInCycle} of her cycle`);
+  if (v.currentPhase) bits.push(`${v.currentPhase} phase`);
+  if (v.predictedNextPeriod) {
+    bits.push(`next period likely around ${formatFriendlyDate(v.predictedNextPeriod)}`);
+  }
+  if (bits.length === 0) {
+    return `Mark a few of ${v.displayName}'s days on this calendar and her rhythm starts to show here.`;
+  }
+  return `${bits.join(' · ')}.`;
+}
+
+// The sister-day arc: a shallow smile under the date. Drawn once as a constant
+// path so every cell shares it rather than re-deriving a string per render.
+const SISTER_ARC_W = 20;
+const SISTER_ARC_H = 7;
+const SISTER_ARC_PATH = `M1,1 Q${SISTER_ARC_W / 2},${SISTER_ARC_H} ${SISTER_ARC_W - 1},1`;
 
 function LegendChip({
   color,
@@ -1138,13 +1259,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 3,
   },
-  daySisterBar: {
+  daySisterArc: {
     position: 'absolute',
-    bottom: 5,
-    width: 16,
-    height: 3,
-    borderRadius: 2,
+    bottom: 3,
   },
+  // "Whose cycle is this?" panel, shown while logging for a sister.
+  sisterPanel: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.cardPadding,
+    gap: 6,
+    marginBottom: Spacing.base,
+  },
+  sisterPanelTitle: { ...Typography.preset.bodySemibold },
+  sisterPanelBody: { ...Typography.preset.caption, lineHeight: 18 },
+  sisterPanelNote: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16 },
+  // Overlapping predicted windows.
+  overlapCard: {
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.cardPadding,
+    gap: 6,
+    marginBottom: Spacing.base,
+  },
+  overlapTitle: { ...Typography.preset.bodySemibold },
+  overlapBody: { ...Typography.preset.caption, lineHeight: 18 },
   // "Who am I logging for" chips + banner.
   whoRow: {
     flexDirection: 'row',

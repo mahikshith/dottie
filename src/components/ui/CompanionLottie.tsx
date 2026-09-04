@@ -27,7 +27,6 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { CompanionCreature } from './creature/CompanionCreature';
 import type { CreatureState } from './creature/expressions';
 import {
-  getCompanionLottie,
   getMomentLottie,
   type CompanionAnim,
   type MomentAnim,
@@ -61,44 +60,41 @@ export function CompanionLottie({
   style,
 }: CompanionLottieProps): JSX.Element {
   const reduce = useReducedMotion();
-  const asset = getCompanionLottie(type, state);
 
-  // ── Expressive states use the DRAWN RIG, not the Lottie ────────────
-  // Every companion .json is ONE happy performance, so routing 'sad'/'proud'/
-  // 'celebrate' through it made the character look identical everywhere —
-  // exactly the "it's always happy" the owner reported. Tempo alone can't carry
-  // an emotion. The rig has real faces (brows, eye openness, mouth curve), so
-  // any state that must READ differently is drawn, and the licensed art is kept
-  // for the neutral idle where its motion quality is the point.
-  const EXPRESSIVE = state !== 'idle';
+  // ── ONE COMPANION, ONE LOOK, EVERY EXPRESSION ─────────────────────
+  //
+  //  The character is ALWAYS the drawn rig now. The previous build sent `idle`
+  //  to a Noto Animated Emoji file and every other state to the rig — two
+  //  completely different drawings of the same animal. So the moment the user
+  //  logged a mood, their orange emoji cat was replaced by the rig's grey cat
+  //  and it read as "a different spirit companion showed up" (device-test-8).
+  //  Worse, the emoji file is a single fixed grin: picking Nyx and getting only
+  //  a smiley patch was exactly that file.
+  //
+  //  A companion the user chose has to be recognisably the same creature on
+  //  every screen and in every mood, and it has to be able to look sad. Only
+  //  the rig can do both — it draws one body per species and moves the brows,
+  //  eye openness and mouth per state (`expressionFor`). So the rig is no
+  //  longer the fallback; it IS the companion.
+  //
+  //  The licensed Noto art is still used, but only for MOMENT overlays
+  //  (confetti, mind-blown, hug) — those are companion-agnostic effects where a
+  //  fixed performance is the right thing, and they play as a corner badge so
+  //  they never cover the face.
+  const intensity = STATE_INTENSITY[state] ?? 1;
 
-  // ── Reduce Motion: a STILL but correctly-EXPRESSED pose ────────────
-  // A paused Lottie freezes on whatever frame it starts at, which may show the
-  // character mid-blink and reads as broken. The drawn rig can hold a real
-  // expression without moving, so it's the better still.
-  if (reduce || asset == null || EXPRESSIVE) {
-    return (
-      <View style={[{ width: size, height: size }, styles.center, style]}>
-        <CompanionCreature type={type} state={ANIM_TO_STATE[state]} size={size} />
-      </View>
-    );
-  }
-
-  // ── Illustrated path: real open-source Lottie art ──────────────────
-  // Each companion file is ONE looping performance (Noto Animated Emoji can't
-  // pull a sad face), so the EMOTION is carried around it: the tempo changes,
-  // and a moment animation plays over the top for the peaks.
+  // The moment overlay is the only Lottie left on this path.
   const overlay = moment === null ? null : getMomentLottie(moment ?? DEFAULT_MOMENT[state] ?? 'confetti');
-  const showOverlay = moment !== null && (moment !== undefined || DEFAULT_MOMENT[state] !== undefined);
+  const showOverlay =
+    !reduce && moment !== null && (moment !== undefined || DEFAULT_MOMENT[state] !== undefined);
 
   return (
     <View style={[{ width: size, height: size }, styles.center, style]}>
-      <LottieView
-        source={asset as LottieViewProps['source']}
-        autoPlay
-        loop={loop}
-        speed={STATE_SPEED[state]}
-        style={{ width: size, height: size }}
+      <CompanionCreature
+        type={type}
+        state={ANIM_TO_STATE[state]}
+        intensity={intensity}
+        size={size}
       />
       {showOverlay && overlay != null && (
         // A corner BADGE, not a full-size layer. Playing it at the character's
@@ -121,17 +117,19 @@ export function CompanionLottie({
 }
 
 /**
- * Playback tempo per state. This is most of what makes one performance read as
- * several: a companion that idles calmly, quickens when pleased, and slows right
- * down on a low day is doing real emotional work with one asset.
+ * How STRONGLY the rig plays each state (`expressionFor(state, intensity)`
+ * scales brow tilt, eye openness, mouth curve and bounce by this). A low day is
+ * deliberately gentle rather than a big sad performance — someone who just
+ * logged "rough" should not be emoted at.
  */
-const STATE_SPEED: Record<CompanionAnim, number> = {
-  idle: 1,
-  encourage: 1.2,
-  proud: 1.1,
-  celebrate: 1.6,
-  cozy: 0.6,
-  sad: 0.55,
+// (`expressionFor` clamps to 0..1, so 1 is the full performance.)
+const STATE_INTENSITY: Record<CompanionAnim, number> = {
+  idle: 0.7,
+  encourage: 1,
+  proud: 1,
+  celebrate: 1,
+  cozy: 0.8,
+  sad: 0.85,
 };
 
 /** The moment animation a state gets when the caller doesn't specify one. */
@@ -140,15 +138,14 @@ const DEFAULT_MOMENT: Partial<Record<CompanionAnim, MomentAnim>> = {
 };
 
 /**
- * The Lottie manifest's animation names map onto the creature rig's emotional
- * states, used for the Reduce-Motion still. Explicit so a new state can't
- * silently fall through to a wrong expression.
+ * Animation names map onto the creature rig's emotional states. Explicit so a
+ * new state can't silently fall through to a wrong expression.
  */
 const ANIM_TO_STATE: Record<CompanionAnim, CreatureState> = {
   idle: 'idle',
   celebrate: 'celebrate',
   encourage: 'happy',
-  cozy: 'sleepy',
+  cozy: 'caring',
   proud: 'proud',
   sad: 'sad',
 };

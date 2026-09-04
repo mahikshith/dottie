@@ -27,6 +27,7 @@ export type CreatureState =
   | 'celebrate' // a win
   | 'mindblown' // an EXCEPTIONAL result — the 100%+ moment
   | 'sad'       // gentle, low
+  | 'caring'    // "I'm with you" — soft, attentive, NOT a grin
   | 'sleepy'    // dormant / long absence
   | 'love';     // affectionate
 
@@ -116,6 +117,13 @@ export function expressionFor(state: CreatureState, intensity = 1): Expression {
       };
     case 'sad':
       return { ...BASE, eyeOpen: 0.55, pupilScale: 1.15, mouthCurve: -0.5 - 0.2 * k, blush: 0.1, browTilt: -0.8, bounce: 0.4, tempo: 0.7, tilt: -5 };
+    // The face for a rough result. It must not grin (that reads as the app
+    // not noticing you struggled) and it must not be sad (that reads as
+    // disappointment in you). Empathy is drawn with the INNER brows lifted and
+    // a small, steady mouth — attentive, warm, unhurried. Device-test-8: a low
+    // quiz score was showing 'proud', a full grin.
+    case 'caring':
+      return { ...BASE, eyeOpen: 0.78, pupilScale: 1.1, mouthCurve: 0.18 + 0.1 * k, blush: 0.28, browTilt: -0.35, bounce: 0.5, tempo: 0.85, tilt: 4 };
     case 'sleepy':
       return { ...BASE, eyeOpen: 0.12, pupilScale: 0.8, mouthCurve: 0.1, blush: 0.2, browTilt: -0.2, bounce: 0.35, tempo: 0.55, tilt: 6 };
     case 'love':
@@ -140,8 +148,11 @@ export function stateForScore(scorePct: number): CreatureState {
   if (scorePct >= 80) return 'celebrate';
   if (scorePct >= 60) return 'proud';
   if (scorePct >= 40) return 'happy';
-  if (scorePct >= 20) return 'idle';
-  return 'sad';
+  // The bottom of the ladder is 'caring', not 'idle' or 'sad' (device-test-8:
+  // a 1-of-3 result was showing a full grin). Blank reads as the app not
+  // noticing; sad reads as disappointment in the user. Neither is what someone
+  // who just got most of a quiz wrong needs to see.
+  return 'caring';
 }
 
 /** How strongly to play the state, from the score within its band. */

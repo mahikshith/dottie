@@ -75,8 +75,7 @@ export interface CompanionScoreReactionProps {
   size?: number;
   /** Colour for the headline (usually the result accent). */
   headlineColor: string;
-  /** Optional sub-headline colour for the badge ring. */
-  badgeBg: string;
+
 }
 
 export function CompanionScoreReaction({
@@ -84,7 +83,6 @@ export function CompanionScoreReaction({
   score,
   size = 128,
   headlineColor,
-  badgeBg,
 }: CompanionScoreReactionProps): JSX.Element {
   const reduce = useReducedMotion();
   const r = reactionForScore(score);
@@ -119,10 +117,6 @@ export function CompanionScoreReaction({
     transform: [{ scale: 0.6 + pop.value * 0.4 }, { translateY: bob.value }],
     opacity: pop.value,
   }));
-  const badgeStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: reduce ? 1 : pop.value }],
-    opacity: pop.value,
-  }));
 
   return (
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={r.headline}>
@@ -141,12 +135,12 @@ export function CompanionScoreReaction({
             moment={score >= 1 ? 'quiz_perfect' : score >= 0.8 ? 'confetti' : null}
           />
         </Animated.View>
-        <Animated.View
-          style={[styles.badge, { backgroundColor: badgeBg, borderColor: headlineColor }, badgeStyle]}
-          pointerEvents="none"
-        >
-          <Text style={styles.badgeText}>{r.badge}</Text>
-        </Animated.View>
+        {/* The emoji badge that used to ride here (🤯/🎉/💪/🫂) is gone. It
+            existed to carry an emotion the old emoji companion could not show;
+            the rig now has real brows, eye openness and mouth curve, so the
+            badge was a SECOND face competing with the first — part of the
+            "different companion showed up" confusion in device-test-8. The
+            `badge` value stays on ScoreReaction for screen-reader copy. */}
       </View>
       <Text style={[styles.headline, { color: headlineColor }]}>{r.headline}</Text>
     </View>
@@ -155,17 +149,5 @@ export function CompanionScoreReaction({
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center' },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -6,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: { fontSize: 20 },
   headline: { ...Typography.preset.h3, marginTop: Spacing.sm, textAlign: 'center' },
 });

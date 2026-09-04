@@ -18,6 +18,21 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
+### Round 8 landed (2026-09-04) — awaiting device confirmation
+
+`docs/DEVICE-TEST-8.md` has the per-bug detail. Headlines:
+- **The white tab-switch flash was the NAVIGATION THEME.** Expo Router installs
+  React Navigation's light `DefaultTheme`, so the container behind every screen
+  was `rgb(242,242,242)`. `contentStyle`/`sceneStyle` could never fix it — wrong
+  layer. `NAV_THEME` in `app/_layout.tsx` now forces every navigator surface to
+  the aurora ground.
+- **One companion everywhere.** The rig is the companion in every state; the
+  Noto emoji files are moment overlays only. Change it at You → Your companion.
+- **Sisterhood has no date picker.** `shadow-log/[id]/period` deleted; "Log a
+  period day" deep-links to `/(tabs)/calendar?logFor=<memberId>`.
+- New pure engines: `encouragement.ts` (rotating nudges), `cycle-overlap.ts`
+  (your window vs a sister's — never claims cycles "sync").
+
 ### The period-log freeze is FIXED (root cause found, 2026-09-03)
 
 It was never a UI bug. `addDay()` in `cycle.repo.ts` parsed a date as **local**
@@ -53,7 +68,8 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
   `test:adaptive` (17), `test:rhythm` (22), `test:predictor` (14 scenarios),
   `test:journey` (10), `test:explainer`, `test:sister` (11), `test:blocks` (12),
   `test:dedupe` (6), `test:diag` (7), `test:creature`, `test:charts` (12),
-  `test:dates` (8 timezones — the freeze regression), `audit:ui` (167 tappables). `npm run simulate` is eyeball-only.
+  `test:dates` (8 timezones — the freeze regression), `test:nudges`,
+  `test:overlap`, `audit:ui`. 14 suites. `npm run simulate` is eyeball-only.
 - **On-device runtime = the GitHub Actions APK.** Push to `gemini-v2` without
   `[skip ci]` → build. `[skip ci]` **on the tip commit skips the whole push** —
   keep a code commit last. Owner downloads via the GitHub mobile app
@@ -130,7 +146,8 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 
 ## 5. Companion docs (open only when named)
 
-`DEVICE-TEST-7.md` (latest round + the open freeze) · `DEVICE-TEST-6.md`
+`DEVICE-TEST-8.md` (latest round) · `DEVICE-TEST-7.md` (the freeze post-mortem)
+· `DEVICE-TEST-6.md`
 (previous round, incl. the two wrong freeze diagnoses) · `DEVICE-TEST-3.md` ·
 `FEATURES-AND-RESEARCH.md` (predictor math, aurora system) · `DAY-SUGGESTIONS.md`
 · `ONBOARDING-AND-WALKTHROUGH.md` · `PREDICTION-EXPLAINER-PLAN.md` ·
