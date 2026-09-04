@@ -50,6 +50,7 @@ import {
   isDbMigrated,
   markDbMigrated,
 } from '../security/keychain';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────
 
@@ -355,7 +356,7 @@ async function getEncryptionKey(): Promise<string | null> {
     // build require a key for an encrypted file, this only matters on a fresh
     // (empty) DB, where it degrades to plaintext rather than bricking. Logged
     // so it's visible in dev.
-    if (__DEV__) console.warn('[DB] could not obtain encryption key:', err);
+    logSilentFailure('db.couldNotObtainEncryptionKey', err);
     return null;
   }
 }

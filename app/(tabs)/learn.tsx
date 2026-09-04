@@ -88,6 +88,7 @@ import { resolveSubPhase } from '../../src/engine/calendar/day-suggestions';
 import { selectSpotlightLessons } from '../../src/engine/learn/phase-aware-selector';
 import { TodaySpotlightCard } from '../../src/components/learn/TodaySpotlightCard';
 import { recordVisit as recordRhythmVisit } from '../../src/engine/learn/gentle-rhythm';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 // Stable empty array so a null healthProfile doesn't churn the selector.
 const EMPTY_CONDITIONS: HealthCondition[] = [];
@@ -245,7 +246,7 @@ export default function LearnScreen() {
         setProgressMap(map);
       })
       .catch((err) => {
-        if (__DEV__) console.warn('[Learn] getAllLessonProgress failed:', err);
+        logSilentFailure('learn.getAllLessonProgress', err);
       });
     return () => {
       cancelled = true;

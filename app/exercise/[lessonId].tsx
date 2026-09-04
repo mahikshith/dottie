@@ -45,6 +45,7 @@ import { getLesson } from '../../src/content/learning-paths';
 import { getExercisesForLesson } from '../../src/content/exercises';
 import { buildContext, wrapInsight } from '../../src/engine/content';
 import { nudgeForScore } from '../../src/engine/learn/encouragement';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 export default function ExerciseScreen() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function ExerciseScreen() {
         await useGamificationStore.getState().earnGems('quiz_complete');
       }
     } catch (err) {
-      if (__DEV__) console.warn('[Exercise] reward failed:', err);
+      logSilentFailure('exercise.reward', err);
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   };

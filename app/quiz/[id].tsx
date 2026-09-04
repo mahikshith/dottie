@@ -32,6 +32,7 @@ import type {
   SubmitAnswerResult,
   QuizResult,
 } from '../../src/engine/content';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 // Fixed aurora (Nocturne) tokens for this focused task screen. The live-palette
 // ground still comes from <AuroraBackground>; the cards are glass (which reads
@@ -257,7 +258,7 @@ export default function QuizScreen() {
         });
       }
     } catch (err) {
-      if (__DEV__) console.warn('[Quiz] reward award failed:', err);
+      logSilentFailure('quiz.rewardAward', err);
     }
 
     Haptics.notificationAsync(

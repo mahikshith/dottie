@@ -62,6 +62,7 @@ import {
 import { useUserStore } from './useUserStore';
 import { useGamificationStore } from './useGamificationStore';
 import { moderateContent } from '../engine/community/moderation';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -194,7 +195,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
       }));
       return posts;
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] fetchFeed failed:', err);
+      logSilentFailure('community.fetchFeed', err);
       set({ isFetchingFeed: false });
       return [];
     }
@@ -217,7 +218,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
       }));
       return replies;
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] fetchReplies failed:', err);
+      logSilentFailure('community.fetchReplies', err);
       return [];
     }
   },
@@ -296,7 +297,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
         gemsAwarded: gemResult.gemsAwarded,
       };
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] createPost failed:', err);
+      logSilentFailure('community.createPost', err);
       set({ isCreatingPost: false });
       return {
         ok: false,
@@ -377,7 +378,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
         gemsAwarded: gemResult.gemsAwarded,
       };
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] createReply failed:', err);
+      logSilentFailure('community.createReply', err);
       return {
         ok: false,
         reason: 'unknown',
@@ -435,7 +436,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
 
       return result;
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] toggleHug failed:', err);
+      logSilentFailure('community.toggleHug', err);
       return { hugged: false, newCount: 0 };
     }
   },
@@ -492,7 +493,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
           : 'You&apos;ve already reported this. We&apos;re on it. 💛',
       };
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] submitReport failed:', err);
+      logSilentFailure('community.submitReport', err);
       return {
         submitted: false,
         nowHidden: false,
@@ -517,7 +518,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
         await communityRepository.seedSamplePosts(userId, SAMPLE_SEED_POSTS);
       }
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] seed failed:', err);
+      logSilentFailure('community.seed', err);
     } finally {
       set({ seedChecked: true });
     }
@@ -547,7 +548,7 @@ export const useCommunityStore = create<CommunityStoreState>((set, get) => ({
         hydrated: true,
       });
     } catch (err) {
-      if (__DEV__) console.warn('[CommunityStore] refresh interactions failed:', err);
+      logSilentFailure('community.refreshInteractions', err);
       set({ hydrated: true });
     }
   },

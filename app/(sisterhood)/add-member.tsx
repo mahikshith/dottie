@@ -38,6 +38,7 @@ import { WizardStepIndicator } from '../../src/components/sisterhood/WizardStepI
 import { KindCard } from '../../src/components/sisterhood/KindCard';
 import { EmojiPicker } from '../../src/components/sisterhood/EmojiPicker';
 import { PrivacyLevelCard } from '../../src/components/sisterhood/PrivacyLevelCard';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 /**
  * Add-Member Wizard
@@ -274,7 +275,7 @@ export default function AddMemberScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setStep('celebration');
     } catch (err) {
-      if (__DEV__) console.warn('[Wizard] addMember failed:', err);
+      logSilentFailure('wizard.addMember', err);
       showAppDialog({
         emoji: '😅',
         title: 'Something gentle went sideways',

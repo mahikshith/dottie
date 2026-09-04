@@ -235,7 +235,7 @@ export default function MemberDetailScreen() {
               await useSisterhoodStore.getState().removeMember(memberId);
               router.back();
             } catch (err) {
-              if (__DEV__) console.warn('[Sisterhood] remove failed:', err);
+              logSilentFailure('sisterhood.remove', err);
             }
           },
         },

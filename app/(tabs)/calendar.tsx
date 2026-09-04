@@ -202,7 +202,7 @@ export default function CalendarScreen() {
         if (!cancelled) setPeriodDays(new Set(days));
       })
       .catch((err) => {
-        if (__DEV__) console.warn('[Calendar] getPeriodDaysInRange failed:', err);
+        logSilentFailure('calendar.getPeriodDaysInRange', err);
       });
 
     return () => {
@@ -276,7 +276,7 @@ export default function CalendarScreen() {
       );
       setPeriodDays(new Set(days));
     } catch (err) {
-      if (__DEV__) console.warn('[Calendar] getPeriodDaysInRange failed:', err);
+      logSilentFailure('calendar.getPeriodDaysInRange', err);
     }
   };
 
@@ -376,7 +376,7 @@ export default function CalendarScreen() {
       log.action('logPeriodDay:done');
     } catch (err) {
       log.error('logPeriodDay failed', { message: String(err) });
-      if (__DEV__) console.warn('[Calendar] logPeriodDay failed:', err);
+      logSilentFailure('calendar.logPeriodDay', err);
     }
   };
 
@@ -400,7 +400,7 @@ export default function CalendarScreen() {
       log.action('unlogPeriodDay:done');
     } catch (err) {
       log.error('unlogPeriodDay failed', { message: String(err) });
-      if (__DEV__) console.warn('[Calendar] unlogPeriodDay failed:', err);
+      logSilentFailure('calendar.unlogPeriodDay', err);
     }
   };
 
@@ -501,7 +501,7 @@ export default function CalendarScreen() {
         if (!cancelled) setSisterDaysByMember(Object.fromEntries(pairs));
       })
       .catch((err) => {
-        if (__DEV__) console.warn('[Calendar] sister period days failed:', err);
+        logSilentFailure('calendar.sisterPeriodDays', err);
       });
     return () => {
       cancelled = true;

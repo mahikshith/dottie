@@ -39,6 +39,7 @@ import {
 import { cycleRepository } from '../database/repositories/cycle.repo';
 import { checkinRepository } from '../database/repositories/checkin.repo';
 import { useUserStore } from './useUserStore';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -125,7 +126,7 @@ export const useReportStore = create<ReportStoreState>((set) => ({
       return data;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (__DEV__) console.warn('[ReportStore] generateReport failed:', message);
+      logSilentFailure('report.generateReport', message);
       set({ isGenerating: false, lastError: message });
       throw err;
     }

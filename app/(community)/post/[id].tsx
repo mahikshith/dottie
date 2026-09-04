@@ -42,6 +42,7 @@ import {
 } from '../../../src/types/community.types';
 import { getCompanion } from '../../../src/content/companions';
 import { communityRepository } from '../../../src/database/repositories/community.repo';
+import { logSilentFailure } from '../../../src/diagnostics/silent-failure';
 
 /**
  * Post Detail Screen — Read a post + its replies, add your own reply,
@@ -120,7 +121,7 @@ export default function PostDetailScreen() {
         const fetched = await communityRepository.getPost(id);
         if (!cancelled) setPost(fetched);
       } catch (err) {
-        if (__DEV__) console.warn('[PostDetail] load failed:', err);
+        logSilentFailure('postDetail.load', err);
       } finally {
         if (!cancelled) setLoadingPost(false);
       }

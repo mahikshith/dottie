@@ -27,6 +27,7 @@
 import { Storage } from '../../database/storage';
 import { ContentBundle, validateContentBundle } from './content-bundle';
 import { remoteContentStore } from './remote-content-store';
+import { logSilentFailure } from '../../diagnostics/silent-failure';
 
 /**
  * How a bundle is obtained. Receives ONLY the current cached version (so the
@@ -67,7 +68,9 @@ export class ContentUpdater {
 
     const v = validateContentBundle(incoming);
     if (!v.ok) {
-      if (__DEV__) console.warn('[ContentUpdater] rejected invalid bundle:', v.errors.slice(0, 5));
+      // Not an Error object — logSilentFailure would record "unknown" and lose
+      // the reason a bundle was refused, which is the only thing worth keeping.
+      logSilentFailure('contentUpdater.rejectedBundle', v.errors.slice(0, 5).join(' | '));
       return { applied: false, reason: 'invalid', errors: v.errors };
     }
 

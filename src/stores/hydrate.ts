@@ -89,6 +89,7 @@ import { useContentStore } from './useContentStore';
 import { useCommunityStore } from './useCommunityStore';
 import { usePhaseWeatherStore } from './usePhaseWeatherStore';
 import { usePredictsStore } from './usePredictsStore';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── PUBLIC API ──────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ async function doHydrate(): Promise<HydrationResult> {
   try {
     usePhaseWeatherStore.getState().ensureToday();
   } catch (err) {
-    if (__DEV__) console.warn('[Hydration] phase weather warm failed:', err);
+    logSilentFailure('hydration.phaseWeatherWarm', err);
   }
 
   // ─── 7. Warm Dottie Predicts (chunk 10 B3) ──────────────────────
@@ -284,7 +285,7 @@ async function doHydrate(): Promise<HydrationResult> {
   // → ensureTables(); we ignore the returned number.
   if (IS_BETA_BUILD) {
     void betaFeedbackRepository.count().catch((err) => {
-      if (__DEV__) console.warn('[Hydration] feedback table warm failed:', err);
+      logSilentFailure('hydration.feedbackTableWarm', err);
     });
   }
 
@@ -457,7 +458,7 @@ async function maybeRunDailyRollover(
     try {
       await gamificationRepository.resetDailyFlags(userId);
     } catch (err) {
-      if (__DEV__) console.warn('[Hydration] resetDailyFlags failed:', err);
+      logSilentFailure('hydration.resetDailyFlags', err);
     }
   }
 
@@ -471,7 +472,7 @@ async function maybeRunDailyRollover(
   try {
     usePhaseWeatherStore.getState().invalidate();
   } catch (err) {
-    if (__DEV__) console.warn('[Hydration] phase weather invalidate failed:', err);
+    logSilentFailure('hydration.phaseWeatherInvalidate', err);
   }
 
   // Invalidate Dottie Predicts so insights re-rank for today.
@@ -479,7 +480,7 @@ async function maybeRunDailyRollover(
   try {
     usePredictsStore.getState().invalidate();
   } catch (err) {
-    if (__DEV__) console.warn('[Hydration] dottie predicts invalidate failed:', err);
+    logSilentFailure('hydration.dottiePredictsInvalidate', err);
   }
 
   Storage.lastDailyResetDate.set(today);

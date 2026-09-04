@@ -30,6 +30,7 @@ import {
   TRANSFER_CODE_TTL_HOURS,
 } from '../../../../src/types/sisterhood.types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logSilentFailure } from '../../../../src/diagnostics/silent-failure';
 
 /**
  * Transfer-Code Handoff Sheet
@@ -99,7 +100,7 @@ export default function TransferScreen() {
         ).catch(() => {});
         setTransferCode(code);
       } catch (err) {
-        if (__DEV__) console.warn('[Transfer] generate failed:', err);
+        logSilentFailure('transfer.generate', err);
         if (!cancelled) setError("Couldn't generate a code right now. Please try again.");
       } finally {
         if (!cancelled) setIsGenerating(false);
@@ -153,7 +154,7 @@ export default function TransferScreen() {
         title: `Your Dottie transfer code`,
       });
     } catch (err) {
-      if (__DEV__) console.warn('[Transfer] share failed:', err);
+      logSilentFailure('transfer.share', err);
     }
   };
 

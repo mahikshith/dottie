@@ -48,6 +48,7 @@ import type {
   PredictionExplanation,
 } from '../../engine/prediction/explain-prediction';
 import type { CycleRecord, HealthProfile } from '../../types/cycle.types';
+import { logSilentFailure } from '../../diagnostics/silent-failure';
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ export function PredictionExplainerCard({
         predictionErrors,
       });
     } catch (err) {
-      if (__DEV__) console.warn('[Explainer] local recompute failed:', err);
+      logSilentFailure('explainer.localRecompute', err);
       return null;
     }
   }, [storeExplanation, user, lastPeriodStart, cycleHistory, predictionErrors, todayCheckIn, subject]);

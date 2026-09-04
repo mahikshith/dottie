@@ -37,6 +37,7 @@ import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
 import { useWalkthroughStore, STEPS, selectWalkthroughStep } from './store';
 import { Storage } from '../database/storage';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 /**
  * One-time hint shown after a user SKIPS the tour, telling them
@@ -66,7 +67,7 @@ export function WalkthroughOverlay(): JSX.Element | null {
       try {
         router.push(step.routeToTab);
       } catch (err) {
-        if (__DEV__) console.warn('[Walkthrough] route push failed:', err);
+        logSilentFailure('walkthrough.routePush', err);
       }
     }
   }, [step, router]);

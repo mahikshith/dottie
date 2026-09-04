@@ -23,6 +23,7 @@ import { AuroraBackground, GlassCard, PressableScale } from '../../src/component
 import { showAppDialog } from '../../src/components/ui/appDialog';
 import { useAurora } from '../../src/theme';
 import { useUserStore } from '../../src/stores';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 const PROMISES: { emoji: string; title: string; body: string }[] = [
   { emoji: '📱', title: 'On your device, not our servers', body: 'Your cycle, symptoms and notes are stored on this phone. Dottie has no account, no cloud copy of your health data.' },
@@ -56,7 +57,7 @@ export default function PrivacyScreen() {
             try {
               await useUserStore.getState().deleteAccount();
             } catch (err) {
-              if (__DEV__) console.warn('[Privacy] deleteAccount failed:', err);
+              logSilentFailure('privacy.deleteAccount', err);
             }
             // Everything is wiped (incl. onboarding flag) → back to a fresh start.
             router.replace('/');

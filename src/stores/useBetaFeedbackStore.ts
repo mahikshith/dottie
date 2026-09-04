@@ -43,6 +43,7 @@ import {
 import { betaFeedbackRepository } from '../database/repositories/beta-feedback.repo';
 import { deliverFeedback } from '../services/feedback-transport';
 import { Storage } from '../database/storage';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ export const useBetaFeedbackStore = create<BetaFeedbackStoreState>((set, get) =>
       return finalRecord;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Something went wrong';
-      if (__DEV__) console.error('[BetaFeedbackStore] send failed:', err);
+      logSilentFailure('betaFeedback.send', err);
       set({
         isSending: false,
         validationError: `Couldn't save your feedback. ${message}`,
@@ -219,7 +220,7 @@ export const useBetaFeedbackStore = create<BetaFeedbackStoreState>((set, get) =>
       const history = await betaFeedbackRepository.listAll();
       set({ history, historyHydrated: true });
     } catch (err) {
-      if (__DEV__) console.warn('[BetaFeedbackStore] loadHistory failed:', err);
+      logSilentFailure('betaFeedback.loadHistory', err);
       set({ historyHydrated: true });
     }
   },

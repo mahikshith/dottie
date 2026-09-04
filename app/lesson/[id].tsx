@@ -26,6 +26,7 @@ import { contentRepository, LessonProgress } from '../../src/database/repositori
 import { Phase } from '../../src/types/cycle.types';
 import type { LessonSection as LessonSectionType } from '../../src/types/content.types';
 import { CelebrationDialog, type DialogAction } from '../../src/components/ui/CelebrationDialog';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 /**
  * Lesson Detail Screen — Renders a single lesson and awards completion XP.
@@ -109,7 +110,7 @@ export default function LessonDetailScreen() {
         await contentRepository.saveLessonProgress(userId, fresh);
         if (!cancelled) setProgress(fresh);
       } catch (err) {
-        if (__DEV__) console.warn('[Lesson] start failed:', err);
+        logSilentFailure('lesson.start', err);
       }
     })();
 
@@ -220,7 +221,7 @@ export default function LessonDetailScreen() {
         });
       }
     } catch (err) {
-      if (__DEV__) console.warn('[Lesson] complete failed:', err);
+      logSilentFailure('lesson.complete', err);
       setDialog({
         emoji: '😅',
         title: "That didn't save",

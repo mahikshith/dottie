@@ -40,6 +40,7 @@ import {
 import { getCompanion } from '../../../../src/content/companions';
 import { MoodScale } from '../../../../src/components/sisterhood/MoodScale';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logSilentFailure } from '../../../../src/diagnostics/silent-failure';
 
 export default function CheckInScreen() {
   const insets = useSafeAreaInsets();
@@ -99,7 +100,7 @@ export default function CheckInScreen() {
         actions: [{ label: 'Sweet 💛', onPress: () => router.back() }],
       });
     } catch (err) {
-      if (__DEV__) console.warn('[CheckIn] failed:', err);
+      logSilentFailure('checkIn.failed', err);
       showAppDialog({
         emoji: '😅',
         title: 'Could not log',

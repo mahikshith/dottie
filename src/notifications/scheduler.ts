@@ -29,6 +29,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { getNotificationCopy, type NotificationKind } from './copy';
 import { Storage, type ReminderPrefs, type ReminderTime, type MedicationPlan } from '../database/storage';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // Foreground behaviour: show the reminder even if the app is open (gentle).
 Notifications.setNotificationHandler({
@@ -74,7 +75,7 @@ export async function checkNotificationPermission(): Promise<boolean> {
     const current = await Notifications.getPermissionsAsync();
     return current.granted;
   } catch (err) {
-    if (__DEV__) console.warn('[Notifications] permission check failed:', err);
+    logSilentFailure('notifications.permissionCheck', err);
     return false;
   }
 }
@@ -100,7 +101,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const req = await Notifications.requestPermissionsAsync();
     return req.granted;
   } catch (err) {
-    if (__DEV__) console.warn('[Notifications] permission request failed:', err);
+    logSilentFailure('notifications.permissionRequest', err);
     return false;
   }
 }
@@ -180,7 +181,7 @@ export async function cancelAll(): Promise<void> {
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
   } catch (err) {
-    if (__DEV__) console.warn('[Notifications] cancelAll failed:', err);
+    logSilentFailure('notifications.cancelAll', err);
   }
 }
 
@@ -194,7 +195,7 @@ async function scheduleDaily(kind: NotificationKind, hour: number, minute: numbe
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
     });
   } catch (err) {
-    if (__DEV__) console.warn(`[Notifications] schedule ${kind} failed:`, err);
+    logSilentFailure(`notifications.schedule.${kind}`, err);
   }
 }
 
@@ -206,7 +207,7 @@ async function scheduleAt(kind: NotificationKind, date: Date, discrete: boolean)
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
     });
   } catch (err) {
-    if (__DEV__) console.warn(`[Notifications] schedule ${kind} failed:`, err);
+    logSilentFailure(`notifications.schedule.${kind}`, err);
   }
 }
 
@@ -222,7 +223,7 @@ async function scheduleMedication(plan: MedicationPlan, discrete: boolean): Prom
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: plan.hour ?? TIME_HOUR[plan.time], minute: plan.minute ?? 0 },
     });
   } catch (err) {
-    if (__DEV__) console.warn('[Notifications] schedule medication failed:', err);
+    logSilentFailure('notifications.scheduleMedication', err);
   }
 }
 

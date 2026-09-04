@@ -56,6 +56,7 @@ import {
   isValidPinShape,
 } from './pin-hash';
 import { Storage } from '../database/storage';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -578,6 +579,6 @@ function performPanicWipe(): void {
   try {
     Storage.clearAll();
   } catch (err) {
-    if (__DEV__) console.warn('[GhostMode] panic wipe failed:', err);
+    logSilentFailure('ghostMode.panicWipe', err);
   }
 }

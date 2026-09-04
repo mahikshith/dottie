@@ -35,6 +35,7 @@ import {
 import { MoodWordPicker } from '../../src/components/checkin/MoodWordPicker';
 import type { SymptomSeverity } from '../../src/components/checkin/SymptomChip';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 /**
  * Daily Check-In Modal — Polished version (Batch 2)
@@ -215,7 +216,7 @@ export default function DailyCheckInScreen() {
         });
       }
     } catch (err) {
-      if (__DEV__) console.warn('[DailyCheckIn] submit failed:', err);
+      logSilentFailure('dailyCheckIn.submit', err);
       showAppDialog({
         emoji: '😅',
         title: 'Something went wrong',

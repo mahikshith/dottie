@@ -51,6 +51,7 @@ import { DottiePredictsCard } from '../../src/components/home/DottiePredictsCard
 import { TodayAtAGlanceCard } from '../../src/components/home/TodayAtAGlanceCard';
 import { todayISO } from '../../src/utils/date.utils';
 import type { HealthCondition } from '../../src/types/cycle.types';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 // Stable empty fallback so a null health profile doesn't return a fresh []
 // each render (would ping-pong the memo below).
@@ -254,7 +255,7 @@ export default function HomeScreen() {
         });
       }
     } catch (err) {
-      if (__DEV__) console.warn('[Home] check-in failed:', err);
+      logSilentFailure('home.checkIn', err);
     }
   };
 
@@ -279,7 +280,7 @@ export default function HomeScreen() {
         { trackedMetric }
       );
     } catch (err) {
-      if (__DEV__) console.warn('[Home] answer failed:', err);
+      logSilentFailure('home.answer', err);
     }
   };
 

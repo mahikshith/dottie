@@ -27,6 +27,7 @@ import { useWalkthroughStore } from '../src/walkthrough/store';
 import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
+import { logSilentFailure } from '../src/diagnostics/silent-failure';
 
 // Prevent splash from auto-hiding until hydration completes.
 // We unblock it ourselves inside the hydration effect below.
@@ -185,7 +186,7 @@ export default function RootLayout() {
           useGhostModeStore.getState().computeInitialLockState('cold_start');
         } catch (err) {
           // Never block app open on lock-state init failure
-          if (__DEV__) console.warn('[Hydration] ghost lock init failed:', err);
+          logSilentFailure('hydration.ghostLockInit', err);
         }
 
         // ─── Walkthrough cold-start reset (device-test #4) ──────────
@@ -200,7 +201,7 @@ export default function RootLayout() {
           const s = useWalkthroughStore.getState();
           if (s.stepIndex != null) s.skip();
         } catch (err) {
-          if (__DEV__) console.warn('[Hydration] walkthrough reset failed:', err);
+          logSilentFailure('hydration.walkthroughReset', err);
         }
 
         // ─── Beta Pioneer award (chunk 12) ────────────────────────
@@ -230,13 +231,13 @@ export default function RootLayout() {
         } catch (err) {
           // Award failure is non-fatal — the badge can be awarded
           // on the next cold start. Don't block app open.
-          if (__DEV__) console.warn('[Hydration] beta pioneer award failed:', err);
+          logSilentFailure('hydration.betaPioneerAward', err);
         }
       } catch (err) {
         // Hydration should NEVER block app open — log + continue.
         // Onboarding will rebuild state from scratch if needed.
         const message = err instanceof Error ? err.message : String(err);
-        if (__DEV__) console.warn('[Hydration] failed:', message);
+        logSilentFailure('hydration.failed', message);
         if (!cancelled) setHydrationError(message);
       } finally {
         if (!cancelled) {

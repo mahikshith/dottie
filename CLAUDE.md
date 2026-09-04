@@ -20,14 +20,15 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 22 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 24 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
 (14 scenarios) · `test:dates` (civil-date under 8 timezones — the regression
 test for the period-log freeze) · `test:app:tz` (simulated user, 5 timezones)
 · `test:fertile` · `test:export` · `test:dialogue` (821 content beats checked
-verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea`
+verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` · `audit:silent` (rule 18)
+· `test:creature` (the C8 block is the anti-insect audit)
 
 ## Rules baked into the code (do not undo)
 
@@ -55,13 +56,24 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea`
    `requireNativeModule()` throws on import. Load them inside functions.
 8. **Companions: the drawn rig only** (`src/components/ui/creature/`), via
    `<CompanionLottie type= state= />`. Never a hardcoded emoji, never a Lottie
-   character. No insect silhouettes — no symmetrical shapes flanking a round
-   body (DT16). The `butterfly` key is kept for saved data but draws a DEER.
+   character. The `butterfly` key is kept for saved data but draws a DEER.
+   **The art is DATA in `geometry.ts`** — one source of truth, rendered to the
+   app by `CompanionCreature` and to `docs/companion-preview.html` by
+   `scripts/companion-preview.ts`. **Look at the preview before shipping art;
+   never redraw blind into a 25-minute APK.** The six things that made these
+   read as insects (a full ring of sparkles, wide-set black domes, no neck,
+   symmetric dark shapes flanking the midline, stalked nubs above the head,
+   perfect bilateral symmetry) are asserted by C8 in `test:creature` — read the
+   header of `geometry.ts` before changing a number.
 9. **Lessons are the READER; the QUIZ carries the conversation.** The lesson
-   chat was reverted (DT16). `reactTo` in `src/engine/learn/dialogue.ts` drives
-   quiz feedback: never says "wrong", explains on right AND wrong, openers
-   never repeat back to back, streaks change tone not facts. Every factual
-   sentence is verbatim curriculum — `test:dialogue` enforces it.
+   chat was reverted (DT16). `src/engine/learn/dialogue.ts`: `leadFor` opens
+   each question, `reactTo` answers it. Never says "wrong", explains on right
+   AND wrong, openers never repeat back to back, streaks change tone not facts,
+   **two attempts then the answer** — a third go is a trap. The retry scores
+   the FIRST attempt only (`quiz-engine.submitAnswer` writes once), so a second
+   go costs nothing and pays no marks. ONE companion per panel: the reaction
+   rig is the voice, there is no second face with its own phrase pool. Every
+   factual sentence is verbatim curriculum — `test:dialogue` enforces it.
 10. **Never use a React Native `<Modal>`.** A translucent Modal is a separate
    Android window that can stick over every screen. Use `CelebrationDialog` /
    `showAppDialog()`. Keep `grep -rn "<Modal" src app` empty.
@@ -83,6 +95,8 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea`
    No second date picker anywhere.
 18. **Never `if (__DEV__) console.warn` in a catch** — `__DEV__` is false in
    the owner's build, so that is silence. Use `logSilentFailure(code, err)`.
+   Enforced by `audit:silent`; the rule sat unenforced from DT15 to DT18 and
+   62 sites accumulated behind it.
 19. **Walkthrough is opt-in only.** No auto-launch.
 20. **Aurora ground `#0C0A16`** wherever the app can flash. `NAV_THEME` in
    `app/_layout.tsx` forces every navigator surface to it.

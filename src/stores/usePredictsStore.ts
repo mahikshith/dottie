@@ -41,6 +41,7 @@ import { checkinRepository } from '../database/repositories/checkin.repo';
 import { useUserStore } from './useUserStore';
 import { useGamificationStore } from './useGamificationStore';
 import { addDays } from '../utils/civil-date';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -231,7 +232,7 @@ async function runGenerate(
     return deck;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (__DEV__) console.warn('[PredictsStore] generate failed:', message);
+    logSilentFailure('predicts.generate', message);
     set({
       isGenerating: false,
       hydrated: true,

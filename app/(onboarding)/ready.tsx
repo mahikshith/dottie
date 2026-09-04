@@ -12,6 +12,7 @@ import { awardBetaPioneerIfNew } from '../../src/services/beta-onboarding';
 import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
 import { showAppDialog } from '../../src/components/ui/appDialog';
 import { A } from '../../src/theme';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 /**
  * Ready Screen — Onboarding complete celebration!
@@ -73,13 +74,13 @@ export default function ReadyScreen() {
         await awardBetaPioneerIfNew();
       } catch (err) {
         // Non-fatal — the cold-start path in _layout.tsx will retry.
-        if (__DEV__) console.warn('[Ready] beta pioneer award failed:', err);
+        logSilentFailure('ready.betaPioneerAward', err);
       }
 
       // 3. Navigate to home (replace so back can't return to onboarding)
       router.replace('/(tabs)/home');
     } catch (err) {
-      if (__DEV__) console.warn('[Ready] completeOnboarding failed:', err);
+      logSilentFailure('ready.completeOnboarding', err);
 
       showAppDialog({
         emoji: '😅',

@@ -48,6 +48,7 @@ import {
   FeedbackDeliveryResult,
   FEEDBACK_MOOD_OPTIONS,
 } from '../types/beta-feedback.types';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 /**
  * Where feedback should be sent. Hardcoded so testers can't accidentally
@@ -137,7 +138,7 @@ async function tryMailComposer(
     return { kind: 'opened_composer', via: 'mail' };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (__DEV__) console.warn('[FeedbackTransport] mail composer failed:', message);
+    logSilentFailure('feedback.mailComposer', message);
     return { kind: 'no_transport_available' };
   }
 }
@@ -163,7 +164,7 @@ async function tryShareSheet(
     return { kind: 'opened_composer', via: 'share' };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (__DEV__) console.warn('[FeedbackTransport] share sheet failed:', message);
+    logSilentFailure('feedback.shareSheet', message);
     return { kind: 'error', message };
   }
 }

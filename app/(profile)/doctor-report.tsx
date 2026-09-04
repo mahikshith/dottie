@@ -22,6 +22,7 @@ import {
 import { ReportRangePreset } from '../../src/types/report.types';
 import { formatDoctorReportText } from '../../src/engine/reports/doctor-report';
 import { ReportPreview } from '../../src/components/reports/ReportPreview';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
 /**
  * Doctor Report Screen
@@ -67,7 +68,7 @@ export default function DoctorReportScreen() {
         title: 'Dottie Health Summary',
       });
     } catch (err) {
-      if (__DEV__) console.warn('[DoctorReport] share failed:', err);
+      logSilentFailure('doctorReport.share', err);
     }
   }, [cachedReport]);
 

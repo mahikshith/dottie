@@ -30,11 +30,13 @@
 import {
   buildLessonScript,
   reactTo,
+  leadFor,
   pick,
   hash,
   ALL_TONAL_LINES,
   type AskStep,
   type LessonScript,
+  type ReactionKind,
 } from '../src/engine/learn/dialogue';
 import { LESSONS } from '../src/content/learning-paths';
 import { QUIZZES } from '../src/content/quizzes';
@@ -290,6 +292,102 @@ scenario('D6 · every bundled lesson can hold a conversation', () => {
   // Some hand-written seed lessons predate the quizzes; the imported 51 all
   // have one, so the bulk of the corpus must be able to ask something.
   ok('most lessons have something to ask', questionless < LESSONS.length / 2, `${questionless} without questions`);
+});
+
+
+// ─── D7 — the beats the screen can actually reach ────────────────────
+//
+//  Every branch below was specified in DT14 and unreachable until DT18,
+//  because app/quiz/[id].tsx passed `attempt: 1` to every call. The engine
+//  described a two-attempt conversation and the only screen using it could
+//  ask for exactly one. So this scenario asserts REACHABILITY, not just
+//  behaviour: each kind must be produced by inputs a real quiz can supply.
+
+scenario('D7 · every reaction kind is reachable from real screen inputs', () => {
+  const base = { explanation: 'Day 1 is the first bleeding day.', seed: 'q1', index: 0 };
+  const kinds = new Map<ReactionKind, ReturnType<typeof reactTo>>();
+
+  kinds.set('hit', reactTo({ ...base, correct: true, attempt: 1, streak: 0 }));
+  kinds.set('streak', reactTo({ ...base, correct: true, attempt: 1, streak: 3 }));
+  kinds.set('comeback', reactTo({ ...base, correct: true, attempt: 1, streak: 0, afterMiss: true }));
+  kinds.set('recovered', reactTo({ ...base, correct: true, attempt: 2, streak: 0 }));
+  kinds.set('miss', reactTo({ ...base, correct: false, attempt: 1, streak: 0 }));
+  kinds.set('told', reactTo({ ...base, correct: false, attempt: 2, streak: 0 }));
+
+  for (const [want, r] of kinds) {
+    ok(`${want} is produced`, r.kind === want, `got ${r.kind}`);
+    ok(`${want} still carries the vetted explanation verbatim`, r.explanation === base.explanation);
+    ok(`${want} never says wrong`, !/\bwrong\b|\bincorrect\b/i.test(r.opener), r.opener);
+  }
+
+  // The retry is the whole point of the two-attempt rule.
+  ok('only the first miss offers a retry', kinds.get('miss')!.offerRetry);
+  ok('the second miss does not', !kinds.get('told')!.offerRetry);
+  ok('no correct answer offers one', [...kinds].filter(([k]) => k !== 'miss')
+    .every(([, r]) => !r.offerRetry));
+
+  // Recovering on the second go must not read like a plain hit.
+  ok('recovered sounds different from a first-time hit',
+    kinds.get('recovered')!.opener !== kinds.get('hit')!.opener);
+  ok('comeback sounds different from a plain hit',
+    kinds.get('comeback')!.opener !== kinds.get('hit')!.opener);
+  ok('a comeback does not brag about a streak it does not have',
+    kinds.get('comeback')!.aside === null);
+});
+
+scenario('D7b · the retry offer is warm, and never a countdown', () => {
+  for (let i = 0; i < 12; i++) {
+    const r = reactTo({ explanation: 'x', seed: `q${i}`, index: i, correct: false, attempt: 1, streak: 0 });
+    ok(`q${i}: offers another go`, r.offerRetry);
+    ok(`q${i}: the offer is an invitation`, r.aside !== null && r.aside.length > 0);
+    // "1 attempt left", "last chance" — the language of a test, not a friend.
+    ok(`q${i}: no countdown language`,
+      !/attempt|chance|last try|left\b/i.test(r.aside ?? ''), r.aside ?? '');
+  }
+});
+
+// ─── D8 — the companion ASKS ─────────────────────────────────────────
+
+scenario('D8 · leadFor opens the question in the right register', () => {
+  const seed = 'session-1';
+  const first = leadFor({ index: 0, total: 5, seed, afterMiss: false, streak: 0 });
+  const mid = leadFor({ index: 2, total: 5, seed, afterMiss: false, streak: 0 });
+  const last = leadFor({ index: 4, total: 5, seed, afterMiss: false, streak: 0 });
+  const soft = leadFor({ index: 2, total: 5, seed, afterMiss: true, streak: 0 });
+  const hot = leadFor({ index: 2, total: 5, seed, afterMiss: false, streak: 4 });
+
+  for (const [name, line] of [['first', first], ['mid', mid], ['last', last], ['soft', soft], ['hot', hot]] as const) {
+    ok(`${name}: says something`, line.trim().length > 0);
+  }
+  ok('the last question is announced as the last', /last|final|one more/i.test(last), last);
+  ok('a question after a miss is not the standard opener', soft !== mid, soft);
+  ok('a streak gets its own register', hot !== mid, hot);
+  ok('the first question is not the standard opener', first !== mid, first);
+
+  // A lead must never leak the answer, or hint at one.
+  const leads = [first, mid, last, soft, hot];
+  for (const line of leads) {
+    ok(`lead is contentless: "${line}"`,
+      !/\b(day|hormone|phase|ovulat|oestrogen|estrogen|progesterone|cycle length)\b/i.test(line));
+  }
+
+  // Determinism: the same question must open the same way on a re-render.
+  ok('same inputs, same line',
+    leadFor({ index: 2, total: 5, seed, afterMiss: false, streak: 0 }) === mid);
+  // ...and a one-question quiz must not be treated as "the last one" oddly.
+  const single = leadFor({ index: 0, total: 1, seed, afterMiss: false, streak: 0 });
+  ok('a single-question quiz still opens', single.trim().length > 0, single);
+});
+
+scenario('D8b · consecutive questions do not open with the same line', () => {
+  let repeats = 0;
+  let prev = '';
+  for (let i = 0; i < 20; i++) {
+    const line = leadFor({ index: i, total: 30, seed: 'sess', afterMiss: false, streak: 0 });
+    if (line === prev) repeats++;
+    prev = line;
+  }
+  ok('no back-to-back repeat across 20 questions', repeats === 0, `${repeats} repeats`);
 });
 
 console.log(

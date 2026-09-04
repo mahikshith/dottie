@@ -52,6 +52,7 @@ import {
 } from '../constants/build-info';
 import { useGamificationStore } from '../stores/useGamificationStore';
 import { useUserStore } from '../stores/useUserStore';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── PUBLIC API ──────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export async function awardBetaPioneerIfNew(): Promise<BetaPioneerAwardResult> {
   } catch (err) {
     // Bonus XP failing shouldn't fail the whole award flow. The badge
     // is still awarded and the user already got the standard 25 XP.
-    if (__DEV__) console.warn('[BetaOnboarding] bonus XP failed:', err);
+    logSilentFailure('betaOnboarding.bonusXP', err);
   }
 
   try {
@@ -155,7 +156,7 @@ export async function awardBetaPioneerIfNew(): Promise<BetaPioneerAwardResult> {
     // accept that the standard badge_unlock gems (5) are the floor and
     // a future task can extend the gem table.
   } catch (err) {
-    if (__DEV__) console.warn('[BetaOnboarding] bonus gems failed:', err);
+    logSilentFailure('betaOnboarding.bonusGems', err);
   }
 
   // ─── Persist the "shown" flag so future cold starts are no-ops ──
