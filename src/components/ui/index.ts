@@ -34,4 +34,5 @@ export type { CompanionBuddyProps } from './CompanionBuddy';
 export * from './aurora';
 
 export * from './creature/CompanionCreature';
+export * from './CompanionExpressions';
 export * from './creature/expressions';

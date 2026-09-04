@@ -305,12 +305,17 @@ export default function LearnScreen() {
     );
   }, [availablePaths, progressMap]);
 
-  // Lessons open as a CONVERSATION with the companion now, not as an article
-  // (device-test-14). The reader still exists and is one tap away from inside
-  // the chat — some days you want to be told, some days you want to read.
+  // Lessons open as the READER (device-test-16). DT14 routed them into a chat
+  // with the companion; on device that was repetitive, gave no sense of whose
+  // turn it was, and re-showed the options after a correct answer. Owner:
+  // "let's revert back to the phase where we show the detailed description of
+  // what the phase is, and what the cautions need to be taken."
+  //
+  // The conversational experience is not gone — it moved to where it belongs,
+  // the QUIZ, where turn-taking and reactions are the whole point.
   const openLesson = (lessonId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    router.push(`/lesson/chat/${lessonId}`);
+    router.push(`/lesson/${lessonId}`);
   };
 
   // ─── Today's spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) ─

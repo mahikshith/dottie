@@ -8,7 +8,9 @@ import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground } from '../../src/components/ui';
+import { CompanionLottie } from '../../src/components/ui';
 import { QuizAnswerReaction } from '../../src/components/learn/QuizAnswerReaction';
+import { reactTo, type Reaction } from '../../src/engine/learn/dialogue';
 import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
 import {
   useUserStore,
@@ -101,6 +103,24 @@ export default function QuizScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Running tally of correct answers, shown in the feedback panel to motivate.
   const [correctSoFar, setCorrectSoFar] = useState(0);
+  /**
+   * Consecutive correct answers, and the companion's reaction to the LAST one.
+   *
+   * The reaction comes from src/engine/learn/dialogue.ts (device-test-16), the
+   * engine written for the lesson chat. That chat is gone — it was repetitive
+   * and gave no sense of whose turn it was — but the part of it that was right
+   * belongs here, in the quiz, where turn-taking is the whole point:
+   *
+   *   · it never says "wrong". A miss is normalised, then taught.
+   *   · openers rotate and never repeat back to back, so the companion stops
+   *     being a sound effect that says "Nice!" four times running.
+   *   · a streak changes the TONE, never the facts.
+   *
+   * The explanation itself always comes from the vetted quiz content, never
+   * from the engine.
+   */
+  const [answerStreak, setAnswerStreak] = useState(0);
+  const [reaction, setReaction] = useState<Reaction | null>(null);
 
   // ─── Start the attempt on mount ─────────────────────────────────
   // Device-test #3 finding: this used to have `[id]` deps only, so if
@@ -174,6 +194,18 @@ export default function QuizScreen() {
         : Haptics.NotificationFeedbackType.Warning
     ).catch(() => {});
 
+    setReaction(
+      reactTo({
+        correct: result.correct,
+        attempt: 1,
+        streak: answerStreak,
+        explanation: result.explanation,
+        explanationEmoji: result.explanationEmoji,
+        seed: `${session.sessionId}:${questionIndex}`,
+        index: questionIndex,
+      })
+    );
+    setAnswerStreak(result.correct ? answerStreak + 1 : 0);
     if (result.correct) setCorrectSoFar((n) => n + 1);
     setLastAnswer(result);
     setPhase('reviewing');
@@ -431,10 +463,21 @@ export default function QuizScreen() {
               <Text style={styles.feedbackExplainText}>{lastAnswer.explanation}</Text>
             </View>
 
-            {/* Companion's own encouraging line. */}
+            {/* Companion's own line. The opener rotates and never repeats back
+                to back; the aside carries a streak when there is one. Falls
+                back to the engine's own line if a reaction is somehow missing. */}
             <View style={styles.companionReactionRow}>
-              <Text style={styles.companionReactionEmoji}>{companion.emoji}</Text>
-              <Text style={styles.companionReactionText}>{lastAnswer.companionReaction}</Text>
+              <CompanionLottie
+                type={companionType}
+                state={lastAnswer.correct ? 'celebrate' : 'cozy'}
+                size={28}
+                loop={false}
+              />
+              <Text style={styles.companionReactionText}>
+                {reaction
+                  ? `${reaction.opener}${reaction.aside ? ` ${reaction.aside}` : ''}`
+                  : lastAnswer.companionReaction}
+              </Text>
             </View>
 
             {/* Running progress — motivating, and it uses the empty space. */}

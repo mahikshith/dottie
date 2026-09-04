@@ -16,7 +16,7 @@
  *                read as alive rather than mechanical
  *    • blink   — driven independently on its own irregular cycle, because
  *                perfectly periodic blinking looks robotic
- *    • flap    — wing/ear motion; the butterfly actually flies with it
+ *    • flap    — ear / folded-wing motion
  *
  *  Every one of those runs on the UI thread via Reanimated shared values, so a
  *  busy JS thread can't stutter the character (a lesson from the tab bar).
@@ -64,14 +64,16 @@ export interface CompanionCreatureProps {
 /** Per-species palette + silhouette switches. */
 const SPECIES: Record<
   CompanionType,
-  { fur: string; furDark: string; belly: string; accent: string; ear: 'pointy' | 'long' | 'tuft' | 'none'; wings: boolean; petals: boolean }
+  { fur: string; furDark: string; belly: string; accent: string; ear: 'pointy' | 'long' | 'tuft' | 'deer' | 'none'; folded: boolean; petals: boolean }
 > = {
-  fox:       { fur: '#F0873C', furDark: '#C9611F', belly: '#FFF1E2', accent: '#FFFFFF', ear: 'pointy', wings: false, petals: false },
-  bunny:     { fur: '#EBE4F5', furDark: '#C9BEDD', belly: '#FFFFFF', accent: '#FFB7CE', ear: 'long',   wings: false, petals: false },
-  butterfly: { fur: '#9B7BFF', furDark: '#6F4FD8', belly: '#F3EDFF', accent: '#54E6C8', ear: 'none',   wings: true,  petals: false },
-  cat:       { fur: '#5A5470', furDark: '#3C3752', belly: '#EDE9F7', accent: '#FFC24D', ear: 'pointy', wings: false, petals: false },
-  owl:       { fur: '#C89B6A', furDark: '#9A7346', belly: '#F7E9D6', accent: '#FFC24D', ear: 'tuft',   wings: true,  petals: false },
-  blossom:   { fur: '#FF8FB1', furDark: '#E76A92', belly: '#FFF0F5', accent: '#FFD36E', ear: 'none',   wings: false, petals: true },
+  fox:       { fur: '#F0873C', furDark: '#C9611F', belly: '#FFF1E2', accent: '#FFFFFF', ear: 'pointy', folded: false, petals: false },
+  bunny:     { fur: '#EBE4F5', furDark: '#C9BEDD', belly: '#FFFFFF', accent: '#FFB7CE', ear: 'long',   folded: false, petals: false },
+  // `butterfly` keeps its ID so nobody's saved choice breaks, but it is drawn
+  // as a DEER now — see the note above about the insect silhouette.
+  butterfly: { fur: '#B9A0FF', furDark: '#8468E0', belly: '#F3EDFF', accent: '#FFD36E', ear: 'deer',   folded: false, petals: false },
+  cat:       { fur: '#5A5470', furDark: '#3C3752', belly: '#EDE9F7', accent: '#FFC24D', ear: 'pointy', folded: false, petals: false },
+  owl:       { fur: '#C89B6A', furDark: '#9A7346', belly: '#F7E9D6', accent: '#FFC24D', ear: 'tuft',   folded: true,  petals: false },
+  blossom:   { fur: '#FF8FB1', furDark: '#E76A92', belly: '#FFF0F5', accent: '#FFD36E', ear: 'none',   folded: false, petals: true },
 };
 
 export function CompanionCreature({
@@ -116,9 +118,9 @@ export function CompanionCreature({
       ), -1, true
     );
     flap.value = withRepeat(
-      withTiming(1, { duration: sp.wings ? 260 / expr.tempo : period, easing: Easing.inOut(Easing.sin) }), -1, true
+      withTiming(1, { duration: sp.folded ? 260 / expr.tempo : period, easing: Easing.inOut(Easing.sin) }), -1, true
     );
-  }, [reduce, period, expr.tempo, sp.wings, bob, sway, squash, flap]);
+  }, [reduce, period, expr.tempo, sp.folded, bob, sway, squash, flap]);
 
   // Blinking on its own irregular rhythm — a periodic blink looks mechanical.
   useEffect(() => {
@@ -206,13 +208,17 @@ function Body({ sp, expr }: { sp: (typeof SPECIES)[CompanionType]; expr: Express
           />
         ))}
 
-      {/* wings (butterfly / owl) */}
-      {sp.wings && (
+      {/* FOLDED wings (owl only), tucked against the body.
+          The previous version drew two large dark ellipses FLANKING the
+          character at x=22 and x=78. Two symmetrical shapes either side of a
+          round body is the silhouette of an insect, which is exactly what the
+          owner saw: "all of them look like bugs, real bugs... people are going
+          to freak out" (device-test-16). These sit ON the body instead, so the
+          outline stays a single soft blob. */}
+      {sp.folded && (
         <G>
-          <Ellipse cx={22} cy={50} rx={17} ry={23} fill={sp.furDark} opacity={0.9} transform="rotate(-16 22 50)" />
-          <Ellipse cx={78} cy={50} rx={17} ry={23} fill={sp.furDark} opacity={0.9} transform="rotate(16 78 50)" />
-          <Ellipse cx={24} cy={48} rx={9} ry={13} fill={sp.accent} opacity={0.55} transform="rotate(-16 24 48)" />
-          <Ellipse cx={76} cy={48} rx={9} ry={13} fill={sp.accent} opacity={0.55} transform="rotate(16 76 48)" />
+          <Ellipse cx={32} cy={64} rx={9} ry={16} fill={sp.furDark} opacity={0.85} transform="rotate(-8 32 64)" />
+          <Ellipse cx={68} cy={64} rx={9} ry={16} fill={sp.furDark} opacity={0.85} transform="rotate(8 68 64)" />
         </G>
       )}
 
@@ -231,6 +237,18 @@ function Body({ sp, expr }: { sp: (typeof SPECIES)[CompanionType]; expr: Express
           <Ellipse cx={62} cy={16} rx={6.5} ry={17} fill={sp.fur} transform="rotate(9 62 16)" />
           <Ellipse cx={38} cy={17} rx={3.2} ry={11} fill={sp.accent} opacity={0.75} transform="rotate(-9 38 17)" />
           <Ellipse cx={62} cy={17} rx={3.2} ry={11} fill={sp.accent} opacity={0.75} transform="rotate(9 62 17)" />
+        </G>
+      )}
+      {sp.ear === 'deer' && (
+        <G>
+          {/* soft leaf-shaped ears, angled outward */}
+          <Ellipse cx={30} cy={22} rx={7} ry={12} fill={sp.fur} transform="rotate(-28 30 22)" />
+          <Ellipse cx={70} cy={22} rx={7} ry={12} fill={sp.fur} transform="rotate(28 70 22)" />
+          <Ellipse cx={31} cy={23} rx={3.4} ry={7} fill={sp.accent} opacity={0.6} transform="rotate(-28 31 23)" />
+          <Ellipse cx={69} cy={23} rx={3.4} ry={7} fill={sp.accent} opacity={0.6} transform="rotate(28 69 23)" />
+          {/* two rounded nubs — a hint of antler, no points */}
+          <Circle cx={42} cy={14} r={3.2} fill={sp.furDark} />
+          <Circle cx={58} cy={14} r={3.2} fill={sp.furDark} />
         </G>
       )}
       {sp.ear === 'tuft' && (

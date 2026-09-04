@@ -95,12 +95,18 @@ export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
     },
   },
 
-  // ─── 🦋 MIRA THE BUTTERFLY ─────────────────────────────────────────
+  // ─── 🦌 MIRA THE DEER ──────────────────────────────────────────────
+  //
+  //  Mira was a butterfly until device-test-16. The owner's reaction to the
+  //  drawn companions was "all of them look like bugs, real bugs... people
+  //  hate insects" — and for the butterfly that is not a drawing problem that
+  //  can be fixed, it is what the animal IS. The `butterfly` KEY is kept so
+  //  nobody's saved companion breaks; everything a user sees is a deer.
   butterfly: {
     type: 'butterfly',
     name: 'Mira',
     personality: 'calm',
-    emoji: '🦋',
+    emoji: '🦌',
     tagline: 'A quiet, poetic presence',
     description:
       'Mira speaks like a breeze through wildflowers. She notices ' +
@@ -112,13 +118,13 @@ export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
       'sentences. Speaks of seasons, tides, and quiet truths.',
     greetings: {
       menstrual:
-        'A new tide begins. Soften, rest, let the wave carry you 🦋',
+        'A new tide begins. Soften, rest, let the wave carry you 🦌',
       follicular:
-        'Buds opening, light returning. What wants to bloom in you today? 🦋',
+        'Buds opening, light returning. What wants to bloom in you today? 🦌',
       ovulatory:
-        'Petals fully open. You are radiant — let yourself be seen 🦋',
+        'Still and watchful. You are radiant — let yourself be seen 🦌',
       luteal:
-        'The day grows quieter. Listen inward. The answers are already there 🦋',
+        'The day grows quieter. Listen inward. The answers are already there 🦌',
     },
   },
 

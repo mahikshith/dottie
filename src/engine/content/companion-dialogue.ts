@@ -148,45 +148,45 @@ export const DIALOGUE_TEMPLATES: Record<
     ],
   },
 
-  // ─── 🦋 MIRA THE BUTTERFLY (calm, poetic) ──────────────────────────
+  // ─── 🦌 MIRA THE DEER (calm, poetic) ──────────────────────────
   butterfly: {
     happy: [
-      'A soft hello on a {{phase_name}} day 🦋',
-      '{{rendered_insight}} Let it land gently 🦋',
-      'Quiet check-in. {{rendered_question}} 🦋',
+      'A soft hello on a {{phase_name}} day 🦌',
+      '{{rendered_insight}} Let it land gently 🦌',
+      'Quiet check-in. {{rendered_question}} 🦌',
     ],
     celebrating: [
-      '{{streak_count}} — a small ritual woven into your days 🦋',
-      'Every check-in is a petal. You’ve grown a flower 🦋',
-      'This streak is your devotion to yourself 🦋',
+      '{{streak_count}} — a small ritual woven into your days 🦌',
+      'Every check-in is a petal. You’ve grown a flower 🦌',
+      'This streak is your devotion to yourself 🦌',
     ],
     sleepy: [
-      'Time has its rhythms. Welcome back to mine 🦋',
-      'The path is patient. So am I 🦋',
-      'You returned — the rest is just weather 🦋',
+      'Time has its rhythms. Welcome back to mine 🦌',
+      'The path is patient. So am I 🦌',
+      'You returned — the rest is just weather 🦌',
     ],
     supportive: [
-      'Heavy days have their own beauty. Breathe slowly 🦋',
-      'Even storms move on. I’ll wait with you 🦋',
-      'Softness is strength. You are practicing both 🦋',
+      'Heavy days have their own beauty. Breathe slowly 🦌',
+      'Even storms move on. I’ll wait with you 🦌',
+      'Softness is strength. You are practicing both 🦌',
     ],
     proud: [
-      'A new flower opened in you today. I saw it 🦋',
-      'Learning is a kind of blooming 🦋✨',
-      'You moved through something. That’s sacred 🦋',
+      'A new flower opened in you today. I saw it 🦌',
+      'Learning is a kind of blooming 🦌✨',
+      'You moved through something. That’s sacred 🦌',
     ],
     cozy: [
-      'Cocoon today. Bloom tomorrow 🦋',
-      'Stillness is also progress 🦋🧣',
-      'A cup of quiet for you, love 🦋☕',
+      'Cocoon today. Bloom tomorrow 🦌',
+      'Stillness is also progress 🦌🧣',
+      'A cup of quiet for you, love 🦌☕',
     ],
     excited: [
-      '{{streak_count}} is just over the next horizon 🦋',
-      'Almost a new threshold. Keep walking 🦋',
+      '{{streak_count}} is just over the next horizon 🦌',
+      'Almost a new threshold. Keep walking 🦌',
     ],
     neutral: [
-      '{{rendered_insight}} 🦋',
-      'Soft hello 🦋',
+      '{{rendered_insight}} 🦌',
+      'Soft hello 🦌',
     ],
   },
 

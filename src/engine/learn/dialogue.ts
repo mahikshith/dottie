@@ -1,8 +1,24 @@
 /**
- * Dottie — the lesson conversation engine (pure)
+ * Dottie — the companion conversation engine (pure)
  *
  * Turns a lesson, its exercises and its quiz into a CONVERSATION between the
  * user and their companion, instead of a wall of text followed by a scorecard.
+ *
+ * ─── WHERE THIS IS USED NOW (device-test-16) ────────────────────────
+ *
+ *  DT14 used the whole thing to replace the lesson READER with a chat. On
+ *  device that was a mistake: repetitive, no sense of whose turn it was, and
+ *  it re-showed the options after a correct answer. The reader is back, and
+ *  `buildLessonScript` is currently unused by any screen.
+ *
+ *  What survived is the part that was actually right — `reactTo`, which now
+ *  drives the QUIZ's feedback panel (app/quiz/[id].tsx). That is where
+ *  turn-taking was always the point: a question, an answer, and a companion
+ *  that responds without ever saying "wrong" and without repeating itself.
+ *
+ *  buildLessonScript is kept, tested, and ready for the next screen that wants
+ *  a scripted conversation — but nothing renders it today, and that is
+ *  deliberate rather than an oversight.
  *
  * ─── WHY ────────────────────────────────────────────────────────────
  *

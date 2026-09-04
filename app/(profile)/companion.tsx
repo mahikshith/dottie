@@ -27,6 +27,7 @@ import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { A } from '../../src/theme';
 import { AuroraBackground, PressableScale, GradientButton } from '../../src/components/ui';
+import { CompanionExpressions } from '../../src/components/ui';
 import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
 import { useUserStore, selectCompanionType } from '../../src/stores';
 import { COMPANIONS } from '../../src/content/companions';
@@ -114,6 +115,19 @@ export default function ChangeCompanionScreen(): JSX.Element {
                   {active ? <View style={styles.radioDot} /> : null}
                 </View>
               </PressableScale>
+              {/* The one you're considering, in three moods (device-test-16).
+                  Owner: "all the expressions of each and every single companion
+                  needs to be expressed so that the user will look at it and
+                  find out what they want." Shown only for the selected card so
+                  the list stays scannable. */}
+              {active ? (
+                <View style={styles.facesRow}>
+                  <CompanionExpressions type={type} size={54} />
+                  <Text style={styles.facesLabel}>
+                    {def.name} when you win, on an ordinary day, and when yours has been hard
+                  </Text>
+                </View>
+              ) : null}
             </Animated.View>
           );
         })}
@@ -157,6 +171,19 @@ const styles = StyleSheet.create({
   cardActive: {
     borderColor: A.accent,
     backgroundColor: `${A.accent}14`,
+  },
+  facesRow: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  facesLabel: {
+    ...Typography.preset.caption,
+    fontSize: 11,
+    color: A.ink3,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
   },
   cardText: { flex: 1, gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },

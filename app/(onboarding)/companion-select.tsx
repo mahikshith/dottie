@@ -10,6 +10,7 @@ import { Storage } from '../../src/database/storage';
 import { getAllCompanions } from '../../src/content/companions';
 import { CompanionType } from '../../src/types/companion.types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CompanionExpressions } from '../../src/components/ui';
 
 /**
  * Companion Selection Screen
@@ -72,7 +73,12 @@ export default function CompanionSelectScreen() {
             ]}
             onPress={() => handleCompanionSelect(companion.type)}
           >
-            <Text style={styles.companionEmoji}>{companion.emoji}</Text>
+            {/* The REAL companion, in three moods (device-test-16). A single
+                text emoji told you the species and nothing else — but what
+                you're choosing is a face that will react to you for months,
+                so the card shows its best day, its ordinary day, and how it
+                behaves when yours has been rough. */}
+            <CompanionExpressions type={companion.type} size={62} style={styles.companionFaces} />
             <Text style={styles.companionName}>{companion.name}</Text>
             <Text
               style={[
@@ -135,6 +141,9 @@ const styles = StyleSheet.create({
   companionCardPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.96 }],
+  },
+  companionFaces: {
+    marginBottom: Spacing.sm,
   },
   companionEmoji: {
     fontSize: 48,
