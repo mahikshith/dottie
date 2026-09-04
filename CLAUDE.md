@@ -54,6 +54,16 @@ non-diagnostic voice throughout.
   the distribution divides by LOGGED days not calendar days
 - `npm run test:recall` — symptom recall; asserts the copy never claims a
   population statistic and always carries its sample size
+- `npm run test:fertile` — fertile window: the asymmetric shape, honest
+  confidence, determinism across 365 anchors, and that the shared
+  NOT_CONTRACEPTION wording actually reaches the calendar
+- `npm run test:export` — the .xlsx export: walks the archive back with an
+  independent ZIP reader, re-checks every CRC, proves no relationship target
+  dangles and no two charts share an axis id, and that a blank stays a blank
+- `npm run test:dialogue` — the lesson conversation: every factual beat the
+  companion speaks is checked VERBATIM against the curriculum corpus (821
+  beats, 77 lessons), and the engine's own lines are swept for clinical
+  vocabulary, body claims and invented statistics
 - `npm run test:app` — SIMULATED USER: drives the real stores + SQLite repos
   through onboarding → logging → sisterhood → quizzes → deletion, with a
   per-step watchdog so a freeze is reported instead of hanging the run
@@ -164,7 +174,17 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    the "You & 12,363 others" counters removed in DT6. Insight speaks about the
    USER'S OWN logged history with the sample size attached, and stays silent on
    a single occurrence. Enforced by `test:recall`, not just by review.
-19. **The prediction explainer must never render nothing.** It recomputes the
+19. **Never draw a fertile window without its caveat.** The estimate comes from
+   cycle length alone — no LH test, no temperature. `NOT_CONTRACEPTION` in
+   `src/engine/calendar/fertile-window.ts` is the ONE wording; import it, never
+   paraphrase it per screen. A day being logged as a period day always wins over
+   a fertile mark. Enforced by `test:fertile`.
+20. **The companion may never make anything up.** Every factual sentence in a
+   lesson conversation is verbatim curriculum copy. The dialogue engine supplies
+   greetings, segues and reactions only. It also never says "wrong" — a miss is
+   normalised, then taught, and the explanation is identical whether the user
+   got there or not.
+21. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 
@@ -181,9 +201,19 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
 
 ## Learn redesign phase state
 
-Phases 0–4 all shipped. Corpus: 26 lessons / 23 quizzes / 121 questions. More
-content = paths in `learning-paths.ts` + quizzes in `quizzes.ts` (lessons need
-`difficulty`, questions need `level`, or `validate:content` fails).
+Phases 0–4 all shipped. Corpus: **77 lessons / 74 quizzes / 427 questions**.
+
+51 of those came in via `npx tsx scripts/import-curriculum.ts`, which emits
+`src/content/curriculum.generated.ts` from `docs/curriculum/dottie_curriculum_1.json`.
+**Never hand-edit the generated file** — edit the JSON or the importer and
+re-run. Hand-written content still goes in `learning-paths.ts` / `quizzes.ts`
+(lessons need `difficulty`, questions need `level`, or `validate:content` fails).
+
+**Lessons open as a CONVERSATION** (`/lesson/chat/[id]`), not an article. The
+script comes from `src/engine/learn/dialogue.ts`, which is the safety boundary:
+it may sequence vetted curriculum copy and add contentless tone, and may NEVER
+state or rephrase a fact. If you add a line to its tone pools, it must say
+nothing about a body — `test:dialogue` fails the build otherwise.
 
 ## Companion docs (pull only when a section names them)
 

@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff (READ THIS FIRST)
 
-**Updated:** 2026-09-03 · after Device Test 7
+**Updated:** 2026-09-04 · after Round 14
 **Branch:** `gemini-v2` — all work. Pushing any `gemini-**` branch builds an APK.
 `gemini-learn-redesign` = prior checkpoint. `design-v2` / `main` frozen (never push
 to `main` except the workflow file).
@@ -16,7 +16,62 @@ to `main` except the workflow file).
 
 The app is a complete local-first cycle tracker (predictor, calendar, sisterhood,
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
-on top. Seven device-test rounds have landed. **11 test suites, all green.**
+on top. Fourteen rounds have landed. **21 test suites, all green** (`npm run test:all`).
+
+### Round 14 (2026-09-04) — the companion teaches
+
+- **Lessons are a CONVERSATION now.** `/lesson/chat/[id]` — the companion is
+  pinned at the top, its face is the status indicator, its lines land as chat
+  bubbles and yours echo back. Facts/tips are handed over as cards. All tap
+  targets in the bottom third. The reader (`/lesson/[id]`) still exists and is
+  one tap away from inside the chat; the Learn tab now opens the chat.
+- **`src/engine/learn/dialogue.ts` is pure and is the safety boundary.** It may
+  SEQUENCE vetted curriculum copy and add contentless tone ("Ready?", "Try
+  this:", "That's the one"). It may never state or rephrase a fact.
+  `test:dialogue` checks all 821 content beats across all 77 lessons back
+  against the source corpus, and sweeps the engine's own lines for clinical
+  vocabulary, body claims, invented statistics and population claims.
+- Encoded rules: never says "wrong"; a RIGHT answer still gets the full
+  explanation; two attempts then the answer (no trap loop); streaks change tone
+  only; openers never repeat back to back; teach two beats before the first
+  question.
+- **51 lessons imported.** `scripts/import-curriculum.ts` →
+  `src/content/curriculum.generated.ts` (14 paths / 51 lessons / 51 quizzes /
+  306 questions / 153 exercises) from `docs/curriculum/dottie_curriculum_1.json`.
+  Regenerate with `npx tsx scripts/import-curriculum.ts` — never hand-edit the
+  generated file. It refuses ids the app already ships, renumbers `order` after
+  a skip, and refuses to write if any lesson lacks `difficulty` or any question
+  lacks `level`. Corpus: **77 lessons / 74 quizzes / 427 questions.**
+- NOT imported yet: contraception, sexual health, PCOS/endo/perimenopause/
+  thyroid. They need the adult/teen gate + condition routing designed rather
+  than bulk-imported. `ADULT_ONLY` ids are already listed in the importer.
+
+### Round 13 (2026-09-04) — calendar + data export
+
+- **Fertile window on the grid.** `predictedOvulation` had been computed by the
+  predictor since it was written and NOTHING drew it (same shape of gap as the
+  DT12 premenstrual flag). `src/engine/calendar/fertile-window.ts` is pure and
+  deterministic: the window is ASYMMETRIC (5 days before ovulation, ovulation,
+  1 day after), confidence comes from cycle count + SD, and a single
+  `NOT_CONTRACEPTION` constant carries the safety wording everywhere it appears.
+  Period days never also render as fertile — precedence resolved once, in
+  `buildMonthGrid`. `test:fertile` (33 invariants).
+- **"The graphs are invisible" was not a render bug.** The charts self-measure
+  and draw correctly (test:charts). They were the LAST card in a very long
+  scroll with nothing pointing at them. Fixed with a "Why these dates?" jump
+  under the grid that scrolls to a MEASURED offset.
+- **Download your data** (You → Download your data). A real `.xlsx` with native
+  Excel charts, built on the phone: `src/export/zip.ts` (store-only ZIP, no
+  codec) + `src/export/xlsx.ts` (SpreadsheetML by hand) + `build-export.ts`
+  (pure sheet model). Neither library works here — SheetJS community cannot
+  write charts, ExcelJS is Node-shaped. Charts reference cell RANGES so they
+  stay live. New deps: `expo-file-system`, `expo-sharing`.
+- The app's honesty rules are enforced INSIDE the file: unlogged day = blank
+  cell never zero (`dispBlanksAs="gap"`), mood distribution divides by logged
+  days, a pending prediction has no error score, every derived figure sits
+  beside its sample size. `test:export` (~70 invariants) walks the archive back
+  with an independent reader. Separately confirmed to load in openpyxl with all
+  7 charts and survive a load→save→load round trip.
 
 ### Round 12 (2026-09-04)
 
