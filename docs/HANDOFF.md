@@ -30,6 +30,12 @@ The SVG clip-path "liquid swipe" from the owner's reference cannot port to RN �
 reasoning in `docs/DEVICE-TEST-11.md` §3, along with what a real drag-between-
 screens feature would take (it conflicts with the calendar's month swipe).
 
+**Mood reveal is now a liquid blob wash** (same round): SVG `<Path>` rebuilt on
+the UI thread, undulating edge that settles smooth, 1050ms on a gentler curve.
+The clip-path idea works HERE — unlike tabs — because the reveal is an opaque
+overlay, not a live screen. `npm run test:liquid` proves it covers every corner
+at full extent (a gap there would flash the old palette on commit).
+
 ### Round 10 (2026-09-04)
 
 - **Period days can be UN-marked.** There was no un-log path anywhere in the
@@ -111,7 +117,7 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
   `test:journey` (10), `test:explainer`, `test:sister` (11), `test:blocks` (12),
   `test:dedupe` (6), `test:diag` (7), `test:creature`, `test:charts` (12),
   `test:dates` (8 timezones — the freeze regression), `test:nudges`,
-  `test:overlap`, `audit:ui`, `test:app:tz`. 15 suites.
+  `test:overlap`, `test:liquid`, `audit:ui`, `test:app:tz`. 16 suites.
 - `npm run test:app` — the simulated-user integration run on its own (fastest
   way to check a data-layer change; the tz matrix is what CI gates on). `npm run simulate` is eyeball-only.
 - **On-device runtime = the GitHub Actions APK.** Push to `gemini-v2` without

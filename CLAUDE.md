@@ -48,6 +48,8 @@ non-diagnostic voice throughout.
   regression test for the period-log freeze; a UTC-only run would not catch it)
 - `npm run test:nudges` — encouragement pool: rotation + tone
 - `npm run test:overlap` — user/sister cycle-window overlap + no-synchrony tone
+- `npm run test:liquid` — mood-reveal blob geometry; proves the wash covers every
+  screen corner at full extent (a gap flashes the OLD palette on commit)
 - `npm run test:app` — SIMULATED USER: drives the real stores + SQLite repos
   through onboarding → logging → sisterhood → quizzes → deletion, with a
   per-step watchdog so a freeze is reported instead of hanging the run
@@ -106,7 +108,9 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    cross-fade + 18px drift, 170ms, native driver. Never make it a real slide
    (tabs are peers), and never put `animation:` back into the tabs'
    `screenOptions` — its absence is what keeps the outgoing screen alive to
-   fade (`DEVICE-TEST-11.md`).
+   fade (`DEVICE-TEST-11.md`). The mood reveal is the opposite case and DOES get
+   a liquid SVG path (`src/theme/liquid-reveal.ts`) — it is an opaque overlay,
+   not a live screen, and it fires once a day rather than 100+ times.
 7. **Notifications: `checkNotificationPermission()` is silent** (used by
    `syncAllReminders`); `requestNotificationPermission()` prompts and must be
    called ONLY from an explicit user tap.

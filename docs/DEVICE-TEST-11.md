@@ -95,7 +95,62 @@ month-swipe** — both want the same gesture on the same screen. Resolving that
 (edge-only activation, or `Gesture.Race`) is its own piece of work. Say the word
 and I'll scope it.
 
-## 4. Feel-check on device
+## 4. The mood reveal — where the liquid idea DOES belong
+
+Owner's follow-up: "when the user clicks on the mood the UI colour changes …
+instead of a circular animation filling the screen from the point of origin, why
+not move it a bit slower and add a liquid transition?"
+
+**Yes — and this is the case the clip-path idea actually fits.** The reason §3
+rejected it for tabs was that a tab transition would have to mask a **live,
+interactive screen**. The mood reveal is the opposite: an **opaque overlay
+filled with a colour**, already `pointerEvents="none"`, with nothing live inside
+it. Drawing a filled shape is exactly what SVG is for — so there is no snapshot,
+no lost interactivity, and the same technique that was wrong there is right
+here.
+
+It is also the right *frequency*. Tab switches happen 100+ times a day, which is
+why they get 170ms and no ceremony. Changing your mood repaints the entire app
+and happens about once a day. That is where a delight budget belongs.
+
+### What changed
+
+Was: a `View` with a `borderRadius`, scaled up over 720ms. A perfect circle
+growing at a constant rate reads as a mechanical wipe — a progress indicator.
+
+Now: an SVG `<Path>` whose outline is rebuilt on the UI thread each frame
+(`src/theme/liquid-reveal.ts`).
+
+- **The edge undulates while it travels and settles smooth.** Radius varies with
+  angle by two incommensurate harmonics — one sine reads as an obvious wobble,
+  two read as organic — and the amplitude peaks early then returns to zero.
+- **Slower, and a different curve.** 1050ms (was 720ms), on
+  `bezier(0.4, 0.05, 0.2, 1)` instead of the app's usual strong ease-out. That
+  matters more than the duration: a strong ease-out puts most of the distance in
+  the first fifth of the time, so there would be nothing to watch. This one
+  eases in and out gently, so the colour reads as *travelling*.
+- Same accent → ground gradient as before. Only the shape changed, not the
+  colour story.
+- `SPREAD_MS` is a single constant — tune the pace there and nothing else moves.
+
+### The one bug this shape can have, and why it's asserted
+
+The palette underneath swaps on the frame the wash reaches full extent. If the
+blob does not cover **every** corner at that moment, you see a flash of the OLD
+palette in the gap — one frame, in a corner, during a colour change. Invisible
+in review, easy to miss on a phone, and it depends on the balance between the
+wobble amplitude and the overshoot margin, which a future tweak could easily
+break.
+
+So `npm run test:liquid` asserts it directly: coverage from five origins
+(including the corners and off-screen), at 720 angles, plus that the shape is a
+**true circle at t=1** — which is what the coverage proof rests on — and
+visibly not one mid-flight. It also measures the per-frame path rebuild at
+**0.014ms**, which is what makes rebuilding it every frame defensible.
+
+Reduced motion still swaps instantly, as before.
+
+## 5. Feel-check on device
 
 Motion cannot be judged from code. On the phone:
 
@@ -109,3 +164,14 @@ Motion cannot be judged from code. On the phone:
   mount cost, not the transition.
 - Turn on **Reduce Motion** in Android settings — drift and settle should
   disappear, the fade should remain.
+
+For the mood reveal:
+
+- Log a mood from the **bottom row** — the wash should start under your thumb
+  and you should be able to watch it cross the screen, with the edge visibly
+  breathing rather than a hard circle.
+- Watch the corner farthest from your tap at the moment the colour commits.
+  Any flicker of the old palette there means the coverage margin needs raising
+  (`OVERSHOOT` in `liquid-reveal.ts`) — the harness says it shouldn't.
+- If 1050ms feels indulgent on the tenth time, drop `SPREAD_MS`; it is the only
+  knob.
