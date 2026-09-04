@@ -48,6 +48,7 @@ import {
   CompanionConfig,
   OutfitSlot,
 } from '../types/companion.types';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
           flowLevel: 3,
         });
       } catch (err) {
-        if (__DEV__) console.warn('[UserStore] seed lastPeriodStart failed:', err);
+        logSilentFailure('onboarding:seedPeriodFailed', err);
       }
     }
 
@@ -183,7 +184,7 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
           predictedNextPeriod: null, // first-run: no prediction yet
         });
       } catch (err) {
-        if (__DEV__) console.warn('[UserStore] onboarding reminder sync failed:', err);
+        logSilentFailure('onboarding:reminderSyncFailed', err);
       }
     }
 

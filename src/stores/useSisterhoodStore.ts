@@ -52,6 +52,7 @@ import {
 import { getNudgeTemplate, pickNudges } from '../content/care-nudges';
 import { Phase } from '../types/cycle.types';
 import { CareNudgeTemplate } from '../types/sisterhood.types';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ export const useSisterhoodStore = create<SisterhoodStoreState>((set, get) => ({
         lastRefreshedAt: Date.now(),
       });
     } catch (err) {
-      if (__DEV__) console.warn('[SisterhoodStore] refresh failed:', err);
+      logSilentFailure('sisterhood:refreshFailed', err);
       set({ isLoading: false });
     }
   },

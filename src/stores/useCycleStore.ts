@@ -52,6 +52,7 @@ import {
   daysUntilNextPeriod,
 } from '../engine/prediction/phase-calculator';
 import { RecentSymptom } from '../engine/content';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -148,7 +149,7 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
           input.date
         );
       } catch (err) {
-        if (__DEV__) console.warn('[CycleStore] recordPredictionError failed:', err);
+        logSilentFailure('cycle:recordPredictionErrorFailed', err);
       }
     }
 
@@ -238,7 +239,7 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
     try {
       await cycleRepository.savePrediction(userId, fullPrediction, output.predictionPhase);
     } catch (err) {
-      if (__DEV__) console.warn('[CycleStore] savePrediction failed:', err);
+      logSilentFailure('cycle:savePredictionFailed', err);
     }
 
     set({

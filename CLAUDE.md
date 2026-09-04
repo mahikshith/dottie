@@ -48,6 +48,10 @@ non-diagnostic voice throughout.
   regression test for the period-log freeze; a UTC-only run would not catch it)
 - `npm run test:nudges` — encouragement pool: rotation + tone
 - `npm run test:overlap` — user/sister cycle-window overlap + no-synchrony tone
+- `npm run test:app` — SIMULATED USER: drives the real stores + SQLite repos
+  through onboarding → logging → sisterhood → quizzes → deletion, with a
+  per-step watchdog so a freeze is reported instead of hanging the run
+- `npm run test:app:tz` — the same journey in 5 timezones (what `test:all` runs)
 - `npm run test:sister` / `test:blocks` / `test:dedupe` / `test:diag` / `test:creature`
 - `npm run audit:ui` — every Pressable/Button/GradientButton has onPress (167 tappables)
 - `npm run test:all` — runs all of the above, non-zero exit on any failure
@@ -123,9 +127,17 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    `app/_layout.tsx` forces every navigator surface to the aurora ground; the
    default light container was the one-frame white flash on tab switches that
    survived several rounds of `contentStyle`/`sceneStyle` fixes.
-13. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
+13. **Validate at the repository boundary.** `upsertCycleEntry` rejects
+   malformed dates and clamps flow levels; writes are single-statement upserts,
+   never SELECT-then-INSERT (a double-tap raced it). Read-side engines drop
+   unusable dates rather than throwing, so a phone with bad data can still open
+   its calendar.
+14. **Never `if (__DEV__) console.warn` in a catch.** `__DEV__` is false in the
+   build the owner tests, so that is silence. Use `logSilentFailure(code, err)`
+   — it lands in the shareable diagnostic trail.
+15. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
    (`?logFor=<memberId>`). Do not add a second date picker anywhere.
-14. **The prediction explainer must never render nothing.** It recomputes the
+16. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 

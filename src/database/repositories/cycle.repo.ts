@@ -49,7 +49,7 @@ import {
   CyclePrediction,
   Phase,
 } from '../../types/cycle.types';
-import { nextDay, prevDay, daysApart } from '../../utils/civil-date';
+import { nextDay, prevDay, daysApart, isCivilDate, todayCivil } from '../../utils/civil-date';
 
 // ─── DOMAIN INPUT TYPES ──────────────────────────────────────────────
 
@@ -84,80 +84,76 @@ export class CycleRepository {
    * Returns the resulting entry.
    */
   async upsertCycleEntry(input: UpsertCycleEntryInput): Promise<CycleEntry> {
+    // ─── VALIDATE AT THE BOUNDARY ─────────────────────────────────
+    //
+    //  Everything downstream — the block walk, the predictor, every chart —
+    //  assumes a well-formed civil date, and `civil-date` THROWS on anything
+    //  else. So one bad write does not corrupt one row, it makes the whole
+    //  calendar throw on every later read: the user's app is bricked until the
+    //  data is deleted. The simulated-user harness got `""`, `"today"` and
+    //  `"01/09/2026"` into this table (device-test-9), so the guard belongs
+    //  here, at the only door into it.
+    if (!isCivilDate(input.date)) {
+      throw new RangeError(
+        `[cycle.repo] refusing to store a malformed date: ${JSON.stringify(input.date)}`
+      );
+    }
+    // Clamp rather than throw: a flow level is a slider value, and a
+    // out-of-range one is a caller bug that should not lose the user's log.
+    const flowLevel =
+      input.flowLevel === undefined || input.flowLevel === null
+        ? undefined
+        : Math.min(5, Math.max(0, Math.round(input.flowLevel)));
+
     const now = new Date().toISOString();
     const db = await this.getDb();
 
-    const existing = await db.getFirstAsync<CycleEntryRow>(
+    // ─── ONE STATEMENT, NO RACE ───────────────────────────────────
+    //
+    //  This used to SELECT, then branch to UPDATE or INSERT. Two calls landing
+    //  together — a double-tap on "Mark as period", which is exactly what an
+    //  impatient thumb does — both saw no row, both INSERTed, and the second
+    //  blew up on `UNIQUE(user_id, date)` as an unhandled rejection. A real
+    //  upsert is atomic, so the second tap merges instead of exploding.
+    //
+    //  COALESCE on the excluded values preserves the merge semantics the old
+    //  branch had: a field the caller didn't pass keeps whatever is already
+    //  stored, rather than being nulled out.
+    await db.runAsync(
+      `INSERT INTO cycle_entries (
+         id, user_id, date, phase, flow_level, is_period_day,
+         confidence_score, created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, date) DO UPDATE SET
+         phase            = COALESCE(excluded.phase, cycle_entries.phase),
+         flow_level       = COALESCE(excluded.flow_level, cycle_entries.flow_level),
+         is_period_day    = CASE WHEN ?1 IS NULL THEN cycle_entries.is_period_day
+                                 ELSE excluded.is_period_day END,
+         confidence_score = COALESCE(excluded.confidence_score, cycle_entries.confidence_score),
+         updated_at       = excluded.updated_at`,
+      generateCycleEntryId(),
+      input.userId,
+      input.date,
+      input.phase ?? null,
+      flowLevel ?? null,
+      input.isPeriodDay === undefined ? null : input.isPeriodDay ? 1 : 0,
+      input.confidenceScore ?? null,
+      now,
+      now
+    );
+    trackWrite();
+
+    // Read back so the caller always gets the MERGED row, not the values it
+    // happened to pass in.
+    const saved = await db.getFirstAsync<CycleEntryRow>(
       'SELECT * FROM cycle_entries WHERE user_id = ? AND date = ?',
       input.userId,
       input.date
     );
-
-    if (existing) {
-      // Merge — preserve fields the caller didn't pass
-      const merged = {
-        phase: input.phase !== undefined ? input.phase : existing.phase,
-        flow_level: input.flowLevel !== undefined ? input.flowLevel : existing.flow_level,
-        is_period_day:
-          input.isPeriodDay !== undefined
-            ? input.isPeriodDay ? 1 : 0
-            : existing.is_period_day,
-        confidence_score:
-          input.confidenceScore !== undefined
-            ? input.confidenceScore
-            : existing.confidence_score,
-      };
-
-      await db.runAsync(
-        `UPDATE cycle_entries
-         SET phase = ?, flow_level = ?, is_period_day = ?, confidence_score = ?, updated_at = ?
-         WHERE user_id = ? AND date = ?`,
-        merged.phase,
-        merged.flow_level,
-        merged.is_period_day,
-        merged.confidence_score,
-        now,
-        input.userId,
-        input.date
-      );
-      trackWrite();
-      return rowToCycleEntry({
-        ...existing,
-        ...merged,
-        updated_at: now,
-      });
+    if (!saved) {
+      throw new Error('[cycle.repo] upsert wrote no row — this should be impossible');
     }
-
-    // Insert fresh row
-    const row: CycleEntryRow = {
-      id: generateCycleEntryId(),
-      user_id: input.userId,
-      date: input.date,
-      phase: input.phase ?? null,
-      flow_level: input.flowLevel ?? null,
-      is_period_day: input.isPeriodDay ? 1 : 0,
-      confidence_score: input.confidenceScore ?? 0.0,
-      created_at: now,
-      updated_at: now,
-    };
-
-    await db.runAsync(
-      `INSERT INTO cycle_entries (
-        id, user_id, date, phase, flow_level, is_period_day,
-        confidence_score, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      row.id,
-      row.user_id,
-      row.date,
-      row.phase,
-      row.flow_level,
-      row.is_period_day,
-      row.confidence_score,
-      row.created_at,
-      row.updated_at
-    );
-    trackWrite();
-    return rowToCycleEntry(row);
+    return rowToCycleEntry(saved);
   }
 
   /**
@@ -212,10 +208,17 @@ export class CycleRepository {
 
     // Get all period days, newest first
     const rows = await db.getAllAsync<{ date: string }>(
+      // Future days are EXCLUDED. The calendar lets you swipe forward and tap
+      // any cell, so it is easy to mark a day that hasn't happened — and a
+      // future "last period start" makes day-in-cycle negative and every
+      // prediction nonsense (device-test-9). A day you marked ahead of time is
+      // still stored and still drawn; it just can't be the period you are
+      // currently in.
       `SELECT date FROM cycle_entries
-       WHERE user_id = ? AND is_period_day = 1
+       WHERE user_id = ? AND is_period_day = 1 AND date <= ?
        ORDER BY date DESC`,
-      userId
+      userId,
+      todayCivil()
     );
     trackQuery(Date.now() - start);
 

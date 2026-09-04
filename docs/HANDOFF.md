@@ -18,6 +18,19 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
+### Round 9 (2026-09-04) — the simulated-user harness
+
+`npm run test:app` now drives the REAL stores + SQLite repositories through a
+full user journey (42 steps, 110 assertions), replayed in 5 timezones by
+`npm run test:app:tz`. It found and we fixed five defects the 14 pure suites
+structurally could not reach — malformed dates poisoning the calendar, a
+double-tap `UNIQUE` crash, a future-dated period becoming "last period",
+unclamped flow levels, and `catch` blocks that were invisible in release builds
+(`__DEV__` is false there). Detail: `docs/DEVICE-TEST-9.md`.
+
+It does NOT test rendering — no device, no renderer. Layout, motion and colour
+still need the owner's phone.
+
 ### Round 8 landed (2026-09-04) — awaiting device confirmation
 
 `docs/DEVICE-TEST-8.md` has the per-bug detail. Headlines:
@@ -69,7 +82,9 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
   `test:journey` (10), `test:explainer`, `test:sister` (11), `test:blocks` (12),
   `test:dedupe` (6), `test:diag` (7), `test:creature`, `test:charts` (12),
   `test:dates` (8 timezones — the freeze regression), `test:nudges`,
-  `test:overlap`, `audit:ui`. 14 suites. `npm run simulate` is eyeball-only.
+  `test:overlap`, `audit:ui`, `test:app:tz`. 15 suites.
+- `npm run test:app` — the simulated-user integration run on its own (fastest
+  way to check a data-layer change; the tz matrix is what CI gates on). `npm run simulate` is eyeball-only.
 - **On-device runtime = the GitHub Actions APK.** Push to `gemini-v2` without
   `[skip ci]` → build. `[skip ci]` **on the tip commit skips the whole push** —
   keep a code commit last. Owner downloads via the GitHub mobile app
@@ -114,6 +129,12 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 - `src/theme/{palettes,mood-palette,ThemeProvider,aurora-static}.ts`
 - `src/constants/spacing.ts` — grid, radii, **`tabBarClearance`**
 
+**Testing**
+- `scripts/app-simulation-harness.ts` — the simulated user; add a step here when
+  you add a feature, it is the only suite that exercises stores + SQL.
+- `scripts/harness/{alias.cjs,shims/,lib/runner.ts}` — how it runs in Node.
+  Shims are harness-only; never import them from the app.
+
 **Data**
 - `src/utils/civil-date.ts` — **the only place date maths on `YYYY-MM-DD` may
   happen.** UTC-only by construction. Never write a local `new Date(\`${d}T00:00:00\`)`
@@ -146,7 +167,8 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 
 ## 5. Companion docs (open only when named)
 
-`DEVICE-TEST-8.md` (latest round) · `DEVICE-TEST-7.md` (the freeze post-mortem)
+`DEVICE-TEST-9.md` (the harness + its findings) · `DEVICE-TEST-8.md` ·
+`DEVICE-TEST-7.md` (the freeze post-mortem)
 · `DEVICE-TEST-6.md`
 (previous round, incl. the two wrong freeze diagnoses) · `DEVICE-TEST-3.md` ·
 `FEATURES-AND-RESEARCH.md` (predictor math, aurora system) · `DAY-SUGGESTIONS.md`

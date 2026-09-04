@@ -22,6 +22,8 @@
  *  to decide when a LOG looks like a mistake.
  */
 
+import { isCivilDate } from '../../utils/civil-date';
+
 const DAY_MS = 86400000;
 
 export interface PeriodBlock {
@@ -58,8 +60,21 @@ const WINDOW_DAYS = 35;
  * Group loose period days into consecutive blocks.
  * Input may be unsorted and may contain duplicates; output is sorted ascending.
  */
+/**
+ * Dates that are not well-formed civil dates are DROPPED, not thrown on.
+ *
+ * These functions read whatever is in the database, and a single malformed row
+ * used to make every one of them throw — one bad write and the calendar was
+ * dead for that user until the data was deleted (device-test-9). The repository
+ * now refuses to store junk, but a phone that already has some must still be
+ * able to open its calendar, so the read side heals rather than crashes.
+ */
+function usableDates(days: readonly string[]): string[] {
+  return days.filter((d) => isCivilDate(d));
+}
+
 export function groupPeriodBlocks(days: readonly string[]): PeriodBlock[] {
-  const sorted = Array.from(new Set(days)).sort();
+  const sorted = Array.from(new Set(usableDates(days))).sort();
   const blocks: PeriodBlock[] = [];
 
   for (const day of sorted) {
