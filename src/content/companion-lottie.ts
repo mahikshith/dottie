@@ -47,7 +47,26 @@ import type { CompanionType } from '../types/content.types';
  *   - proud      → streak / level-up / badge
  *   - sad        → wrong answer / broken streak (soft, never punishing)
  */
-export type CompanionAnim = 'idle' | 'celebrate' | 'encourage' | 'cozy' | 'proud' | 'sad';
+export type CompanionAnim =
+  | 'idle'
+  | 'celebrate'
+  | 'encourage'
+  | 'cozy'
+  | 'proud'
+  | 'sad'
+  // DT18 — the quiz became a conversation, so the companion needs the faces a
+  // conversation actually uses. These have no Lottie files and never will; they
+  // map onto the drawn rig's states in `CompanionLottie`.
+  | 'curious'
+  | 'thinking'
+  | 'surprised'
+  | 'wink'
+  | 'laugh'
+  | 'shy'
+  | 'determined'
+  | 'cheer'
+  | 'confused'
+  | 'relieved';
 
 /** Shared, companion-agnostic animations for big moments. */
 export type MomentAnim =
@@ -85,7 +104,10 @@ const OWL = require('../../assets/lottie/companions/owl.json') as LottieAsset;
 const BLOSSOM = require('../../assets/lottie/companions/blossom.json') as LottieAsset;
 
 /** Every state maps to the companion's performance file. */
-function allStates(asset: LottieAsset): Record<CompanionAnim, LottieAsset> {
+function allStates(asset: LottieAsset): Partial<Record<CompanionAnim, LottieAsset>> {
+  // Only the six states that ever had art are filled. The DT18 conversation
+  // faces are drawn-rig only, so they stay absent and fall through to the rig —
+  // which is the whole point of `Partial` on the manifest below.
   return { idle: asset, celebrate: asset, encourage: asset, cozy: asset, proud: asset, sad: asset };
 }
 

@@ -320,9 +320,30 @@ export interface ReactionInput {
   seed: string;
   /** Which question this is, so consecutive reactions can't repeat an opener. */
   index: number;
+  /**
+   * True when the PREVIOUS question was missed. Getting the next one right
+   * after a stumble is the beat that most deserves noticing, and a companion
+   * that treats it like any other correct answer isn't paying attention.
+   */
+  afterMiss?: boolean;
 }
 
+/**
+ * Which beat this is. The screen uses it to decide layout (a retry needs a
+ * button); the harness uses it to assert every branch is reachable — the
+ * previous version had two branches no screen could ever trigger.
+ */
+export type ReactionKind =
+  | 'hit'
+  | 'streak'
+  | 'comeback'
+  | 'recovered'
+  | 'miss'
+  | 'told';
+
 export interface Reaction {
+  /** Which of the six beats this is. */
+  kind: ReactionKind;
   /** The companion's tonal opener. Contentless by design. */
   opener: string;
   /** The vetted explanation, verbatim. Always present — right OR wrong. */
@@ -355,14 +376,46 @@ export interface Reaction {
  */
 export function reactTo(input: ReactionInput): Reaction {
   const seed = hash(input.seed) + input.index;
+  const base = {
+    explanation: input.explanation,
+    explanationEmoji: input.explanationEmoji,
+  };
 
   if (input.correct) {
+    // Got there on the SECOND go. This is the beat the old version could never
+    // reach, because the only screen using the engine hardcoded attempt: 1 —
+    // so nobody was ever offered a retry, and nobody was ever congratulated for
+    // taking one. It is also the most earned correct answer in the quiz.
+    if (input.attempt >= 2) {
+      return {
+        ...base,
+        kind: 'recovered',
+        opener: pick(RECOVERED, seed, input.index),
+        expression: 'proud',
+        offerRetry: false,
+        aside: 'Second look got it. That counts double with me.',
+      };
+    }
+
+    // Right straight after missing the previous one. Worth naming: a companion
+    // that says "Nice." identically whether you are cruising or clawing back
+    // isn't listening, it's counting.
+    if (input.afterMiss) {
+      return {
+        ...base,
+        kind: 'comeback',
+        opener: pick(COMEBACKS, seed, input.index),
+        expression: 'proud',
+        offerRetry: false,
+        aside: null,
+      };
+    }
+
     const streaked = input.streak >= 2;
-    const pool = streaked ? STREAK_HITS : HITS;
     return {
-      opener: pick(pool, seed, input.index),
-      explanation: input.explanation,
-      explanationEmoji: input.explanationEmoji,
+      ...base,
+      kind: streaked ? 'streak' : 'hit',
+      opener: pick(streaked ? STREAK_HITS : HITS, seed, input.index),
       expression: streaked ? 'celebrate' : 'proud',
       offerRetry: false,
       aside: streaked ? `${input.streak + 1} in a row.` : null,
@@ -372,24 +425,64 @@ export function reactTo(input: ReactionInput): Reaction {
   // First miss: normalise, explain, and offer another go.
   if (input.attempt === 1) {
     return {
+      ...base,
+      kind: 'miss',
       opener: pick(MISSES, seed, input.index),
-      explanation: input.explanation,
-      explanationEmoji: input.explanationEmoji,
       expression: 'encourage',
       offerRetry: true,
-      aside: 'Want another go?',
+      aside: pick(RETRY_ASIDES, seed, input.index),
     };
   }
 
   // Second miss: no third attempt. Say it plainly, keep the tone level, move on.
   return {
+    ...base,
+    kind: 'told',
     opener: pick(SECOND_MISSES, seed, input.index),
-    explanation: input.explanation,
-    explanationEmoji: input.explanationEmoji,
     expression: 'cozy',
     offerRetry: false,
-    aside: "Genuinely — this one's fiddly. Onward.",
+    aside: pick(TOLD_ASIDES, seed, input.index),
   };
+}
+
+// ─── ASKING ──────────────────────────────────────────────────────────
+
+export interface LeadInput {
+  /** 0-based position of this question. */
+  index: number;
+  /** How many questions the quiz has. */
+  total: number;
+  /** Stable variation source — usually the session id. */
+  seed: string;
+  /** True when the previous question was missed, so the lead softens. */
+  afterMiss: boolean;
+  /** Consecutive correct answers so far. */
+  streak: number;
+}
+
+/**
+ * The line the companion says BEFORE the question.
+ *
+ * Until now the companion only ever spoke after an answer — it reacted, but it
+ * never asked. That is why the screen read as a scorecard with a mascot glued
+ * on rather than a conversation: one side of the exchange was missing. The
+ * pools already existed (QUESTION_LEADS, written in DT14); nothing rendered
+ * them.
+ *
+ * Position picks the register: the first question sets up, the last one lands,
+ * a question after a stumble gets the pressure taken off it, and a run gets
+ * played with. Contentless throughout — a lead never hints at the answer, which
+ * is why none of these pools may ever mention a symptom, a phase or a number.
+ */
+export function leadFor(input: LeadInput): string {
+  const seed = hash(input.seed) + input.index;
+  if (input.index === 0) return pick(FIRST_LEADS, seed, input.index);
+  if (input.total > 1 && input.index === input.total - 1) {
+    return pick(FINAL_LEADS, seed, input.index);
+  }
+  if (input.afterMiss) return pick(SOFT_LEADS, seed, input.index);
+  if (input.streak >= 3) return pick(STREAK_LEADS, seed, input.index);
+  return pick(QUESTION_LEADS, seed, input.index);
 }
 
 // ─── THE COMPANION'S OWN WORDS ───────────────────────────────────────
@@ -415,6 +508,41 @@ const QUESTION_LEADS: string[] = [
   'Your turn:',
   'Small test, no stakes:',
   "Have a guess — I'll explain either way:",
+  'Next:',
+  'Okay, this one I like:',
+  'Bear with me:',
+];
+
+/** The very first question — set the terms, take the pressure off. */
+const FIRST_LEADS: string[] = [
+  "Right — first one. No stakes, I promise.",
+  "Let's start easy.",
+  "Here we go. I'll explain every one either way.",
+  "First question. Guess freely — nothing here is scored against you.",
+];
+
+/** The last question — land it without making it feel like an exam. */
+const FINAL_LEADS: string[] = [
+  'Last one.',
+  'Okay — final question.',
+  "One more and we're done.",
+  'Last one, and then I’ll let you go.',
+];
+
+/** Straight after a miss — take the weight off before asking again. */
+const SOFT_LEADS: string[] = [
+  'Fresh one. That last one was mean.',
+  'Moving on — try this:',
+  'Clean slate:',
+  "Different angle, same idea:",
+];
+
+/** They're on a run — play with them a bit. */
+const STREAK_LEADS: string[] = [
+  "Alright, let's see if I can catch you out:",
+  "You're making this look easy. Try:",
+  'Harder one, then:',
+  "I'm going to keep going until one of these lands:",
 ];
 
 const HITS: string[] = [
@@ -423,27 +551,69 @@ const HITS: string[] = [
   'Got it in one.',
   'Correct.',
   'Nice.',
+  'Straight through.',
+  'Yes — that one.',
+  'Bang on.',
 ];
 
 const STREAK_HITS: string[] = [
   "You're on a roll.",
   "Right again — you're flying.",
-  "Okay, showing off now.",
+  'Okay, showing off now.',
   "That's a run.",
+  "I'm running out of ways to say yes.",
+  "Again? Fine, I'm impressed.",
+];
+
+/** Correct straight after missing the previous question. */
+const COMEBACKS: string[] = [
+  'And back you come.',
+  "There it is — straight after a wobble.",
+  'See, that one you had all along.',
+  "Recovered. That's the bit that matters.",
+  'Right back on it.',
+];
+
+/** Correct on the second attempt, after taking the retry. */
+const RECOVERED: string[] = [
+  'There we go.',
+  'Second time, and you got there yourself.',
+  "That's it — and you worked it out rather than being told.",
+  'Yes. Worth the extra look.',
 ];
 
 const MISSES: string[] = [
   'Ooh — close.',
   'Not quite, and honestly that one catches people.',
   'Nearly. Let me show you why.',
-  "Ah — reasonable guess, but no.",
+  'Ah — reasonable guess, but no.',
   'That one trips a lot of people up.',
+  "Not this time — and it's a fair mistake.",
+  'Hmm, not quite. Stay with me.',
+];
+
+/** The offer of a second go. Never a scold, never a countdown. */
+const RETRY_ASIDES: string[] = [
+  'Want another go?',
+  'Have one more look?',
+  'Try again — I’ll wait.',
+  'One more shot, if you like.',
 ];
 
 const SECOND_MISSES: string[] = [
-  "Still no — so let me just tell you.",
+  'Still no — so let me just tell you.',
   'Right, I’ll stop being coy.',
   "Here's the answer, plainly.",
+  "Okay, I'll give you this one.",
+  "Let's not labour it — here it is.",
+];
+
+/** After the answer is handed over. Level tone; no consolation prize. */
+const TOLD_ASIDES: string[] = [
+  "Genuinely — this one's fiddly. Onward.",
+  "Don't dwell on it. Next.",
+  'Now you know it, which was the point.',
+  "That one's worth a second read later.",
 ];
 
 const CLOSERS: ((title: string) => string)[] = [
@@ -482,9 +652,17 @@ export function hash(s: string): number {
 export const ALL_TONAL_LINES: string[] = [
   ...OPENERS.map((f) => f('Nyx', 'Sam', 'A Lesson')),
   ...QUESTION_LEADS,
+  ...FIRST_LEADS,
+  ...FINAL_LEADS,
+  ...SOFT_LEADS,
+  ...STREAK_LEADS,
   ...HITS,
   ...STREAK_HITS,
+  ...COMEBACKS,
+  ...RECOVERED,
   ...MISSES,
+  ...RETRY_ASIDES,
   ...SECOND_MISSES,
+  ...TOLD_ASIDES,
   ...CLOSERS.map((f) => f('A Lesson')),
 ];

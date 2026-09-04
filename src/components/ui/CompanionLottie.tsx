@@ -130,6 +130,19 @@ const STATE_INTENSITY: Record<CompanionAnim, number> = {
   celebrate: 1,
   cozy: 0.8,
   sad: 0.85,
+  // DT18 conversation faces. The quiet, listening ones are deliberately played
+  // DOWN — a companion that performs while you are still reading the question
+  // is a distraction, not a character.
+  curious: 0.9,
+  thinking: 0.6,
+  surprised: 1,
+  wink: 1,
+  laugh: 1,
+  shy: 0.9,
+  determined: 0.85,
+  cheer: 1,
+  confused: 0.8,
+  relieved: 0.8,
 };
 
 /** The moment animation a state gets when the caller doesn't specify one. */
@@ -148,6 +161,17 @@ const ANIM_TO_STATE: Record<CompanionAnim, CreatureState> = {
   cozy: 'caring',
   proud: 'proud',
   sad: 'sad',
+  // DT18 conversation faces — one-to-one with the rig.
+  curious: 'curious',
+  thinking: 'thinking',
+  surprised: 'surprised',
+  wink: 'wink',
+  laugh: 'laugh',
+  shy: 'shy',
+  determined: 'determined',
+  cheer: 'cheer',
+  confused: 'confused',
+  relieved: 'relieved',
 };
 
 const styles = StyleSheet.create({

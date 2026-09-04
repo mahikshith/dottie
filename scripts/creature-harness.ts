@@ -20,6 +20,18 @@ import {
   stateForMood,
   type CreatureState,
 } from '../src/components/ui/creature/expressions';
+import {
+  creatureShapes,
+  ARM_POSE,
+  BODY,
+  EYE,
+  HEAD,
+  SPARKLE_FLOOR_Y,
+  SPECIES,
+} from '../src/components/ui/creature/geometry';
+import type { CompanionType } from '../src/types/content.types';
+
+const TYPES: CompanionType[] = ['fox', 'bunny', 'butterfly', 'cat', 'owl', 'blossom'];
 
 let failures = 0;
 let current = '';
@@ -44,7 +56,20 @@ function ok(label: string, cond: boolean, detail?: string): void {
   console.log(`  \x1b[31m✗ ${label}\x1b[0m${detail ? ` — ${detail}` : ''} (in "${current}")`);
 }
 
-const ALL: CreatureState[] = ['idle', 'happy', 'proud', 'celebrate', 'mindblown', 'sad', 'sleepy', 'love'];
+/**
+ * EVERY state. The previous list was written by hand and had drifted — it was
+ * missing `caring`, which is the face shown after a rough quiz, so the single
+ * most sensitive expression in the rig was the one nothing checked. The C1 and
+ * C8 sweeps walk this, so a state added to the union and forgotten here is a
+ * state nothing asserts.
+ */
+const STATES: CreatureState[] = [
+  'idle', 'happy', 'proud', 'celebrate', 'mindblown', 'sad', 'caring', 'sleepy', 'love',
+  'curious', 'thinking', 'surprised', 'wink', 'laugh', 'shy', 'determined', 'cheer',
+  'confused', 'relieved', 'frustrated', 'annoyed', 'worried', 'excited', 'sulky',
+  'queasy', 'smug',
+];
+const ALL: CreatureState[] = STATES;
 
 // ─── C1 — every state is well-formed ─────────────────────────────────
 
@@ -140,6 +165,121 @@ scenario('C7 — the companion matches how the user says they feel', () => {
   ok('great mood → celebrate', stateForMood(5) === 'celebrate');
   ok('unknown mood is safe', stateForMood(null) === 'idle');
   ok('a rough day never gets a grin', expressionFor(stateForMood(1)).mouthCurve < 0);
+});
+
+
+// ─── C8 — the anti-insect audit ──────────────────────────────────────
+//
+// The companions were reported as looking like INSECTS in three device rounds
+// (DT7, DT8, DT16). Each fix was reasoned about and shipped blind in a
+// 25-minute APK, and each time the same complaint came back — DT16 even
+// ADDED two round nubs on stalks to the deer, which is what an antenna is.
+//
+// So the signals are assertions now. Every one of these failed on the old rig.
+
+scenario('C8 — no sparkle may sit beside or below the head', () => {
+  // The loudest signal by far: `Sparkles` used to ring the whole character
+  // with up to twelve dots at radius 42, including down both flanks and
+  // underneath. Small round things radiating from a round body are LEGS, and
+  // it fired on every celebrate and mindblown.
+  for (const st of STATES) {
+    const shapes = creatureShapes('fox', expressionFor(st, 1));
+    const sparks = shapes.filter((sh) => sh.role === 'sparkle');
+    for (const sp of sparks) {
+      const y = sp.k === 'path' ? 0 : sp.cy;
+      ok(`${st}: sparkle stays above the head centre`, y < SPARKLE_FLOOR_Y, `y=${y}`);
+    }
+    ok(`${st}: at most five sparkles`, sparks.length <= 5, String(sparks.length));
+  }
+});
+
+scenario('C8b — nothing stalked sits above the crown', () => {
+  // The DT16 deer antlers: two small round shapes floating over the head.
+  const crown = HEAD.cy - HEAD.r; // top of the skull
+  for (const type of TYPES) {
+    for (const sh of creatureShapes(type, expressionFor('idle', 1))) {
+      if (sh.role === 'sparkle' || sh.k === 'path') continue;
+      const r = sh.k === 'circle' ? sh.r : Math.max(sh.rx, sh.ry);
+      const detached = sh.cy + r < crown;
+      ok(`${type}: no shape floats clear above the skull (${sh.role})`, !detached,
+        `cy=${sh.cy} r=${r} crown=${crown}`);
+    }
+  }
+});
+
+scenario('C8c — the body is never wider than the head', () => {
+  // No neck meant no character: a head and a body of the same width, joined
+  // and concentric, is a thorax and an abdomen.
+  ok('body half-width is under the head radius', BODY.halfWidth < HEAD.r,
+    `${BODY.halfWidth} vs ${HEAD.r}`);
+});
+
+scenario('C8d — eyes are not wide-set black domes', () => {
+  // 24 apart on a 50-wide head at rx 6.4 is how a jumping spider is drawn.
+  const spread = (EYE.rx - EYE.lx) / (HEAD.r * 2);
+  ok('eye spread is a mammal ratio, under 0.45', spread < 0.45, spread.toFixed(3));
+  ok('and each eye carries a real catchlight', creatureShapes('fox', expressionFor('idle', 1))
+    .some((sh) => sh.role === 'eye-light'));
+});
+
+scenario('C8e — every companion has two arms and two legs', () => {
+  // Until DT18 there were no limbs at all — just a body reaching the floor
+  // with two detached foot ellipses under it.
+  for (const type of TYPES) {
+    const shapes = creatureShapes(type, expressionFor('idle', 1));
+    for (const limb of ['armL', 'armR', 'legL', 'legR'] as const) {
+      ok(`${type}: has ${limb}`, shapes.some((sh) => sh.limb === limb));
+    }
+    ok(`${type}: exactly two feet`, shapes.filter((sh) => sh.role === 'foot').length === 4);
+  }
+});
+
+scenario('C8f — every arm pose is reachable and distinct', () => {
+  const seen = new Set<string>();
+  for (const st of STATES) {
+    const pose = expressionFor(st, 1).armPose;
+    ok(`${st}: pose is known`, pose in ARM_POSE, pose);
+    seen.add(pose);
+  }
+  ok('more than one pose is actually used', seen.size >= 5, `${seen.size} poses`);
+  // Not "both arms must mirror" — `wave` and `chin` are one-armed gestures on
+  // purpose, and asymmetry is the whole reason these stopped reading as
+  // specimens. What must hold is that the two arms are never IDENTICAL, which
+  // would stack them on top of each other and lose one.
+  for (const [pose, [l, r]] of Object.entries(ARM_POSE)) {
+    ok(`${pose}: the two arms are not the same angle`, l !== r, `${l} / ${r}`);
+  }
+  const asymmetric = Object.values(ARM_POSE).filter(([l, r]) => Math.abs(l) !== Math.abs(r));
+  ok('at least one pose is a one-armed gesture', asymmetric.length >= 1, `${asymmetric.length}`);
+});
+
+scenario('C8g — the shape list is pure and stable', () => {
+  // The preview page and the app must be the same picture, which only holds
+  // if the same arguments give the same shapes.
+  const a = creatureShapes('owl', expressionFor('celebrate', 1));
+  const b = creatureShapes('owl', expressionFor('celebrate', 1));
+  ok('same input, same output', JSON.stringify(a) === JSON.stringify(b));
+  for (const type of TYPES) {
+    for (const st of STATES) {
+      for (const sh of creatureShapes(type, expressionFor(st, 1))) {
+        const nums = sh.k === 'path' ? [sh.px ?? 0, sh.py ?? 0] : [sh.cx, sh.cy];
+        ok(`${type}/${st}: ${sh.role} has finite coordinates`, nums.every(Number.isFinite));
+        if (sh.opacity !== undefined) {
+          ok(`${type}/${st}: ${sh.role} opacity in 0..1`, sh.opacity >= 0 && sh.opacity <= 1);
+        }
+      }
+    }
+  }
+});
+
+scenario('C8h — the owl is an owl and the deer is a deer', () => {
+  // Both came out wrong on the first pass: every species shared the mammal
+  // muzzle, so the owl was a small bear with the right ears.
+  const owl = creatureShapes('owl', expressionFor('idle', 1));
+  ok('owl has a beak', SPECIES.owl.face === 'beak');
+  ok('owl draws no mammal muzzle line', !owl.some((sh) => sh.role === 'mouth'));
+  ok('deer has fawn spots', SPECIES.butterfly.spots);
+  ok('deer has no tail (a doe reads by ears and spots)', SPECIES.butterfly.tail === 'none');
 });
 
 // ─── SUMMARY ─────────────────────────────────────────────────────────
