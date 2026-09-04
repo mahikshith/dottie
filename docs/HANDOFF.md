@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-04 · after Device Test 16 · branch `gemini-v2`
+**Updated:** 2026-09-04 · DT16 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -8,34 +8,40 @@
 
 ---
 
-## 1. OPEN — DT16 device feedback, 5 of 10 done
+## 1. OPEN
 
-Owner sent 10 screenshots. Done and pushed: tab transition, safe area,
-lesson revert, insect companions, companion consistency. **Remaining five,
-in the owner's priority order:**
+**All ten DT16 items are done and pushed.** Waiting on a device round.
 
-| # | What | Where |
-|---|---|---|
-| 6 | **Week-ahead strip + colour legend move directly UNDER the month grid.** Today they sit far below, so you scroll away from the calendar to learn what its colours mean. | `app/(tabs)/calendar.tsx` — move the `weekAhead` and `legend` blocks up to just after the grid `Animated.View` |
-| 7 | **Cream panels → aurora.** "Send a little warmth" cards, the sister card in Circle, and the created sister profile all render cream/white. Also: highlight "Tap to start tracking together" in a bright accent. | `app/(sisterhood)/circle.tsx`, `app/(sisterhood)/member/[id].tsx` |
-| 8 | **Shadow Profile / Full view toggle is inert** — the user cannot reach Full view. Fix it, or delete the control if the states aren't meaningfully different. | `app/(sisterhood)/member/[id].tsx` |
-| 9 | **Conditions picker: more options + multi-select.** Only PCOS/Thyroid/Endometriosis today; owner wants PCOD, hypo/hyperthyroid etc. and several selectable at once. | `app/(sisterhood)/add-member.tsx` |
-| 10 | **Sister selected ⇒ sister's data everywhere on Cycle.** Graphs/explainer must describe HER. Coinciding predicted days should GLOW; the sister curve should read "on", not off-colour. | `app/(tabs)/calendar.tsx` (`logTarget`), `src/engine/calendar/cycle-overlap.ts` |
+### Verify first on the next APK (all reasoned, none seen rendered)
+1. **The companion redraw.** Owls got folded wings; Mira the butterfly became
+   a deer. Neither has been looked at on a screen — the whole point was that
+   they read as insects, so this is the one to eyeball first.
+2. **The status veil.** Now exactly `insets.top`, opaque, no fade tail.
+   Content should pass under the status bar cleanly with nothing dimmed
+   mid-screen.
+3. **Tab switches.** No scene animation at all now — the white glitch at the
+   bottom should be gone.
+4. **Select a sister on Cycle.** Every panel below the grid should be hers,
+   and shared predicted days should glow gold.
 
-Tasks #86–#90 in the task list mirror this table.
-
-### Also still open
-- `[DT16]` The **quiz** now carries the conversation (`reactTo`). Owner asked
-  for it to be "funny, interactive, expressive" — currently it's only the
-  rotating opener + streak line. Worth more once the five above land.
+### Open
+- `[DT16]` The **quiz** carries the conversation now (`reactTo` drives its
+  feedback panel). Owner wants it "funny, interactive, expressive" — today
+  it is only the rotating opener + streak line. Worth more.
+- `[DT17]` Liquid glass: **evaluated, answer is no.** rdev/liquid-glass-react
+  is web DOM (CSS backdrop-filter + SVG feDisplacementMap); callstack's is
+  iOS 26+ / Xcode 26 / RN 0.80+ and we are on RN 0.76.9 with an Android
+  device. Depth should come from AuroraTabBar instead — no new dependency.
 - `[P2]` App-store rollout groundwork.
 - `[P4]` Learn tab auto-advance report — re-verify.
+- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines, nothing
+  imports them). Wire in or delete.
 
 ---
 
 ## 2. Before you touch anything
 
-**Run `npm run test:all` before every commit.** 22 suites, includes
+**Run `npm run test:all` before every commit.** 23 suites, includes
 `tsc --noEmit`. It is the only gate — CI runs a subset.
 
 **Push = APK.** Any push to `gemini-v2` builds one (~25 min, Actions →
