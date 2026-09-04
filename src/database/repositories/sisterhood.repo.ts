@@ -356,6 +356,29 @@ export class SisterhoodRepository {
     return rowToShadowCycleEntry(row);
   }
 
+  /**
+   * Un-mark a period day for a shadow member — the undo for
+   * `logShadowPeriodDay`.
+   *
+   * Same reasoning as the primary user's `unlogPeriodDay`: a mis-tap while
+   * logging for someone else has to be reversible, and it is MORE likely here,
+   * because you are entering days from memory or from what she told you rather
+   * than from your own body (device-test-10). The row is kept and the flag
+   * cleared so any phase context on that day survives.
+   */
+  async unlogShadowPeriodDay(memberId: string, date: string): Promise<void> {
+    const db = await this.getDb();
+    await db.runAsync(
+      `UPDATE shadow_cycle_entries
+       SET is_period_day = 0, flow_level = NULL
+       WHERE member_id = ? AND date = ?`,
+      memberId,
+      date
+    );
+    trackWrite();
+    await this.touchMember(memberId);
+  }
+
   /** Get all shadow cycle entries for a member, most recent first. */
   async getShadowCycleEntries(
     memberId: string,

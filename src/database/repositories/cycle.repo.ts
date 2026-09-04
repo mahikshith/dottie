@@ -286,6 +286,118 @@ export class CycleRepository {
     return entry;
   }
 
+  /**
+   * Un-mark a period day — the undo for `logPeriodDay`.
+   *
+   * ─── WHY THIS HAS TO EXIST ──────────────────────────────────────
+   *
+   *  Marking a day was one tap and un-marking one was impossible: the button
+   *  went disabled the moment a day was logged, so a mis-tap was permanent
+   *  (device-test-10). Any control that writes has to be reversible, and a
+   *  cycle tracker where a wrong date is forever is worse than useless — it
+   *  poisons every prediction from then on and the user cannot fix it.
+   *
+   *  The row is KEPT and its `is_period_day` flag cleared, rather than deleted:
+   *  the day may still carry a phase or a confidence score that the calendar
+   *  draws. `flow_level` is cleared because a flow with no bleeding day is
+   *  meaningless.
+   *
+   *  Cycle records are then REBUILT rather than patched — removing a day can
+   *  split a block, shorten a period, or destroy a cycle boundary entirely, and
+   *  reasoning about which stored record each of those invalidates is exactly
+   *  the kind of thing that goes subtly wrong. Recomputing from the entries is
+   *  cheap and self-healing.
+   */
+  async unlogPeriodDay(userId: string, date: string): Promise<void> {
+    if (!isCivilDate(date)) {
+      throw new RangeError(
+        `[cycle.repo] refusing to un-log a malformed date: ${JSON.stringify(date)}`
+      );
+    }
+    const db = await this.getDb();
+    await db.runAsync(
+      `UPDATE cycle_entries
+       SET is_period_day = 0, flow_level = NULL, updated_at = ?
+       WHERE user_id = ? AND date = ?`,
+      new Date().toISOString(),
+      userId,
+      date
+    );
+    trackWrite();
+    await this.rebuildCycleRecords(userId);
+  }
+
+  /**
+   * Recompute every cycle record from the logged period days.
+   *
+   * Derived data should be derivable. `detectAndSaveCycleRecord` appends as you
+   * log forward, which is right for the common path, but it cannot un-append —
+   * so after a removal the stored records can describe cycles that no longer
+   * exist. This throws them away and rebuilds from the entries, which is the
+   * only version that is guaranteed to agree with what the calendar shows.
+   *
+   * Bounded by the number of logged days, and only runs on an un-log.
+   */
+  async rebuildCycleRecords(userId: string): Promise<void> {
+    const db = await this.getDb();
+
+    const rows = await db.getAllAsync<{ date: string; flow_level: number | null }>(
+      `SELECT date, flow_level FROM cycle_entries
+       WHERE user_id = ? AND is_period_day = 1
+       ORDER BY date ASC`,
+      userId
+    );
+
+    // Group the days into contiguous blocks — same walk as the detector, with
+    // the same strict-forward-progress guard so no date bug can hang it.
+    const blocks: { start: string; end: string; flows: number[] }[] = [];
+    for (const row of rows) {
+      const last = blocks[blocks.length - 1];
+      if (last && nextDay(last.end) === row.date) {
+        last.end = row.date;
+        if (row.flow_level !== null) last.flows.push(row.flow_level);
+      } else {
+        blocks.push({
+          start: row.date,
+          end: row.date,
+          flows: row.flow_level !== null ? [row.flow_level] : [],
+        });
+      }
+    }
+
+    await db.runAsync('DELETE FROM cycle_records WHERE user_id = ?', userId);
+
+    const now = new Date().toISOString();
+    // A cycle is one block start to the NEXT block start, so the final block
+    // has no completed cycle yet and is deliberately skipped.
+    for (let i = 0; i < blocks.length - 1; i++) {
+      const b = blocks[i]!;
+      const next = blocks[i + 1]!;
+      const cycleLength = daysApart(b.start, next.start);
+      const periodLength = daysApart(b.start, b.end) + 1;
+      if (cycleLength < 15 || cycleLength > 60) continue;
+      if (periodLength < 1 || periodLength > 14) continue;
+      const averageFlow =
+        b.flows.length > 0 ? b.flows.reduce((x, y) => x + y, 0) / b.flows.length : null;
+
+      await db.runAsync(
+        `INSERT INTO cycle_records (
+           id, user_id, start_date, end_date, cycle_length, period_length,
+           average_flow, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        generateCycleRecordId(),
+        userId,
+        b.start,
+        b.end,
+        cycleLength,
+        periodLength,
+        averageFlow,
+        now
+      );
+    }
+    trackWrite();
+  }
+
   // ─── CYCLE RECORDS (completed cycles) ───────────────────────────
 
   /**

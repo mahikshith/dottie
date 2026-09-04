@@ -135,9 +135,14 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
 14. **Never `if (__DEV__) console.warn` in a catch.** `__DEV__` is false in the
    build the owner tests, so that is silence. Use `logSilentFailure(code, err)`
    — it lands in the shareable diagnostic trail.
-15. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
+15. **Every write needs an undo.** Period days toggle: tapping a logged day
+   un-marks it (`unlogPeriodDay`), for the user and for sisters. After a removal
+   cycle records are REBUILT from the entries, never patched. If you add a
+   harness step that writes something, add the one that removes it — DT9 missed
+   the missing undo entirely because it only ever added.
+16. **One calendar.** Sisters' period days are logged on `/(tabs)/calendar`
    (`?logFor=<memberId>`). Do not add a second date picker anywhere.
-16. **The prediction explainer must never render nothing.** It recomputes the
+17. **The prediction explainer must never render nothing.** It recomputes the
    explanation itself when the store's copy is missing, and its three figures
    draw in both states. Owner requirement: mandatory, at any cost.
 

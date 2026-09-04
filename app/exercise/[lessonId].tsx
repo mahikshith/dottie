@@ -117,20 +117,18 @@ export default function ExerciseScreen() {
     <AuroraBackground>
       <StatusBar style="light" />
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + Spacing.lg,
-            // Room for the gesture bar — the last block was sitting under the
-            // Android nav bar (device-test-7).
-            paddingBottom: insets.bottom + Spacing['4xl'],
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      {/* ─── TWO LAYOUTS, ON PURPOSE ───────────────────────────────
+          While PRACTISING, the screen is a fixed frame: header at the top, the
+          question scrolling in the middle, and the Check/Continue button pinned
+          to the bottom where the thumb already is. Wrapping the player in a
+          page-level ScrollView (what this used to do) put the action at the end
+          of the content instead, so its position drifted with the length of the
+          question — halfway up on a short one, off-screen on a long one
+          (device-test-10).
+
+          On the RESULT card there is no repeated action to reach for, and the
+          content can run long, so that stays a plain scrolling page. */}
+      <View style={[styles.frame, { paddingTop: insets.top + Spacing.lg }]}>
         {/* Header */}
         <View style={styles.header}>
           <PressableScale onPress={goBack} haptic="none" hitSlop={10} accessibilityRole="button" accessibilityLabel="Close practice">
@@ -150,27 +148,31 @@ export default function ExerciseScreen() {
             onFinish={onFinish}
           />
         ) : (
-          <ResultCard
-            summary={result}
-            companionType={companionType}
-            // The line rotates through a pool rather than being one fixed
-            // sentence, and the LOW band actually invites another attempt
-            // (device-test-8). Keyed on attempts so it changes between runs but
-            // never mid-render. See src/engine/learn/encouragement.ts.
-            celebration={wrapInsight(
-              companionType,
-              nudgeForScore(result.total > 0 ? result.correct / result.total : 0, result.total).text,
-              context,
-              result.correct === result.total ? 'celebrating' : 'supportive'
-            )}
-            hasQuiz={!!lesson.quizId}
-            onQuiz={goQuiz}
-            onDone={goBack}
-          />
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={{ paddingBottom: insets.bottom + Spacing['4xl'] }}
+            showsVerticalScrollIndicator={false}
+          >
+            <ResultCard
+              summary={result}
+              companionType={companionType}
+              // The line rotates through a pool rather than being one fixed
+              // sentence, and the LOW band actually invites another attempt
+              // (device-test-8). Keyed on attempts so it changes between runs but
+              // never mid-render. See src/engine/learn/encouragement.ts.
+              celebration={wrapInsight(
+                companionType,
+                nudgeForScore(result.total > 0 ? result.correct / result.total : 0, result.total).text,
+                context,
+                result.correct === result.total ? 'celebrating' : 'supportive'
+              )}
+              hasQuiz={!!lesson.quizId}
+              onQuiz={goQuiz}
+              onDone={goBack}
+            />
+          </ScrollView>
         )}
-
-        <View style={{ height: Spacing['4xl'] }} />
-      </ScrollView>
+      </View>
     </AuroraBackground>
   );
 }
@@ -274,6 +276,8 @@ function ThemedCTA({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: Spacing.screenPadding },
+  // Fixed frame: the player fills it and pins its own action to the bottom.
+  frame: { flex: 1, paddingHorizontal: Spacing.screenPadding },
   center: { alignItems: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.screenPadding },
   bigEmoji: { fontSize: 56 },
   header: {

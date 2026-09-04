@@ -322,6 +322,30 @@ export default function CalendarScreen() {
     }
   };
 
+  // Un-mark the selected day. The undo half of onLogSelectedPeriod — routed to
+  // whoever is currently selected, exactly like logging.
+  const onUnlogSelectedPeriod = async () => {
+    if (!selected) return;
+    try {
+      log.action('unlogPeriodDay:start', { forSister: logTargetId !== null, date: selected.iso });
+      if (logTargetId) {
+        await useSisterhoodStore
+          .getState()
+          .unlogShadowPeriod(phase, { memberId: logTargetId, date: selected.iso });
+        setSisterVersion((v) => v + 1);
+      } else {
+        await timed('store.unlogPeriodDay', () =>
+          useCycleStore.getState().unlogPeriodDay(selected.iso)
+        );
+        await timed('calendar.reloadPeriodDays', () => reloadPeriodDays());
+      }
+      log.action('unlogPeriodDay:done');
+    } catch (err) {
+      log.error('unlogPeriodDay failed', { message: String(err) });
+      if (__DEV__) console.warn('[Calendar] unlogPeriodDay failed:', err);
+    }
+  };
+
   // Close the sheet — persist the note/planned flag, refresh dots + periods.
   const onSheetClose = (result: DayDetailResult) => {
     if (selected) {
@@ -797,6 +821,7 @@ export default function CalendarScreen() {
           todayCheckIn={selected.iso === todayIso ? todayCheckIn : null}
           recentSymptoms={recentSymptoms}
           onLogPeriod={onLogSelectedPeriod}
+          onUnlogPeriod={onUnlogSelectedPeriod}
           logForName={logTarget?.displayName ?? null}
           onTrackTap={() => {
             // Open the daily check-in on top of the sheet — the user comes

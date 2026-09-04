@@ -247,6 +247,22 @@ export default function GhostModeSettingsScreen() {
   const handleToggleDecoyOnFailure = (next: boolean) => {
     useGhostModeStore.getState().updateConfig({ routeToDecoyOnFailure: next });
     bumpConfig();
+    // Teach the way out at the moment it starts mattering. Switching this on is
+    // the point where a wrong PIN silently drops you into the journal, so it is
+    // also the point where not knowing the gesture becomes a real problem.
+    if (next) {
+      showAppDialog({
+        emoji: '🌿',
+        title: 'How to get back out',
+        body:
+          'A wrong PIN now shows a plant journal instead of an error.\n\n' +
+          'To leave it: tap "Refresh garden" at the bottom three times quickly, ' +
+          'or press your phone\u2019s back button. Either returns you to the PIN screen.\n\n' +
+          'This is written down under "Getting back from the journal" below, ' +
+          'so you never have to remember it cold.',
+        actions: [{ label: 'Got it', onPress: () => {} }],
+      });
+    }
   };
 
   // Decoy appearance: on → 'aurora' (dark), off → 'cream' (classic journal).
@@ -447,6 +463,34 @@ export default function GhostModeSettingsScreen() {
               </View>
             </SettingCard>
 
+            {/* ─── HOW TO GET BACK OUT ────────────────────────────
+                An escape hatch nobody can find is not an escape hatch. The
+                decoy hides the exit ON PURPOSE — a visible "back to Dottie"
+                button would tell a snooper the journal is a front — but that
+                same secrecy meant the owner couldn't get out either, and had
+                no way to learn the gesture (device-test-10). So it is written
+                down here, inside Ghost Mode settings: the one place you go
+                deliberately, and the one place a casual snooper won't. */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeaderText}>Getting back from the journal</Text>
+            </View>
+            <SettingCard>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Two ways out — remember one</Text>
+                <Text style={styles.settingSubtitle}>
+                  1. Scroll to the bottom of the plant journal and tap
+                  &ldquo;Refresh garden&rdquo; <Text style={styles.escapeStrong}>three times</Text> quickly
+                  (within two seconds). It looks like an ordinary utility link.
+                  {'\n\n'}
+                  2. Or press your phone&apos;s <Text style={styles.escapeStrong}>back</Text> button.
+                  {'\n\n'}
+                  Either takes you to the PIN screen, where your real PIN opens
+                  Dottie. Nothing on the journal hints at this — that is the
+                  point of it.
+                </Text>
+              </View>
+            </SettingCard>
+
             {/* Panic PIN section */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionHeaderText}>Panic PIN</Text>
@@ -610,6 +654,10 @@ const styles = StyleSheet.create({
   settingTitle: {
     ...Typography.preset.bodySemibold,
     color: Colors.text.primary,
+  },
+  escapeStrong: {
+    fontWeight: '700',
+    color: Colors.primary.coral,
   },
   settingSubtitle: {
     ...Typography.preset.caption,

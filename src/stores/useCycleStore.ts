@@ -86,6 +86,9 @@ export interface CycleStoreState {
   /** Log a period day. Triggers cycle record detection + re-prediction. */
   logPeriodDay: (input: Omit<LogPeriodInput, 'userId'>) => Promise<void>;
 
+  /** Un-mark a period day — the undo for `logPeriodDay`. */
+  unlogPeriodDay: (date: string) => Promise<void>;
+
   /** Upsert today's check-in (mood/energy/sleep). */
   saveCheckIn: (input: Omit<UpsertCheckInInput, 'userId'>) => Promise<DailyCheckIn>;
 
@@ -169,6 +172,36 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
     });
 
     // Re-run prediction with fresh data
+    await get().recomputePrediction();
+  },
+
+  // ─── unlogPeriodDay ─────────────────────────────────────────────
+
+  unlogPeriodDay: async (date) => {
+    const userId = useUserStore.getState().userId;
+    if (!userId) return;
+
+    await cycleRepository.unlogPeriodDay(userId, date);
+
+    // Same reload as logging: removing a day can change the last period start,
+    // the completed-cycle count and the whole history, so nothing is assumed.
+    const [history, count, lastPeriod, errors] = await Promise.all([
+      cycleRepository.getCycleHistory(userId, 12),
+      cycleRepository.getCycleCount(userId),
+      cycleRepository.getLastPeriodStart(userId),
+      cycleRepository.getPredictionErrors(userId, 10),
+    ]);
+
+    set({
+      cycleHistory: history,
+      cycleCount: count,
+      lastPeriodStart: lastPeriod,
+      predictionErrors: errors,
+    });
+
+    // If that was the only period ever logged there is nothing left to predict
+    // from; recomputePrediction() clears the explanation in that case, which is
+    // correct — better an honest empty state than a stale prediction.
     await get().recomputePrediction();
   },
 

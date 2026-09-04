@@ -232,6 +232,75 @@ async function main(): Promise<void> {
     H.expect('no duplicate row created', before === after, `${before} → ${after}`);
   });
 
+  // ─── UN-MARKING ──────────────────────────────────────────────────
+  //
+  //  The harness originally only ever ADDED days, which is exactly how the
+  //  missing undo went unnoticed: every assertion passed while the app had no
+  //  way to remove a period day at all (device-test-10). Adding without
+  //  removing is half a test.
+  await H.step('tap a logged day again to UN-MARK it', async () => {
+    const target = day(0);
+    const before = await cycleRepository.getPeriodDaysInRange(uid(), day(-4), day(1));
+    H.expect('the day is logged to begin with', before.includes(target), before.join());
+
+    await useCycleStore.getState().unlogPeriodDay(target);
+
+    const after = await cycleRepository.getPeriodDaysInRange(uid(), day(-4), day(1));
+    H.expect('it is gone from the period days', !after.includes(target), after.join());
+    H.expect('and only that day went', after.length === before.length - 1,
+      `${before.length} → ${after.length}`);
+  });
+
+  await H.step('un-marking is idempotent', async () => {
+    await useCycleStore.getState().unlogPeriodDay(day(0));
+    const after = await cycleRepository.getPeriodDaysInRange(uid(), day(-4), day(1));
+    H.expect('removing an already-removed day is a no-op', !after.includes(day(0)));
+  });
+
+  await H.step('re-marking after un-marking restores it', async () => {
+    await useCycleStore.getState().logPeriodDay({ date: day(0), flowLevel: 3 });
+    const after = await cycleRepository.getPeriodDaysInRange(uid(), day(-4), day(1));
+    H.expect('the day is back', after.includes(day(0)), after.join());
+  });
+
+  await H.step('un-marking a block start rebuilds the cycle records', async () => {
+    const before = useCycleStore.getState().cycleCount;
+    // Remove the first day of an older block — that block now starts a day
+    // later, so its cycle length changes and the stored record must follow.
+    const blockStart = addDays(TODAY, -151);
+    const rec = useCycleStore.getState().cycleHistory.find((c) => c.startDate === blockStart);
+    H.expect('there is a record starting on that day to invalidate', !!rec, blockStart);
+
+    await useCycleStore.getState().unlogPeriodDay(blockStart);
+    const history = useCycleStore.getState().cycleHistory;
+    H.expect('no record still claims the removed day as its start',
+      !history.some((c) => c.startDate === blockStart),
+      history.map((c) => c.startDate).join());
+    H.expect('records were rebuilt, not just dropped', history.length > 0, String(history.length));
+    H.note(`cycleCount ${before} → ${useCycleStore.getState().cycleCount}`);
+    // Put it back so later acts see the history they expect.
+    await useCycleStore.getState().logPeriodDay({ date: blockStart, flowLevel: 4 });
+  });
+
+  await H.step('un-marking the ONLY period leaves an honest empty state', async () => {
+    // A fresh user with exactly one logged day, then removed.
+    const solo = addDays(TODAY, -500);
+    await useCycleStore.getState().logPeriodDay({ date: solo, flowLevel: 3 });
+    await useCycleStore.getState().unlogPeriodDay(solo);
+    const days = await cycleRepository.getPeriodDaysInRange(uid(), addDays(solo, -2), addDays(solo, 2));
+    H.expect('that day is gone', days.length === 0, days.join());
+    H.expect('the app did not crash computing a prediction without it',
+      useCycleStore.getState().lastPeriodStart !== undefined);
+  });
+
+  await H.step('un-marking a malformed date is refused, not silently ignored', async () => {
+    let threw = false;
+    try {
+      await cycleRepository.unlogPeriodDay(uid(), 'not-a-date');
+    } catch { threw = true; }
+    H.expect('it throws rather than pretending to work', threw);
+  });
+
   // ─── ACT 3 — THE SCIENCE THE CALENDAR SHOWS ──────────────────────
   H.act('ACT 3 · The prediction explainer and its three graphs');
 
@@ -374,6 +443,20 @@ async function main(): Promise<void> {
     });
     const days = await sisterhoodRepository.getShadowPeriodDaysInRange(sisterId, day(-10), day(1));
     H.expect('both of her days stored', days.length === 2, String(days.length));
+  });
+
+  await H.step('un-mark one of HER days too', async () => {
+    const phase = selectCurrentPhase(useCycleStore.getState());
+    await useSisterhoodStore.getState().unlogShadowPeriod(phase, {
+      memberId: sisterId, date: day(-5),
+    });
+    const days = await sisterhoodRepository.getShadowPeriodDaysInRange(sisterId, day(-10), day(1));
+    H.expect('her day was removed', !days.includes(day(-5)), days.join());
+    H.expect('her other day survived', days.includes(day(-6)), days.join());
+    // Restore so the history below is what the later assertions expect.
+    await useSisterhoodStore.getState().logShadowPeriod(phase, {
+      memberId: sisterId, date: day(-5), flowLevel: 4,
+    });
   });
 
   await H.step('build her a history so she gets a prediction', async () => {

@@ -18,6 +18,23 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
+### Round 10 (2026-09-04)
+
+- **Period days can be UN-marked.** There was no un-log path anywhere in the
+  codebase; the sheet button just went disabled, so a mis-tap was permanent.
+  Now a toggle, end to end (repo → store → sheet → sisters), with cycle records
+  **rebuilt** from entries after a removal rather than patched.
+  The DT9 harness missed this because every step only ever added data — six
+  removal steps now cover it.
+- **Ghost Mode explains how to leave the decoy** (You → Ghost Mode): triple-tap
+  "Refresh garden", or hardware back. Also shown as a dialog when you enable
+  "Wrong PIN → plant journal".
+- **The exercise player's action is pinned to the bottom.** It used to sit at
+  the end of the scrolled content, so it drifted with question length. The
+  lesson reading screen deliberately keeps its action at the end of the text.
+
+Detail: `docs/DEVICE-TEST-10.md`.
+
 ### Round 9 (2026-09-04) — the simulated-user harness
 
 `npm run test:app` now drives the REAL stores + SQLite repositories through a
@@ -167,7 +184,8 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 
 ## 5. Companion docs (open only when named)
 
-`DEVICE-TEST-9.md` (the harness + its findings) · `DEVICE-TEST-8.md` ·
+`DEVICE-TEST-10.md` (latest) · `DEVICE-TEST-9.md` (the harness + its findings) ·
+`DEVICE-TEST-8.md` ·
 `DEVICE-TEST-7.md` (the freeze post-mortem)
 · `DEVICE-TEST-6.md`
 (previous round, incl. the two wrong freeze diagnoses) · `DEVICE-TEST-3.md` ·

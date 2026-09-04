@@ -24,7 +24,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../constants/typography';
@@ -120,10 +121,25 @@ export function ExercisePlayer({
     setFeedback(null);
   };
 
+  const insets = useSafeAreaInsets();
   const companionState = !feedback ? 'encourage' : feedback.correct ? 'celebrate' : 'cozy';
 
   return (
     <View style={styles.root}>
+      {/* ─── SCROLLING CONTENT ─────────────────────────────────────
+          The question, the answer body and the feedback scroll; the CTA does
+          NOT. It used to sit at the end of this content, which meant its
+          position depended on how long the question was: short exercises put it
+          halfway up the screen, long ones put it off the bottom until you
+          scrolled. Either way the thumb had to go hunting (device-test-10).
+          Now the action is always in the same place, where the thumb already
+          rests. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Progress */}
       <View style={styles.progressRow}>
         <View style={[styles.progressTrack, { backgroundColor: palette.glass.edge }]}>
@@ -189,8 +205,11 @@ export function ExercisePlayer({
         </Animated.View>
       )}
 
-      {/* CTA */}
-      <View style={styles.ctaRow}>
+      </ScrollView>
+
+      {/* ─── PINNED ACTION ─────────────────────────────────────────
+          Sits above the gesture bar, full width, always reachable. */}
+      <View style={[styles.ctaRow, { paddingBottom: insets.bottom + Spacing.md }]}>
         {!feedback ? (
           <ThemedCTA
             label="Check"
@@ -644,7 +663,10 @@ function TapWordBody({
 // ─── STYLES (layout only — colours inline, palette-driven) ───────────
 
 const styles = StyleSheet.create({
-  root: { gap: Spacing.lg },
+  // Fills the screen so the footer below can pin to its bottom edge.
+  root: { flex: 1 },
+  scroll: { flex: 1 },
+  scrollContent: { gap: Spacing.lg, paddingBottom: Spacing.lg },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   progressTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
@@ -731,7 +753,7 @@ const styles = StyleSheet.create({
   solutionLabel: { ...Typography.preset.overline, fontSize: 10, letterSpacing: 1 },
   solutionText: { ...Typography.preset.bodySemibold, lineHeight: 22 },
 
-  ctaRow: { marginTop: Spacing.xs },
+  ctaRow: { paddingTop: Spacing.md },
   cta: {
     height: Spacing.buttonHeight.lg,
     borderRadius: Spacing.radius.full,

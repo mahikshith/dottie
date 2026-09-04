@@ -112,6 +112,12 @@ export interface SisterhoodStoreState {
     input: LogShadowPeriodInput
   ) => Promise<void>;
 
+  /** Un-mark a shadow member's period day, then refresh her view. */
+  unlogShadowPeriod: (
+    primaryCurrentPhase: Phase | null,
+    input: { memberId: string; date: string }
+  ) => Promise<void>;
+
   /** Log a mood/energy check-in on behalf of a shadow member. */
   logShadowCheckIn: (
     primaryCurrentPhase: Phase | null,
@@ -286,6 +292,15 @@ export const useSisterhoodStore = create<SisterhoodStoreState>((set, get) => ({
 
   logShadowPeriod: async (primaryCurrentPhase, input) => {
     await sisterhoodRepository.logShadowPeriodDay(input);
+    await rebuildMemberView(input.memberId, primaryCurrentPhase, set);
+  },
+
+  // ─── unlogShadowPeriod ──────────────────────────────────────────
+
+  unlogShadowPeriod: async (primaryCurrentPhase, input) => {
+    await sisterhoodRepository.unlogShadowPeriodDay(input.memberId, input.date);
+    // Same view rebuild as logging — removing a day can move her predicted
+    // date and her day-in-cycle, so the card must not keep the old numbers.
     await rebuildMemberView(input.memberId, primaryCurrentPhase, set);
   },
 

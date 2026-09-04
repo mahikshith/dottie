@@ -97,6 +97,8 @@ export interface DayDetailSheetProps {
    * level updates the same day, so the user can refine after the quick tap.
    */
   onLogPeriod: (flowLevel: number) => void;
+  /** Undo — remove the period mark from this day. */
+  onUnlogPeriod: () => void;
   /**
    * When set, taps are being recorded for THIS person (a sister) rather than
    * the primary user — the calendar is shared, so the sheet has to say so.
@@ -119,6 +121,7 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
   const [note, setNote] = useState<string>(props.initialPlan?.note ?? '');
   const [planned, setPlanned] = useState<boolean>(props.initialPlan?.planned ?? false);
   const [justLogged, setJustLogged] = useState(false);
+  const [justUnlogged, setJustUnlogged] = useState(false);
   // Flow intensity for this day. The quick tap logs MEDIUM so one tap is still
   // enough (Flo's bar), then the "how heavy?" chips let the user refine — which
   // is what eventually makes the heavy-day forecast personal instead of
@@ -224,13 +227,27 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
     props.onLogPeriod(level);
   };
 
+  // Undo. `justUnlogged` mirrors `justLogged` so the row flips instantly on tap
+  // rather than waiting for the store round-trip and the parent re-render —
+  // otherwise the button looks stuck for a beat, which is what makes people tap
+  // it twice.
+  const unlogPeriod = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    log.action('daySheet:unlogPeriod');
+    setJustLogged(false);
+    setJustUnlogged(true);
+    setFlow(null);
+    props.onUnlogPeriod();
+  };
+
   const togglePlanned = () => {
     Haptics.selectionAsync().catch(() => {});
     setPlanned((p) => !p);
   };
 
   const phaseHue = PHASE_AURORA[props.phase];
-  const showLogged = props.isPeriodDay || justLogged;
+  // A day counts as logged unless this session has just un-logged it.
+  const showLogged = justUnlogged ? false : props.isPeriodDay || justLogged;
 
   return (
     <View style={styles.overlay} pointerEvents="box-none">
@@ -326,9 +343,18 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
 
           {!props.isFuture && (
             <>
+              {/* ─── MARK / UN-MARK ────────────────────────────────
+                  This is a TOGGLE, not a one-way switch. It used to go
+                  `disabled` the moment a day was logged, which made a mis-tap
+                  permanent: there was no way anywhere in the app to remove a
+                  period day (device-test-10). A control that writes has to be
+                  reversible — and in a cycle tracker a wrong date isn't a
+                  cosmetic mistake, it shifts every prediction after it.
+
+                  Tapping a logged day un-marks it; the row says so, so it
+                  doesn't read as a dead "logged ✓" badge. */}
               <PressableScale
-                onPress={showLogged ? undefined : () => logPeriod(3)}
-                disabled={showLogged}
+                onPress={showLogged ? unlogPeriod : () => logPeriod(3)}
                 haptic="none"
                 style={[
                   styles.action,
@@ -336,14 +362,26 @@ export function DayDetailSheet(props: DayDetailSheetProps): JSX.Element {
                   { borderColor: PHASE_AURORA.menstrual, backgroundColor: showLogged ? `${PHASE_AURORA.menstrual}2E` : `${PHASE_AURORA.menstrual}18` },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={showLogged ? 'Period logged' : 'Mark as period'}
+                accessibilityState={{ selected: showLogged }}
+                accessibilityLabel={
+                  showLogged
+                    ? `Period logged${props.logForName ? ` for ${props.logForName}` : ''}. Tap to remove.`
+                    : `Mark as period${props.logForName ? ` for ${props.logForName}` : ''}`
+                }
               >
                 <Text style={styles.actionEmoji}>🩸</Text>
-                <Text style={[styles.actionText, { color: palette.ink }]}>
-                  {showLogged
-                    ? `Period logged${props.logForName ? ` for ${props.logForName}` : ''} ✓`
-                    : `Mark as period${props.logForName ? ` for ${props.logForName}` : ''}`}
-                </Text>
+                <View style={styles.actionTextWrap}>
+                  <Text style={[styles.actionText, { color: palette.ink }]}>
+                    {showLogged
+                      ? `Period logged${props.logForName ? ` for ${props.logForName}` : ''} ✓`
+                      : `Mark as period${props.logForName ? ` for ${props.logForName}` : ''}`}
+                  </Text>
+                  {showLogged ? (
+                    <Text style={[styles.actionHint, { color: palette.ink3 }]}>
+                      Tap again to remove
+                    </Text>
+                  ) : null}
+                </View>
               </PressableScale>
 
               {/* How heavy? — appears once the day is marked, so the fast path
@@ -687,7 +725,9 @@ const styles = StyleSheet.create({
   },
   actionPrimary: { borderWidth: 2 },
   actionEmoji: { fontSize: 18 },
-  actionText: { ...Typography.preset.bodySemibold, flex: 1 },
+  actionText: { ...Typography.preset.bodySemibold },
+  actionTextWrap: { flex: 1, gap: 1 },
+  actionHint: { ...Typography.preset.caption, fontSize: 11 },
   note: {
     minHeight: 64,
     borderWidth: 1,

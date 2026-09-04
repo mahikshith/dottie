@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
@@ -62,6 +63,7 @@ export default function LessonDetailScreen() {
   const companionType = useUserStore(selectCompanionType);
   const companion = getCompanion(companionType);
   const { palette } = useAurora();
+  const insets = useSafeAreaInsets();
 
   // ─── Resolve lesson + path ──────────────────────────────────────
   const lesson = useMemo(() => (id ? getLesson(id) : null), [id]);
@@ -274,7 +276,14 @@ export default function LessonDetailScreen() {
       />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          // Clear the gesture bar. The lesson's action deliberately stays at the
+          // END of the reading (unlike the exercise player, which pins it):
+          // pinning a button over a page of text would cover the thing you are
+          // there to read, and you only press it once, at the end.
+          { paddingBottom: insets.bottom + Spacing['3xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Lesson header */}
@@ -345,7 +354,6 @@ export default function LessonDetailScreen() {
           </Text>
         )}
 
-        <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
 
       <CelebrationDialog
