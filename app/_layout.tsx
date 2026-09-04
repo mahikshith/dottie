@@ -318,10 +318,24 @@ export default function RootLayout() {
   }
 
   return (
-    // AuroraProvider (design-v2) holds the mood-driven palette + renders the
-    // mood-reveal overlay app-wide. It only PROVIDES context — screens that
-    // don't call useAurora() are unaffected, so this is safe to wrap now while
-    // screens are themed one by one.
+    // ─── THE ROOT BOUNDARY (device-test-15) ────────────────────────
+    //
+    //  Everything below used to sit OUTSIDE any error boundary except the
+    //  <Stack> itself — the aurora provider, the navigation theme, the ghost
+    //  gate, the dialog / celebration / walkthrough hosts. React unmounts the
+    //  WHOLE tree when a render throws with no boundary above it, so a fault in
+    //  any of them produced a bare white screen: splash hid, tree came down,
+    //  and what was left was React Native's empty root view. No message, no
+    //  stack, nothing to act on.
+    //
+    //  This boundary is the difference between "the app is white" and "here is
+    //  the error, and here is a button that sends it to me". It is not a fix
+    //  for any particular bug; it is the thing that makes the next one
+    //  diagnosable in one round instead of several.
+    <ErrorBoundary root>
+    {/* AuroraProvider (design-v2) holds the mood-driven palette + renders the
+        mood-reveal overlay app-wide. It only PROVIDES context — screens that
+        don't call useAurora() are unaffected. */}
     <AuroraProvider>
       {/* ─── THE NAVIGATION THEME — this is what kills the white flash ───
           React Navigation paints its own container behind every screen and
@@ -393,6 +407,7 @@ export default function RootLayout() {
           Profile → "Show me around again". */}
       <WalkthroughOverlay />
     </AuroraProvider>
+    </ErrorBoundary>
   );
 }
 

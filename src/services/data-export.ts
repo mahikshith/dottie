@@ -19,8 +19,6 @@
  *  goes straight into the platform share intent. Dottie never sees it.
  */
 
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { cycleRepository } from '../database/repositories/cycle.repo';
 import { checkinRepository } from '../database/repositories/checkin.repo';
 import { buildXlsx } from '../export/xlsx';
@@ -36,6 +34,37 @@ import {
 import { todayCivil } from '../utils/civil-date';
 import { logSilentFailure } from '../diagnostics/silent-failure';
 import type { HealthProfile } from '../types/cycle.types';
+
+// ─── NATIVE MODULES ARE LOADED LAZILY, ON PURPOSE ───────────────────
+//
+//  expo-file-system and expo-sharing both call `requireNativeModule()` at
+//  MODULE SCOPE — importing them runs native lookup immediately and THROWS if
+//  the module isn't in the build. And expo-router constructs its route tree by
+//  requiring every file under app/ at startup, so a static import here is
+//  imported during BOOT, via app/(profile)/export-data.tsx.
+//
+//  That means a broken or missing native module in a once-a-month export
+//  feature could take down app launch, before React renders and before any
+//  error boundary exists to catch it — an unrecoverable white screen with no
+//  message (device-test-15).
+//
+//  Requiring them inside the functions that use them moves that risk to the
+//  moment someone taps Export, where the failure is catchable, reportable and
+//  costs the user nothing but one feature. A leaf feature must never be able
+//  to stop the app from starting.
+
+type FileSystemModule = typeof import('expo-file-system');
+type SharingModule = typeof import('expo-sharing');
+
+function loadFileSystem(): FileSystemModule {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  return require('expo-file-system') as FileSystemModule;
+}
+
+function loadSharing(): SharingModule {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, global-require
+  return require('expo-sharing') as SharingModule;
+}
 
 // The whole of a person's logging history, bounded by dates SQLite can compare
 // as strings. Wide enough that nobody's data falls outside it, narrow enough to
@@ -139,6 +168,7 @@ export interface WrittenExport {
 
 /** Build the workbook and write it to the cache directory. */
 export async function writeExportFile(data: ExportInput): Promise<WrittenExport> {
+  const FileSystem = loadFileSystem();
   const bytes = buildXlsx(buildExportWorkbook(data));
   const fileName = exportFileName(data.generatedOn);
   const dir = FileSystem.cacheDirectory;
@@ -159,6 +189,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
  * say something true rather than appearing to do nothing.
  */
 export async function shareExportFile(file: WrittenExport): Promise<boolean> {
+  const Sharing = loadSharing();
   if (!(await Sharing.isAvailableAsync())) return false;
   await Sharing.shareAsync(file.uri, {
     mimeType: XLSX_MIME,
@@ -172,7 +203,7 @@ export async function shareExportFile(file: WrittenExport): Promise<boolean> {
 /** Delete the cached copy. Failure here is not worth telling the user about. */
 export async function discardExport(file: WrittenExport): Promise<void> {
   try {
-    await FileSystem.deleteAsync(file.uri, { idempotent: true });
+    await loadFileSystem().deleteAsync(file.uri, { idempotent: true });
   } catch (err) {
     logSilentFailure('export.discard', err);
   }

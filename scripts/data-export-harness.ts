@@ -34,6 +34,8 @@
  * Run: npm run test:export
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { buildXlsx, safeSheetName, colLetter, esc } from '../src/export/xlsx';
 import { crc32, utf8, bytesToBase64, zipSync } from '../src/export/zip';
 import {
@@ -484,6 +486,34 @@ scenario('E7 · a user who has logged nothing still gets a real file', () => {
         INPUT.symptoms.length +
         INPUT.predictions.length
   );
+});
+
+// ─── E8 — the export must never be able to break app launch ──────────
+
+scenario('E8 · no native module is imported at boot because of the export', () => {
+  // expo-router builds its route tree by requiring EVERY file under app/ at
+  // startup. expo-file-system and expo-sharing both call requireNativeModule()
+  // at module scope, so a static import anywhere in that graph runs native
+  // lookup during launch — and throws before React renders if it fails, which
+  // is an unrecoverable white screen with no message (device-test-15).
+  const service = readFileSync(join(process.cwd(), 'src/services/data-export.ts'), 'utf8');
+  const screen = readFileSync(join(process.cwd(), 'app/(profile)/export-data.tsx'), 'utf8');
+
+  const staticImport = /^\s*import\s+[^;]*from\s+'expo-(file-system|sharing)'/m;
+  ok('the service does not statically import expo-file-system / expo-sharing', !staticImport.test(service));
+  ok('nor does the screen', !staticImport.test(screen));
+  ok('it loads them lazily instead', /require\('expo-file-system'\)/.test(service) && /require\('expo-sharing'\)/.test(service));
+  ok('and only inside functions, never at module scope', !/^const .*= require\('expo-/m.test(service));
+
+  // The pure builder must stay free of them entirely — it is what the harness
+  // exercises, and what makes the workbook testable without a device. (Matches
+  // imports and requires only; the files are allowed to MENTION the modules in
+  // a comment explaining why they don't use them.)
+  const anyLoad = /(?:^\s*import\s+[^;]*from\s+'expo-(?:file-system|sharing)')|(?:require\('expo-(?:file-system|sharing)'\))/m;
+  for (const f of ['src/export/xlsx.ts', 'src/export/zip.ts', 'src/export/build-export.ts']) {
+    const src = readFileSync(join(process.cwd(), f), 'utf8');
+    ok(`${f} loads no native module`, !anyLoad.test(src));
+  }
 });
 
 // ─── helpers ─────────────────────────────────────────────────────────

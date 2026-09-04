@@ -11,11 +11,29 @@
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Share } from 'react-native';
 import { router } from 'expo-router';
+import { log } from '../diagnostics/logger';
 
 interface Props {
   children: ReactNode;
+  /**
+   * The ROOT boundary. Set on the outermost instance only.
+   *
+   * WHY THERE IS A ROOT ONE AT ALL (device-test-15): this component used to
+   * wrap only <Stack>. Everything else at the root — the aurora provider, the
+   * navigation theme, the ghost-mode gate, the dialog / celebration /
+   * walkthrough hosts — sat OUTSIDE it. React unmounts the ENTIRE tree when a
+   * render throws with no boundary above it, so a fault in any of those
+   * produced a bare white screen with no message: the splash hid, the tree
+   * came down, and what was left was React Native's empty root view. That is
+   * the single worst failure mode this app can have, because it is also the
+   * least diagnosable — and it cost a whole device round.
+   *
+   * The root boundary changes "white screen" into "here is the error, and here
+   * is a button to send it to me".
+   */
+  root?: boolean;
 }
 
 interface State {
@@ -34,8 +52,34 @@ export class ErrorBoundary extends Component<Props, State> {
     // Surfaced in `adb logcat` / dev console for deeper debugging.
     // eslint-disable-next-line no-console
     console.error('[ErrorBoundary] caught:', error, info.componentStack);
+    // AND into the shareable diagnostic trail, which is written straight
+    // through to MMKV — so the error survives a force-close even if the user
+    // never manages to reach a screen that can show it.
+    try {
+      log.error(`render crash: ${error.message || String(error)}`, {
+        boundary: this.props.root ? 'root' : 'screen',
+        stack: (info.componentStack ?? '').trim().split('\n').slice(0, 4).join(' | '),
+      });
+    } catch {
+      /* the logger must never be the reason a crash screen fails to draw */
+    }
     this.setState({ componentStack: info.componentStack ?? null });
   }
+
+  /** Hand the error text to the share sheet so it can reach a developer. */
+  private share = (): void => {
+    const { error, componentStack } = this.state;
+    if (!error) return;
+    const body = [
+      'Dottie crash report',
+      '',
+      `Error: ${error.message || String(error)}`,
+      '',
+      error.stack ? `Stack:\n${error.stack.split('\n').slice(0, 12).join('\n')}` : '',
+      componentStack ? `\nComponents:\n${componentStack.trim().split('\n').slice(0, 12).join('\n')}` : '',
+    ].join('\n');
+    Share.share({ message: body }).catch(() => {});
+  };
 
   private reset = (): void => {
     this.setState({ error: null, componentStack: null });
@@ -62,9 +106,13 @@ export class ErrorBoundary extends Component<Props, State> {
       <View style={styles.root}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <Text style={styles.emoji}>🌙</Text>
-          <Text style={styles.title}>This screen hit a snag</Text>
+          <Text style={styles.title}>
+            {this.props.root ? 'Dottie couldn\u2019t start' : 'This screen hit a snag'}
+          </Text>
           <Text style={styles.subtitle}>
-            The rest of Dottie is fine — head back and keep going.
+            {this.props.root
+              ? 'Something failed while the app was starting up. Your data is safe \u2014 nothing has been changed or lost. Sending this error is the fastest way to get it fixed.'
+              : 'The rest of Dottie is fine \u2014 head back and keep going.'}
           </Text>
 
           <View style={styles.errorBox}>
@@ -88,6 +136,14 @@ export class ErrorBoundary extends Component<Props, State> {
             accessibilityLabel="Try again"
           >
             <Text style={styles.buttonGhostText}>Try again</Text>
+          </Pressable>
+          <Pressable
+            style={styles.buttonGhost}
+            onPress={this.share}
+            accessibilityRole="button"
+            accessibilityLabel="Send this error to the developer"
+          >
+            <Text style={styles.buttonGhostText}>Send this error →</Text>
           </Pressable>
         </ScrollView>
       </View>
