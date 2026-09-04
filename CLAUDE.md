@@ -101,7 +101,12 @@ Reanimated-backed, UI thread, 60fps, Reduce-Motion aware.
    `useMemo`.
 5. **Walkthrough is opt-in only** — no auto-launch. Restart via Profile →
    "Show me around again". Overlay hard-guards on `Storage.walkthroughSeen`.
-6. **Bottom tab bar is a floating pill** — never a solid rectangle.
+6. **Bottom tab bar is a floating pill** — never a solid rectangle. Its scene
+   transition lives in `src/components/ui/aurora/tabSceneTransition.ts`:
+   cross-fade + 18px drift, 170ms, native driver. Never make it a real slide
+   (tabs are peers), and never put `animation:` back into the tabs'
+   `screenOptions` — its absence is what keeps the outgoing screen alive to
+   fade (`DEVICE-TEST-11.md`).
 7. **Notifications: `checkNotificationPermission()` is silent** (used by
    `syncAllReminders`); `requestNotificationPermission()` prompts and must be
    called ONLY from an explicit user tap.

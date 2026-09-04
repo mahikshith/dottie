@@ -18,6 +18,18 @@ The app is a complete local-first cycle tracker (predictor, calendar, sisterhood
 ghost mode, onboarding, walkthrough) with the Gemini Learn redesign (Phases 0–4)
 on top. Seven device-test rounds have landed. **11 test suites, all green.**
 
+### Round 11 (2026-09-04) — tab transition
+
+`animation: 'none'` was a hard cut, so the pill glided for 300ms while the
+screen teleported in one frame. Replaced with a custom `sceneStyleInterpolator`:
+cross-fade + 18px directional drift + slight settle, 170ms, native driver,
+reduced-motion variant. **Not a slide** — tabs are peers. Content settles before
+the pill lands on purpose. `animation` must stay ABSENT from screenOptions (the
+library uses `Boolean(transitionSpec)` to keep the outgoing screen alive).
+The SVG clip-path "liquid swipe" from the owner's reference cannot port to RN —
+reasoning in `docs/DEVICE-TEST-11.md` §3, along with what a real drag-between-
+screens feature would take (it conflicts with the calendar's month swipe).
+
 ### Round 10 (2026-09-04)
 
 - **Period days can be UN-marked.** There was no un-log path anywhere in the
@@ -184,7 +196,7 @@ and `npm run test:dates`, which re-execs itself under 8 timezones.
 
 ## 5. Companion docs (open only when named)
 
-`DEVICE-TEST-10.md` (latest) · `DEVICE-TEST-9.md` (the harness + its findings) ·
+`DEVICE-TEST-11.md` (latest) · `DEVICE-TEST-10.md` · `DEVICE-TEST-9.md` (the harness + its findings) ·
 `DEVICE-TEST-8.md` ·
 `DEVICE-TEST-7.md` (the freeze post-mortem)
 · `DEVICE-TEST-6.md`
