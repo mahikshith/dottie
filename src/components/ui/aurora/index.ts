@@ -18,6 +18,9 @@ export type { GlassCardProps } from './GlassCard';
 export { ClayButton } from './ClayButton';
 export type { ClayButtonProps } from './ClayButton';
 
+export { AuroraSwitch } from './AuroraSwitch';
+export type { AuroraSwitchProps } from './AuroraSwitch';
+
 export { GlowRing } from './GlowRing';
 export type { GlowRingProps } from './GlowRing';
 

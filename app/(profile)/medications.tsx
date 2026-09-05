@@ -11,14 +11,14 @@
  */
 
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { AuroraBackground, GlassCard, PressableScale } from '../../src/components/ui';
+import { AuroraBackground, AuroraSwitch, GlassCard, PressableScale } from '../../src/components/ui';
 import { useAurora } from '../../src/theme';
 import { useCycleStore } from '../../src/stores';
 import {
@@ -182,12 +182,11 @@ export default function MedicationsScreen() {
                     {meta.label} · {t?.emoji} {t?.label}
                   </Text>
                 </View>
-                <Switch
+                <AuroraSwitch
                   value={m.active}
                   onValueChange={(v) => toggleMed(m.id, v)}
-                  trackColor={{ false: palette.glass.edge, true: palette.accent }}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor={palette.glass.edge}
+                  accessibilityLabel={m.name}
+                  accessibilityHint={`${meta.label} reminder`}
                 />
               </View>
               <PressableScale onPress={() => removeMed(m.id)} haptic="none" hitSlop={8} style={styles.removeBtn} accessibilityRole="button" accessibilityLabel={`Remove ${m.name}`}>

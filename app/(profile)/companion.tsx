@@ -115,16 +115,18 @@ export default function ChangeCompanionScreen(): JSX.Element {
                   {active ? <View style={styles.radioDot} /> : null}
                 </View>
               </PressableScale>
-              {/* The one you're considering, in three moods (device-test-16).
+              {/* The one you're considering, cycling through its moods (DT21).
                   Owner: "all the expressions of each and every single companion
                   needs to be expressed so that the user will look at it and
-                  find out what they want." Shown only for the selected card so
-                  the list stays scannable. */}
+                  find out what they want" — but ONE of it, changing face, not
+                  three of it in a row. Shown only for the selected card so the
+                  list stays scannable. */}
               {active ? (
                 <View style={styles.facesRow}>
-                  <CompanionExpressions type={type} size={54} />
+                  <CompanionExpressions type={type} size={92} playing={active} />
                   <Text style={styles.facesLabel}>
-                    {def.name} when you win, on an ordinary day, and when yours has been hard
+                    This is {def.name} — the same face you&apos;ll see on a win, on an
+                    ordinary day, and when yours has been hard.
                   </Text>
                 </View>
               ) : null}

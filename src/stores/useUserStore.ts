@@ -32,7 +32,7 @@
  */
 
 import { create } from 'zustand';
-import { Storage, OnboardingDraft } from '../database/storage';
+import { Storage, OnboardingDraft, DEFAULT_REMINDER_PREFS } from '../database/storage';
 import {
   userRepository,
   UserRecord,
@@ -175,7 +175,10 @@ export const useUserStore = create<UserStoreState>((set, get) => ({
     // user can always toggle reminders from Profile later.
     if (draft.reminderPrefs) {
       try {
-        Storage.reminderPrefs.set({ ...draft.reminderPrefs });
+        // The onboarding funnel only captures the three questions it asks;
+        // everything added since (lead days, phase changes, custom reminders)
+        // takes its default rather than being dropped.
+        Storage.reminderPrefs.set({ ...DEFAULT_REMINDER_PREFS, ...draft.reminderPrefs });
         // Dynamic import — the scheduler pulls in expo-notifications, which
         // we don't want to load during the general user-store path.
         const { syncAllReminders } = await import('../notifications/scheduler');

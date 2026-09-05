@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-04 · DT18 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-05 · DT21 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,8 +10,8 @@
 
 ## 1. OPEN
 
-**DT16 and DT18 are both done and pushed. Two device rounds are stacked in the
-next APK** — nothing from either has been seen rendered.
+**DT16, DT18, DT19, DT20 and DT21 are all done and pushed. Five device rounds
+are stacked in the next APK** — most of it has never been seen rendered.
 
 ### Look at this FIRST, and it needs no APK
 `docs/companion-preview.html` — open it in a browser. Every companion in every
@@ -20,23 +20,36 @@ expression, rendered from the same geometry the app draws
 companions were called insects in three rounds and each fix was shipped blind
 in a 25-minute build. **Review art there, not on the phone.**
 
-### Verify on the next APK
-1. **The companions.** Rebuilt from scratch — limbs, 26 expressions. The
-   preview covers the poses; the device round is for MOTION (limb swing, blink)
-   and for how they read at 28px inside a card.
-2. **The quiz conversation.** The companion now asks before each question, and
-   a miss offers a second go. Check the retry does not feel like a punishment
-   and that "Try again / Move on" both work.
-3. **The status veil** (DT16, still unverified). Exactly `insets.top`, opaque,
-   no fade tail.
-4. **Tab switches** (DT16, still unverified). No scene animation at all — the
-   white glitch at the bottom should be gone.
-5. **Select a sister on Cycle** (DT16, still unverified). Every panel below the
-   grid should be hers; shared predicted days glow gold.
+### Verify on the next APK — DT21
+1. **Every toggle in the app.** `AuroraSwitch` replaced React Native's
+   `<Switch>` everywhere (Reminders, Medications, Diagnostics, Ghost Mode).
+   The off state must be a visibly EMPTY track with the knob at the left —
+   that was the whole complaint. Ghost Mode is the cream screen: it passes
+   `surface="light"`, so check its off track is visible there too.
+2. **Reminders.** Three groups now — every day / around your cycle / your own.
+   Exact times on the check-in and hydration nudges, a 1–5 day lead on the
+   heads-up, the did-it-start check, phase changes, a weekly recap, and
+   user-written reminders at any time. The cycle group is disabled until a
+   prediction exists. Nothing here has ever been delivery-tested on a device:
+   `expo-notifications` needs the dev build to actually fire.
+3. **The mood map toggle.** 48pt row, 10pt slop, a labelled Show/Hide pill
+   instead of a bare caret — and the duplicated "Your mood map" title inside
+   the panel is gone.
+4. **Companion picker** (onboarding + Profile → companion). ONE companion per
+   card, cycling eight moods with the mood named underneath. Never three.
+5. **Today → Cycle.** The calendar's entrance is opacity-only now; the page
+   should not visibly assemble itself from the bottom.
+6. **Follicular is blue** (`#4FB8FF`), not the accent teal. Check the calendar
+   legend and the mood map on Home no longer share a green.
+7. **Quiz "Try again"** sits on an opaque footer with its own tinted fill —
+   nothing should scroll through it.
 
 ### Open
 - `[P2]` App-store rollout groundwork.
 - `[P4]` Learn tab auto-advance report — re-verify.
+- Merging Practice and the quiz into one continuous run (owner's DT19
+  suggestion). Deferred deliberately — it is a structural change to the learn
+  flow, not a fix, and it was not asked for again.
 - Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines, nothing
   imports them). Wire in or delete.
 - `buildLessonScript` in `dialogue.ts` is still unrendered by any screen —
@@ -61,7 +74,9 @@ together and produced a white screen that took a whole session to chase.
 Each was added after the same bug came back for the third or fourth time:
 - `audit:safearea` — every scrolling screen must pad both ends. Reported in
   DT3, DT6, DT7 and DT16; 20 screens were unprotected.
-- `audit:ui` — every tappable has an onPress.
+- `audit:ui` — every tappable has an onPress, AND no banned primitive is in
+  the tree: `<Modal>` (rule 10) and `<Switch>` (rule 22). Comments are stripped
+  before matching, so the prose explaining why not to use them still passes.
 - `audit:silent` — rule 18. `__DEV__` is false in the owner's build, so
   `if (__DEV__) console.warn` in a catch is silence. The rule was written after
   DT15 and applied to a handful of sites; DT18 found **62** still in place.

@@ -102,6 +102,14 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
    `app/_layout.tsx` forces every navigator surface to it.
 21. **No `experimentalBlurMethod="dimezisBlurView"`** over a heavy view tree —
    it snapshots per frame and ANRs on Android.
+22. **Never a React Native `<Switch>`.** Its Android track tinted with a glass
+   edge is a ~10% white hairline on a near-black card: the track vanishes and
+   the control reads as a bullet, not a toggle (DT21). Use `AuroraSwitch`
+   (`surface="light"` on the one cream screen, Ghost Mode). Keep
+   `grep -rn "<Switch" src app` empty.
+23. **A row that toggles something is tappable across its whole width**, and
+   never under 48pt tall. DT21's "sometimes it may open, it may not" was a
+   40pt row with an 18pt caret as its only visible affordance.
 
 ## Design system (never hardcode ad-hoc values)
 
@@ -111,7 +119,9 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
 - Shadows are WARM (`#B48264`) · 4px spacing grid · typography preset ramp.
 - Primitives in `src/components/ui/`: `AuroraBackground`, `AuroraTabBar`,
   `GlassCard`, `PressableScale` (the standard press for ANY tappable),
-  `GradientButton`, `CompanionLottie`, `CompanionExpressions`.
+  `AuroraSwitch` (the ONLY on/off control), `GradientButton`,
+  `CompanionLottie`, `CompanionExpressions` (ONE companion cycling its moods —
+  never a row of copies).
 
 ## Conventions
 

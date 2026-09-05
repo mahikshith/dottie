@@ -44,10 +44,10 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Switch,
   SafeAreaView,
 } from 'react-native';
 import { showAppDialog } from '../../src/components/ui/appDialog';
+import { AuroraSwitch } from '../../src/components/ui';
 import { Stack, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../src/constants/colors';
@@ -364,10 +364,13 @@ export default function GhostModeSettingsScreen() {
                 {config.enabled ? 'PIN required to open Dottie' : 'Off — anyone with the phone can open Dottie'}
               </Text>
             </View>
-            <Switch
+            <AuroraSwitch
               value={config.enabled}
               onValueChange={handleMasterToggle}
-              trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
+              surface="light"
+              onColor={Colors.primary.coral}
+              accessibilityLabel="Ghost Mode"
+              accessibilityHint="Require a PIN to open Dottie"
             />
           </View>
         </SettingCard>
@@ -421,10 +424,13 @@ export default function GhostModeSettingsScreen() {
                     Lock screen poses as "Garden Notes"
                   </Text>
                 </View>
-                <Switch
+                <AuroraSwitch
                   value={config.disguiseAppName}
                   onValueChange={handleToggleDisguise}
-                  trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
+                  surface="light"
+                  onColor={Colors.primary.coral}
+                  accessibilityLabel="Disguise app name"
+                  accessibilityHint="The lock screen poses as Garden Notes"
                 />
               </View>
             </SettingCard>
@@ -438,10 +444,12 @@ export default function GhostModeSettingsScreen() {
                     Snoopers see notes instead of a "wrong PIN" error
                   </Text>
                 </View>
-                <Switch
+                <AuroraSwitch
                   value={config.routeToDecoyOnFailure}
                   onValueChange={handleToggleDecoyOnFailure}
-                  trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
+                  surface="light"
+                  onColor={Colors.primary.coral}
+                  accessibilityLabel="Show the decoy after failed PIN attempts"
                 />
               </View>
             </SettingCard>
@@ -457,10 +465,12 @@ export default function GhostModeSettingsScreen() {
                       : 'Classic cream look — a warm notebook'}
                   </Text>
                 </View>
-                <Switch
+                <AuroraSwitch
                   value={config.decoyTheme === 'aurora'}
                   onValueChange={handleToggleDecoyTheme}
-                  trackColor={{ false: Colors.border.medium, true: Colors.primary.coral }}
+                  surface="light"
+                  onColor={Colors.primary.coral}
+                  accessibilityLabel="Decoy appearance"
                 />
               </View>
             </SettingCard>
@@ -541,10 +551,13 @@ export default function GhostModeSettingsScreen() {
                     Entering the panic PIN deletes all your data — silently and immediately. No undo.
                   </Text>
                 </View>
-                <Switch
+                <AuroraSwitch
                   value={config.panicWipeEnabled}
                   onValueChange={handleTogglePanicWipe}
-                  trackColor={{ false: Colors.border.medium, true: Colors.semantic.error }}
+                  surface="light"
+                  onColor={Colors.semantic.error}
+                  accessibilityLabel="Panic wipe"
+                  accessibilityHint="Erases everything after repeated failed PIN attempts"
                 />
               </View>
             </SettingCard>

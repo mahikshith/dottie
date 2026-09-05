@@ -79,9 +79,12 @@ export function duplicateReminderMessage(existing: ReminderLike): string {
 /** "9:00 am" — for the nudge copy. */
 export function formatFiringTime(r: ReminderLike): string {
   const total = firingMinutes(r);
-  const h24 = Math.floor(total / 60);
-  const m = total % 60;
-  const suffix = h24 >= 12 ? 'pm' : 'am';
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
+  return formatClockTime(Math.floor(total / 60), total % 60);
+}
+
+/** "9:00 am" from a plain hour/minute. Used by any time stepper in the UI. */
+export function formatClockTime(hour: number, minute: number): string {
+  const suffix = hour >= 12 ? 'pm' : 'am';
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${h12}:${String(minute).padStart(2, '0')} ${suffix}`;
 }

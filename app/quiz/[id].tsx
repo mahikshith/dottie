@@ -808,7 +808,9 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.radius.xl,
     borderWidth: 1.5,
     borderColor: A.accent,
-    backgroundColor: 'transparent',
+    // Filled, faintly, rather than see-through. It is still clearly the
+    // secondary of the two, but it is a BUTTON — you can tell where it starts.
+    backgroundColor: `${A.accent}1F`,
   },
   retryButtonText: {
     ...Typography.preset.button,
@@ -977,7 +979,16 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingHorizontal: Spacing.screenPadding,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    // ─── AN OPAQUE FLOOR, NOT A WINDOW (device-test-21) ───────────
+    //  This bar was transparent, so the scrolling content ran straight under
+    //  it: the "2 of 4 correct so far" pill sat visibly THROUGH the "Try
+    //  again" button, which reads as two controls fighting over the same
+    //  pixels. A pinned bar has to be a surface — the content stops at it,
+    //  it does not pass behind it.
+    backgroundColor: A.ground,
+    borderTopWidth: 1,
+    borderTopColor: A.edge,
   },
   nextButton: {
     backgroundColor: A.accent,

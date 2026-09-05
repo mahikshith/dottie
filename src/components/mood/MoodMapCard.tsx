@@ -124,6 +124,15 @@ export function MoodMapCard({ map }: MoodMapCardProps): JSX.Element | null {
           accessibilityHint={`${map.logged} days logged${
             dynamics.dominant ? `, mostly ${dynamics.dominant.label.toLowerCase()}` : ''
           }`}
+          // DT21: the row was a 40pt strip with no padding and the only thing
+          // that LOOKED tappable was an 18pt caret glyph, so taps landed just
+          // outside it and the card "sometimes didn't open". The target is now
+          // a full 48pt row plus 10pt of slop on every side, and the caret has
+          // become a labelled pill so the control is visible, not inferred.
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          // A few pixels of finger travel inside a ScrollView must not cancel
+          // the press — that is the other half of "sometimes it may not open".
+          pressRetentionOffset={{ top: 20, bottom: 20, left: 20, right: 20 }}
           style={styles.header}
         >
           <View style={styles.headerText}>
@@ -134,9 +143,19 @@ export function MoodMapCard({ map }: MoodMapCardProps): JSX.Element | null {
               {map.streak > 1 ? ` · ${map.streak}-day streak` : ''}
             </Text>
           </View>
-          <Animated.Text style={[styles.chevron, { color: palette.ink3 }, chevronStyle]}>
-            ⌄
-          </Animated.Text>
+          <View
+            style={[
+              styles.togglePill,
+              { backgroundColor: `${palette.accent}1F`, borderColor: `${palette.accent}45` },
+            ]}
+          >
+            <Text style={[styles.toggleLabel, { color: palette.accent }]}>
+              {open ? 'Hide' : 'Show'}
+            </Text>
+            <Animated.Text style={[styles.chevron, { color: palette.accent }, chevronStyle]}>
+              ⌄
+            </Animated.Text>
+          </View>
         </PressableScale>
 
         {/* ─── COLLAPSED: real data, not a button ─────────────────── */}
@@ -170,11 +189,29 @@ export function MoodMapCard({ map }: MoodMapCardProps): JSX.Element | null {
 const styles = StyleSheet.create({
   card: { padding: Spacing.cardPadding, marginBottom: Spacing.base, gap: Spacing.sm },
   emptyLine: { ...Typography.preset.caption, lineHeight: 18 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  // minHeight 48 is Android's minimum touch target; the row is the toggle, so
+  // the row has to meet it on its own rather than relying on the text height.
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 48,
+    paddingVertical: Spacing.xs,
+  },
   headerText: { flex: 1, gap: 2 },
   title: { ...Typography.preset.bodySemibold },
   subtitle: { ...Typography.preset.caption, fontSize: 11 },
-  chevron: { fontSize: 18, lineHeight: 20 },
+  togglePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 32,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radius.full,
+    borderWidth: 1,
+  },
+  toggleLabel: { ...Typography.preset.captionBold },
+  chevron: { fontSize: 14, lineHeight: 16 },
   // The 14-day teaser. Flex cells so it fills whatever width it's given.
   strip: { flexDirection: 'row', gap: 3, height: 14 },
   stripCell: { flex: 1, borderRadius: 2.5 },

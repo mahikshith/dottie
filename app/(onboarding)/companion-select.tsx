@@ -73,12 +73,13 @@ export default function CompanionSelectScreen() {
             ]}
             onPress={() => handleCompanionSelect(companion.type)}
           >
-            {/* The REAL companion, in three moods (device-test-16). A single
+            {/* The REAL companion, cycling through its moods (DT21). A single
                 text emoji told you the species and nothing else — but what
-                you're choosing is a face that will react to you for months,
-                so the card shows its best day, its ordinary day, and how it
-                behaves when yours has been rough. */}
-            <CompanionExpressions type={companion.type} size={62} style={styles.companionFaces} />
+                you're choosing is a face that will react to you for months.
+                ONE of it, not three: three side by side read as three
+                different characters, which is the one thing a "pick your
+                companion" card must not do. */}
+            <CompanionExpressions type={companion.type} size={78} style={styles.companionFaces} />
             <Text style={styles.companionName}>{companion.name}</Text>
             <Text
               style={[

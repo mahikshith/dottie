@@ -671,23 +671,70 @@ export type LearnLevel = 'guided' | 'phase';
 /** Preset times of day for the daily check-in reminder. */
 export type ReminderTime = 'morning' | 'midday' | 'evening';
 
+/**
+ * A reminder the user wrote themselves (DT21).
+ *
+ * Owner: "a custom toggle where they might want to have a custom notification
+ * at whatever the time they want." The three built-in nudges cover what Dottie
+ * thinks is worth saying; this covers what the USER thinks is worth saying —
+ * "take magnesium", "stretch", "refill the hot water bottle".
+ *
+ * NOTE the label is shown verbatim on the lock screen, because a reminder that
+ * hides its own text is not a reminder. Discreet mode cannot disguise words the
+ * user chose, and the screen says so rather than quietly failing them.
+ */
+export interface CustomReminder {
+  id: string;
+  /** The user's own words. Shown as the notification title. */
+  label: string;
+  /** Exact local firing time. */
+  hour: number;
+  minute: number;
+  active: boolean;
+}
+
 /** Local reminder preferences (see Storage.reminderPrefs). All opt-in. */
 export interface ReminderPrefs {
   /** Daily nudge to check in. */
   checkIn: boolean;
   /** When the daily check-in reminder fires. */
   checkInTime: ReminderTime;
+  /**
+   * Exact firing time for the check-in, overriding the preset bucket. Optional
+   * so every already-saved preference object keeps working untouched.
+   */
+  checkInHour?: number;
+  checkInMinute?: number;
   /** A gentle heads-up a few days before the predicted period. */
   periodHeadsUp: boolean;
+  /** How many days ahead that heads-up lands. 1–5. */
+  periodHeadsUpLeadDays: number;
+  /** On the predicted day itself: "did it start?" — the log nudge that keeps
+   *  the prediction honest, and the one people most often forget. */
+  periodArrivedCheck: boolean;
+  /** A note on the day the cycle moves into a new phase. */
+  phaseChange: boolean;
   /** A midday "sip some water" nudge. */
   hydration: boolean;
+  /** Exact firing time for the hydration nudge. */
+  hydrationHour?: number;
+  hydrationMinute?: number;
+  /** A Sunday-evening wrap-up of the week. */
+  weeklyRecap: boolean;
+  /** Reminders the user wrote themselves. */
+  custom: CustomReminder[];
 }
 
 export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   checkIn: false,
   checkInTime: 'evening',
   periodHeadsUp: false,
+  periodHeadsUpLeadDays: 3,
+  periodArrivedCheck: false,
+  phaseChange: false,
   hydration: false,
+  weeklyRecap: false,
+  custom: [],
 };
 
 /** Kinds of medication / birth control a plan can be for. */

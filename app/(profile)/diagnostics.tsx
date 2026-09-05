@@ -18,14 +18,14 @@
  */
 
 import { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Share } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { PressableScale, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { PressableScale, AuroraBackground, AuroraSwitch, GlassCard } from '../../src/components/ui';
 import { useAurora } from '../../src/theme';
 import { getEvents, clearEvents, log } from '../../src/diagnostics/logger';
 import { formatReport, formatEvent } from '../../src/diagnostics/log-format';
@@ -129,14 +129,15 @@ export default function DiagnosticsScreen() {
                   : 'OFF — dates and health values are masked. The steps and timings are still there, which is usually all that is needed to find a bug.'}
               </Text>
             </View>
-            <Switch
+            <AuroraSwitch
               value={detailed}
               onValueChange={(v) => {
                 Haptics.selectionAsync().catch(() => {});
                 setDetailed(v);
                 log.action('diagnostics:detail', { on: v });
               }}
-              trackColor={{ false: palette.glass.edge, true: palette.accent }}
+              accessibilityLabel="Include my cycle details"
+              accessibilityHint="Adds real dates, flow levels, moods and notes to the shared log"
             />
           </View>
         </GlassCard>

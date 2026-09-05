@@ -47,7 +47,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { findCycleOverlaps } from '../../src/engine/calendar/cycle-overlap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
@@ -1293,9 +1293,26 @@ export default function CalendarScreen() {
   );
 }
 
-// Staggered entrance helper — gentle rise + fade, springy settle.
+/**
+ * Entrance helper — a FADE, with no vertical travel (device-test-21).
+ *
+ *  This was `FadeInDown...springify()`: every block slid up into place on a
+ *  spring, staggered by up to 360ms. On Today and Learn that is applied to two
+ *  or three blocks and reads as a nice settle. This screen has FIFTEEN, so the
+ *  whole page visibly assembled itself from the bottom — the owner's "the
+ *  screen goes up and comes down for a split second", and the reason it happens
+ *  on Today→Cycle and nowhere else.
+ *
+ *  The below-fold split made it worse: the grid springs in, then a frame later
+ *  the panels spring in behind it, so the page moved twice.
+ *
+ *  Opacity only now. Content appears where it will stay, which is the one thing
+ *  a calendar has to do — you are looking for a specific date, and a date that
+ *  is still travelling is a date you cannot read. The stagger is cut to a
+ *  fifth so the fade reads as one screen arriving rather than a queue.
+ */
 function rise(delay: number) {
-  return FadeInDown.duration(480).delay(delay).springify().damping(16);
+  return FadeIn.duration(220).delay(Math.min(delay, 360) / 5);
 }
 
 // ─── SUBCOMPONENTS ───────────────────────────────────────────────────

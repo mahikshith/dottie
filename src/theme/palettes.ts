@@ -81,7 +81,21 @@ export interface AuroraPalette {
 // phase owns the ring.
 export const PHASE_AURORA = {
   menstrual: '#FF6FA5',
-  follicular: '#54E6C8',
+  // ─── FOLLICULAR IS BLUE, NOT TEAL (device-test-21) ───────────────
+  //
+  //  It was #54E6C8 — the EXACT hex of `A.accent` and of the mood map's top
+  //  score. One colour carried three unrelated meanings: "this is the
+  //  follicular phase", "this is a tappable accent", and "this was a great
+  //  day". On a screen showing a calendar above a mood grid, a green square
+  //  and a green day meant the same thing to the eye and different things to
+  //  the app.
+  //
+  //  Blue rather than another green, because the mood scale owns the whole
+  //  green run (#3FA98A → #54E6C8) and anything near it re-creates the clash.
+  //  It also spaces the four phases evenly around the wheel — pink 340°,
+  //  blue 202°, gold 42°, purple 258° — so no two phases are confusable
+  //  either. Rising, clear, and unmistakably not a mood.
+  follicular: '#4FB8FF',
   ovulatory: '#FFC24D',
   luteal: '#9B7BFF',
 } as const;

@@ -24,6 +24,9 @@ import { join, relative } from 'node:path';
 
 const ROOT = process.cwd();
 const SCAN_ROOTS = ['app', 'src/components'];
+/** Roots for the banned-primitive check — wider, because a screen anywhere
+ *  can reach for the wrong control. */
+const BANNED_SCAN_ROOTS = ['app', 'src'];
 const TAPPABLE = ['Pressable', 'PressableScale', 'GradientButton', 'GradientFab', 'TouchableOpacity', 'TouchableHighlight'];
 
 interface Finding {
@@ -124,6 +127,79 @@ for (const file of files) {
   }
 }
 
+// ─── BANNED PRIMITIVES ──────────────────────────────────────────────
+//
+// Two rules that had to be re-learned from a device round each, and which
+// nothing checked until they came back:
+//
+//   • <Modal>   — CLAUDE.md rule 10. A translucent Modal is a separate Android
+//                 window that can stick over every screen (the white-circle
+//                 saga, device-test #6). Use CelebrationDialog/showAppDialog.
+//   • <Switch>  — CLAUDE.md rule 22. Tinted with a glass edge on the aurora
+//                 ground its track is invisible, so the control reads as a
+//                 bullet rather than a toggle (DT21). Use AuroraSwitch.
+//
+// Prose mentions don't count: every remaining hit for both is a comment
+// explaining why not to use them, and that is exactly the documentation we
+// want to keep. So comment lines are stripped before matching.
+
+const BANNED: { tag: string; rule: string; use: string }[] = [
+  { tag: 'Modal', rule: 'rule 10', use: 'CelebrationDialog / showAppDialog()' },
+  { tag: 'Switch', rule: 'rule 22', use: 'AuroraSwitch' },
+];
+
+interface BannedHit {
+  file: string;
+  line: number;
+  tag: string;
+  rule: string;
+  use: string;
+  snippet: string;
+}
+
+/**
+ * Blank out every comment while keeping line numbers intact — block comments,
+ * `//` tails, and JSX `{/* … *\/}` blocks, which is where most of the
+ * "never use this" prose lives. Newlines are preserved so a hit still reports
+ * the right line.
+ */
+function stripComments(src: string): string {
+  const blanked = (m: string) => m.replace(/[^\n]/g, ' ');
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, blanked)
+    .replace(/\/\/[^\n]*/g, blanked);
+}
+
+const bannedHits: BannedHit[] = [];
+const bannedFiles: string[] = [];
+for (const root of BANNED_SCAN_ROOTS) {
+  try {
+    walk(join(ROOT, root), bannedFiles);
+  } catch {
+    // A missing root is not a failure — the repo layout owns that.
+  }
+}
+for (const file of new Set(bannedFiles)) {
+  const source = readFileSync(file, 'utf8');
+  const lines = stripComments(source).split('\n');
+  const original = source.split('\n');
+  lines.forEach((raw, i) => {
+    for (const b of BANNED) {
+      // The element opening only: <Switch or <Switch>, never <AuroraSwitch.
+      if (new RegExp(`(?<![A-Za-z])<${b.tag}(?:\\s|>|$)`).test(raw)) {
+        bannedHits.push({
+          file: relative(ROOT, file),
+          line: i + 1,
+          tag: b.tag,
+          rule: b.rule,
+          use: b.use,
+          snippet: (original[i] ?? raw).trim().slice(0, 120),
+        });
+      }
+    }
+  });
+}
+
 // ─── REPORT ─────────────────────────────────────────────────────────
 
 console.log('\x1b[1m\nDottie — UI onPress Audit\x1b[0m');
@@ -134,6 +210,17 @@ for (const [name, n] of [...perComponent.entries()].sort((a, b) => b[1] - a[1]))
   console.log(`    - ${name}: ${n}`);
 }
 console.log('');
+
+if (bannedHits.length > 0) {
+  console.log(`  \x1b[31m✗ ${bannedHits.length} banned primitive(s):\x1b[0m`);
+  for (const h of bannedHits) {
+    console.log(`    ${h.file}:${h.line}  ${h.snippet}`);
+    console.log(`      → <${h.tag}> is banned (CLAUDE.md ${h.rule}). Use ${h.use}.`);
+  }
+  console.log('');
+  process.exit(1);
+}
+console.log('  \x1b[32m✓ No banned primitives (<Modal>, <Switch>).\x1b[0m');
 
 if (findings.length === 0) {
   console.log('  \x1b[32m✓ Every tappable has an onPress (or spread-props delegation).\x1b[0m');

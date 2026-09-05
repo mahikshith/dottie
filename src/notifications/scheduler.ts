@@ -8,9 +8,14 @@
  *
  * ─── WHAT IT SCHEDULES ──────────────────────────────────────────────
  *
- *   • check-in reminder   → DAILY at a preset time (morning/midday/evening)
- *   • hydration nudge      → DAILY at midday
- *   • period heads-up      → one-shot DATE, ~3 days before the predicted period
+ *   • check-in reminder    → DAILY at a preset time, or an exact time the user set
+ *   • hydration nudge      → DAILY at midday, or an exact time the user set
+ *   • period heads-up      → one-shot DATE, 1–5 days before the predicted period
+ *   • period-arrived check → one-shot DATE, on the predicted day itself (DT21)
+ *   • phase change         → one-shot DATE, on the predicted ovulation day (DT21)
+ *   • weekly recap         → WEEKLY, Sunday evening (DT21)
+ *   • custom reminders     → DAILY, the user's own words at the user's own time
+ *   • medications          → DAILY, per saved plan
  *
  * ─── PLATFORM NOTES (from docs/NEXT-FEATURES-RESEARCH.md) ────────────
  *
@@ -28,7 +33,13 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { getNotificationCopy, type NotificationKind } from './copy';
-import { Storage, type ReminderPrefs, type ReminderTime, type MedicationPlan } from '../database/storage';
+import {
+  Storage,
+  type ReminderPrefs,
+  type ReminderTime,
+  type MedicationPlan,
+  type CustomReminder,
+} from '../database/storage';
 import { logSilentFailure } from '../diagnostics/silent-failure';
 
 // Foreground behaviour: show the reminder even if the app is open (gentle).
@@ -45,11 +56,21 @@ const ANDROID_CHANNEL = 'dottie-reminders';
 /** Map a preset to the hour it fires at (local time). */
 const TIME_HOUR: Record<ReminderTime, number> = { morning: 9, midday: 13, evening: 20 };
 
+/** expo-notifications weekdays are 1-indexed from Sunday. */
+const SUNDAY = 1;
+
 export interface ScheduleContext {
   /** Discrete copy (safe lock screen) vs explicit — mirror `Storage.discreteNotifications`. */
   discrete: boolean;
   /** ISO date of the predicted next period, for the heads-up (null = skip it). */
   predictedNextPeriod: string | null;
+  /**
+   * ISO date of the predicted ovulation, for the phase-change note (DT21).
+   * OPTIONAL so the call sites that only know about the period keep working —
+   * a missing date simply means that one reminder isn't scheduled, never a
+   * reminder fired on a date we made up.
+   */
+  predictedOvulation?: string | null;
 }
 
 export interface ScheduleResult {
@@ -123,7 +144,16 @@ export async function syncAllReminders(ctx: ScheduleContext): Promise<ScheduleRe
   const meds = Storage.medications.get();
   const activeMeds = meds.filter((m) => m.active);
 
-  const anyOn = prefs.checkIn || prefs.hydration || prefs.periodHeadsUp || activeMeds.length > 0;
+  const activeCustom = prefs.custom.filter((c) => c.active && c.label.trim().length > 0);
+  const anyOn =
+    prefs.checkIn ||
+    prefs.hydration ||
+    prefs.periodHeadsUp ||
+    prefs.periodArrivedCheck ||
+    prefs.phaseChange ||
+    prefs.weeklyRecap ||
+    activeCustom.length > 0 ||
+    activeMeds.length > 0;
 
   // Nothing on → make sure we've torn down any prior schedule and stop.
   if (!anyOn) {
@@ -142,19 +172,59 @@ export async function syncAllReminders(ctx: ScheduleContext): Promise<ScheduleRe
   let scheduled = 0;
 
   if (prefs.checkIn) {
-    await scheduleDaily('check_in_reminder', TIME_HOUR[prefs.checkInTime], 0, ctx.discrete);
+    // An exact time the user set wins over the preset bucket.
+    await scheduleDaily(
+      'check_in_reminder',
+      prefs.checkInHour ?? TIME_HOUR[prefs.checkInTime],
+      prefs.checkInMinute ?? 0,
+      ctx.discrete
+    );
     scheduled++;
   }
   if (prefs.hydration) {
-    await scheduleDaily('hydration_nudge', TIME_HOUR.midday, 0, ctx.discrete);
+    await scheduleDaily(
+      'hydration_nudge',
+      prefs.hydrationHour ?? TIME_HOUR.midday,
+      prefs.hydrationMinute ?? 0,
+      ctx.discrete
+    );
     scheduled++;
   }
   if (prefs.periodHeadsUp && ctx.predictedNextPeriod) {
-    const when = headsUpDate(ctx.predictedNextPeriod);
+    const when = dateAt(ctx.predictedNextPeriod, -clampLeadDays(prefs.periodHeadsUpLeadDays), 10);
     if (when) {
       await scheduleAt('period_window_approaching', when, ctx.discrete);
       scheduled++;
     }
+  }
+  // The predicted day itself: "did it start?" This is the one that keeps the
+  // prediction honest — an unlogged period is what makes the next estimate
+  // drift, and it is the day people are least likely to open the app.
+  if (prefs.periodArrivedCheck && ctx.predictedNextPeriod) {
+    const when = dateAt(ctx.predictedNextPeriod, 0, 19);
+    if (when) {
+      await scheduleAt('period_arrived_check', when, ctx.discrete);
+      scheduled++;
+    }
+  }
+  // Phase change. Only ovulation is scheduled, and only when the predictor
+  // actually produced a date — a phase note on a guessed day would be the
+  // app asserting something about the user's body that it does not know.
+  if (prefs.phaseChange && ctx.predictedOvulation) {
+    const when = dateAt(ctx.predictedOvulation, 0, 9);
+    if (when) {
+      await scheduleAt('phase_transition', when, ctx.discrete);
+      scheduled++;
+    }
+  }
+  if (prefs.weeklyRecap) {
+    await scheduleWeekly('weekly_recap', SUNDAY, 18, 0, ctx.discrete);
+    scheduled++;
+  }
+  for (const custom of prefs.custom) {
+    if (!custom.active || custom.label.trim().length === 0) continue;
+    await scheduleCustom(custom);
+    scheduled++;
   }
   for (const med of activeMeds) {
     await scheduleMedication(med, ctx.discrete);
@@ -227,11 +297,68 @@ async function scheduleMedication(plan: MedicationPlan, discrete: boolean): Prom
   }
 }
 
-/** ~3 days before the predicted period, at 10am local. Null if that's in the past. */
-function headsUpDate(predictedISO: string): Date | null {
-  const predicted = new Date(`${predictedISO}T00:00:00`);
-  const when = new Date(predicted);
-  when.setDate(when.getDate() - 3);
-  when.setHours(10, 0, 0, 0);
+async function scheduleWeekly(
+  kind: NotificationKind,
+  weekday: number,
+  hour: number,
+  minute: number,
+  discrete: boolean
+): Promise<void> {
+  const copy = getNotificationCopy(kind, discrete ? 'discrete' : 'explicit');
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: copy.title, body: copy.body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute },
+    });
+  } catch (err) {
+    logSilentFailure(`notifications.schedule.${kind}`, err);
+  }
+}
+
+/**
+ * A reminder the user wrote. Their words are the title, verbatim.
+ *
+ * Discreet mode deliberately does NOT rewrite this: the copy library can
+ * disguise Dottie's own sentences because Dottie wrote them, but silently
+ * replacing what the user typed would leave them with a reminder that doesn't
+ * say what they asked it to say. The Reminders screen says so in as many words
+ * next to the field, so the choice is theirs and it is an informed one.
+ */
+async function scheduleCustom(reminder: CustomReminder): Promise<void> {
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: reminder.label.trim(), body: 'A reminder you set.' },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: reminder.hour,
+        minute: reminder.minute,
+      },
+    });
+  } catch (err) {
+    logSilentFailure('notifications.scheduleCustom', err);
+  }
+}
+
+/** Keep the heads-up lead inside the range the UI offers. */
+function clampLeadDays(days: number): number {
+  if (!Number.isFinite(days)) return 3;
+  return Math.min(5, Math.max(1, Math.round(days)));
+}
+
+/**
+ * `offsetDays` from an ISO date, at `hour` local time. Null when that moment
+ * has already passed — scheduling into the past would fire immediately.
+ *
+ * NOTE this deliberately builds a LOCAL Date from the civil date rather than
+ * parsing it as UTC: a notification is a wall-clock event in the user's own
+ * timezone. (See CLAUDE.md rule 3 — all civil-date ARITHMETIC goes through
+ * civil-date.ts; this is the one place we cross from a civil date into a real
+ * instant, and `T00:00:00` with no Z is what makes it local.)
+ */
+function dateAt(iso: string, offsetDays: number, hour: number): Date | null {
+  const when = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(when.getTime())) return null;
+  when.setDate(when.getDate() + offsetDays);
+  when.setHours(hour, 0, 0, 0);
   return when.getTime() > Date.now() ? when : null;
 }

@@ -59,14 +59,9 @@ export function MoodMap({ map, width }: MoodMapProps): JSX.Element {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.headRow}>
-        <Text style={[styles.title, { color: palette.ink }]}>Your mood map</Text>
-        {map.streak > 1 ? (
-          <Text style={[styles.streak, { color: palette.accent }]}>
-            {map.streak}-day streak
-          </Text>
-        ) : null}
-      </View>
+      {/* No title here. The card header above this panel already says
+          "Your mood map" and carries the streak — DT21 photographed the two
+          of them stacked, which read as the section having rendered twice. */}
 
       {/* ─── THE GRID ─────────────────────────────────────────────── */}
       <Svg width={gridW} height={gridH}>
@@ -148,9 +143,6 @@ export function MoodMap({ map, width }: MoodMapProps): JSX.Element {
 
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.sm },
-  headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { ...Typography.preset.bodySemibold },
-  streak: { ...Typography.preset.captionBold },
   legend: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, flexWrap: 'wrap' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   swatch: { width: 10, height: 10, borderRadius: 2.5 },
