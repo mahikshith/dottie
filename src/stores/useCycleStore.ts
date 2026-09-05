@@ -55,6 +55,7 @@ import { RecentSymptom } from '../engine/content';
 import { logSilentFailure } from '../diagnostics/silent-failure';
 import { detectPremenstrualSignal } from '../engine/symptoms/symptom-recall';
 import { todayCivil } from '../utils/civil-date';
+import { Storage } from '../database/storage';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
 
@@ -99,6 +100,8 @@ export interface CycleStoreState {
 
   /** Re-run the prediction engine with the latest inputs. */
   recomputePrediction: () => Promise<CyclePrediction | null>;
+  /** True while a recompute is in flight AND the cached explanation is stale. */
+  explanationStale: boolean;
 
   /** Reload all cycle data from SQLite (e.g. after mode change). */
   refresh: () => Promise<void>;
@@ -115,6 +118,7 @@ const initialState = {
   cycleCount: 0,
   latestPrediction: null as CyclePrediction | null,
   latestExplanation: null as PredictionExplanation | null,
+  explanationStale: false,
   predictionErrors: [] as number[],
   recentSymptoms: [] as RecentSymptom[],
   todayCheckIn: null as DailyCheckIn | null,
@@ -122,6 +126,22 @@ const initialState = {
 };
 
 // ─── STORE ──────────────────────────────────────────────────────────
+
+/**
+ * What the cached explanation was computed FROM.
+ *
+ *  Only two things can invalidate an explanation without the app noticing: a
+ *  new period start, or a new completed cycle. Both are in here, so a cache
+ *  hit means the numbers are still the numbers — and a miss is caught rather
+ *  than silently shown as fact.
+ */
+export function explanationFingerprint(
+  userId: string,
+  lastPeriodStart: string,
+  cycleCount: number
+): string {
+  return `${userId}|${lastPeriodStart}|${cycleCount}`;
+}
 
 export const useCycleStore = create<CycleStoreState>((set, get) => ({
   ...initialState,
@@ -254,7 +274,7 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
 
     // No last period date = nothing to predict yet
     if (!lastPeriodStart) {
-      set({ latestExplanation: null });
+      set({ latestExplanation: null, explanationStale: false });
       return null;
     }
 
@@ -297,9 +317,20 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
       logSilentFailure('cycle:savePredictionFailed', err);
     }
 
+    const explanation = explainPrediction(input);
+
+    // Cache it against the inputs it came from, so the next cold start can show
+    // it immediately instead of recomputing the model from unchanged data.
+    try {
+      Storage.lastExplanation.set(userId, explanationFingerprint(userId, lastPeriodStart, cycleHistory.length), explanation);
+    } catch (err) {
+      logSilentFailure('cycle.cacheExplanation', err);
+    }
+
     set({
       latestPrediction: fullPrediction,
-      latestExplanation: explainPrediction(input),
+      latestExplanation: explanation,
+      explanationStale: false,
     });
     return fullPrediction;
   },

@@ -82,6 +82,9 @@ export function PredictionExplainerCard({
   const userCycleHistory = useCycleStore((s) => s.cycleHistory);
   // A subject overrides every input; there is no blending of two people's data.
   const storeExplanation = subject ? null : storeExplanationRaw;
+  // Only meaningful for the USER's own card — a sister's is always computed
+  // fresh from her history and never cached.
+  const stale = useCycleStore((st) => st.explanationStale) && !subject;
   const lastPeriodStart = subject ? subject.lastPeriodStart : userLastPeriodStart;
   const cycleHistory = subject ? subject.cycleHistory : userCycleHistory;
   const predictionErrors = useCycleStore((s) => s.predictionErrors);
@@ -157,9 +160,22 @@ export function PredictionExplainerCard({
             {subject ? `How ${subject.name}'s prediction will work` : 'How your prediction will work'}
           </Text>
         </View>
+        {/* ─── UPDATING vs NOTHING TO SHOW (device-test-20) ───────
+            Two genuinely different states, and they must not share a message.
+
+            `explanationStale` means the app HAS an answer cached but knows the
+            data moved under it — a period logged since — so the cached numbers
+            are about to be wrong and are deliberately not shown. That is worth
+            saying, because the alternative is a card that looks broken for the
+            second it takes to recompute.
+
+            No explanation and NOT stale means there is genuinely nothing yet.
+            There is no spinner for that: it is not loading, it is empty, and a
+            spinner over an empty state is a lie about what is happening. */}
         <Text style={[styles.summary, { color: palette.ink2 }]}>
-          Log your first period and Dottie starts modelling your rhythm. Nothing is
-          guessed before then — that&apos;s deliberate.
+          {stale
+            ? 'Recalculating from what you just logged — one moment.'
+            : 'Log your first period and Dottie starts modelling your rhythm. Nothing is guessed before then — that\u2019s deliberate.'}
         </Text>
         <Text style={[styles.factorPlain, { color: palette.ink3 }]}>
           Once you log, this card shows the most likely date, the ± window and how

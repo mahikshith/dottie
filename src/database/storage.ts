@@ -171,6 +171,7 @@ const Keys = {
   // per-device planning scratch — no schema migration needed for an additive
   // feature (per project conventions).
   DAY_PLANS: 'calendar.day_plans',
+  LAST_EXPLANATION: 'cycle.last_explanation',
 
   // Learn placement / pace (design-v2 — the path-map). 'new' keeps the guided
   // sequential locks; 'basics'/'deep' unlock the trail for self-directed learners.
@@ -449,6 +450,42 @@ export const Storage = {
   // Stored as one JSON map so a month's worth of reads is a single MMKV hit.
   // A day with neither a note nor planned=true is removed, so `hasPlan` stays
   // honest and the map doesn't accumulate empty entries.
+
+  /**
+   * ─── THE LAST PREDICTION EXPLANATION (device-test-20) ─────────────
+   *
+   *  The prediction itself is persisted; its EXPLANATION was memory-only, so
+   *  it started null on every launch and the Cycle tab recomputed the whole
+   *  Bayesian model from data that had not changed — which is why the science
+   *  under the calendar arrived after the rest of the screen.
+   *
+   *  It is cached with a FINGERPRINT of the inputs it was computed from. On a
+   *  cold start the card can show it instantly when the fingerprint still
+   *  matches, and must NOT when it does not: showing yesterday's dates to
+   *  someone who logged a period this morning would be a confident lie, which
+   *  is the one thing this app may never do. A stale fingerprint is what earns
+   *  the "updating" state instead.
+   */
+  lastExplanation: {
+    get: (userId: string): { fingerprint: string; explanation: unknown } | null => {
+      const all = getJson<Record<string, { fingerprint: string; explanation: unknown }>>(
+        Keys.LAST_EXPLANATION
+      ) ?? {};
+      return all[userId] ?? null;
+    },
+    set: (userId: string, fingerprint: string, explanation: unknown): void => {
+      const all = getJson<Record<string, { fingerprint: string; explanation: unknown }>>(
+        Keys.LAST_EXPLANATION
+      ) ?? {};
+      all[userId] = { fingerprint, explanation };
+      setJson(Keys.LAST_EXPLANATION, all);
+    },
+    clear: (userId: string): void => {
+      const all = getJson<Record<string, unknown>>(Keys.LAST_EXPLANATION) ?? {};
+      delete all[userId];
+      setJson(Keys.LAST_EXPLANATION, all);
+    },
+  },
 
   dayPlans: {
     getAll: (): Record<string, DayPlan> => getJson<Record<string, DayPlan>>(Keys.DAY_PLANS) ?? {},

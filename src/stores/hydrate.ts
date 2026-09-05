@@ -83,13 +83,14 @@ import {
 } from '../engine/content';
 import { buildMergedLessonProvider, buildMergedQuizProvider } from '../content/remote/merged-providers';
 import { useUserStore } from './useUserStore';
-import { useCycleStore } from './useCycleStore';
+import { explanationFingerprint, useCycleStore } from './useCycleStore';
 import { useGamificationStore } from './useGamificationStore';
 import { useContentStore } from './useContentStore';
 import { useCommunityStore } from './useCommunityStore';
 import { usePhaseWeatherStore } from './usePhaseWeatherStore';
 import { usePredictsStore } from './usePredictsStore';
 import { logSilentFailure } from '../diagnostics/silent-failure';
+import type { PredictionExplanation } from '../engine/prediction/explain-prediction';
 
 // ─── PUBLIC API ──────────────────────────────────────────────────────
 
@@ -291,6 +292,42 @@ async function doHydrate(): Promise<HydrationResult> {
   //  Today. Fire-and-forget — nothing on Today needs it, and the Cycle tab now
   //  finds it already waiting.
   if (hasUser) {
+    // ─── SHOW THE LAST ANSWER WHILE COMPUTING THE NEW ONE ─────────
+    //
+    //  Owner, device-test-20: "if the user hasn't logged their period, or it
+    //  hasn't been updated, why don't we show the previous graphs?" Exactly
+    //  right, with one condition: only while it is still TRUE.
+    //
+    //  The cache carries a fingerprint of the inputs it came from. If nothing
+    //  that matters has changed — same last period, same cycle count — the
+    //  cached explanation IS the current explanation, so it is restored here
+    //  and the Cycle tab has its science before it is ever opened.
+    //
+    //  If the fingerprint has moved, the cached numbers are about to be wrong.
+    //  They are NOT shown. `explanationStale` goes up instead, and the card
+    //  says it is updating. Showing yesterday's predicted date to someone who
+    //  logged a period this morning would be the app being confidently wrong,
+    //  which rule 1 forbids more strongly than it forbids being slow.
+    const cycle = useCycleStore.getState();
+    const uid = useUserStore.getState().userId;
+    if (uid && cycle.lastPeriodStart) {
+      try {
+        const cached = Storage.lastExplanation.get(uid);
+        const fresh =
+          explanationFingerprint(uid, cycle.lastPeriodStart, cycle.cycleHistory.length);
+        if (cached && cached.fingerprint === fresh) {
+          useCycleStore.setState({
+            latestExplanation: cached.explanation as PredictionExplanation,
+            explanationStale: false,
+          });
+        } else {
+          useCycleStore.setState({ explanationStale: true });
+        }
+      } catch (err) {
+        logSilentFailure('hydration.explanationCache', err);
+      }
+    }
+
     void useCycleStore
       .getState()
       .recomputePrediction()
