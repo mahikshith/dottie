@@ -1,0 +1,145 @@
+/**
+ * Dottie — colour audit (device-test-22)
+ *
+ * ─── WHY THIS EXISTS ────────────────────────────────────────────────
+ *
+ *  Owner, DT21: "the follicular green collides with the mood green."
+ *  Owner, DT22: "some of the colours STILL coincide with the phase or cycle
+ *  colour… find out all the colour combinations you have for all the moods
+ *  and make a judgement about contrasting colours."
+ *
+ *  DT21 fixed the one collision that was pointed at, by eye. That was the
+ *  mistake: there were four. Measured in CIELAB, THREE of the four phase
+ *  colours were byte-identical to a colour in a mood palette —
+ *
+ *      menstrual  #FF6FA5 = ember.accent2 (also three palettes' bloom)
+ *      ovulatory  #FFC24D = radiance.accent
+ *      luteal     #9B7BFF = nocturne.accent2
+ *
+ *  — so whichever mood the app was wearing, one phase was painted in the
+ *  background's own colour. Eyeballing one pair at a time could never have
+ *  found that; comparing every pair takes a script.
+ *
+ * ─── THE TWO RULES ──────────────────────────────────────────────────
+ *
+ *  1. Every phase colour is ≥ MIN_MOOD_DISTANCE from EVERY colour in EVERY
+ *     mood palette (accent, accent2, all four bloom hues) and from every step
+ *     of the mood-map scale.
+ *  2. Any two phase colours are ≥ MIN_PHASE_DISTANCE apart. They sit next to
+ *     each other in the calendar legend, so this one matters most.
+ *
+ *  ΔE is CIE76 in CIELAB. It is not the last word in perceptual accuracy, but
+ *  it is honest about the thing that was actually wrong here — two swatches
+ *  being the same paint — and it needs no dependency.
+ *
+ *  The thresholds are set just under what the current set achieves (19.8 and
+ *  93.3). The mood system occupies most of the wheel, so ~20 is the realistic
+ *  ceiling for the mood rule without resorting to neon; identity is never
+ *  colour-alone anyway (the legend carries a shape per mark).
+ *
+ *      npm run audit:colour
+ */
+
+import { PHASE_AURORA, AURORA_PALETTES } from '../src/theme/palettes';
+import { MOOD_SCALE } from '../src/engine/mood/mood-map';
+
+const MIN_MOOD_DISTANCE = 18;
+const MIN_PHASE_DISTANCE = 40;
+
+// ─── CIELAB ──────────────────────────────────────────────────────────
+
+type Lab = [number, number, number];
+
+function toLab(hex: string): Lab {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255) as [
+    number,
+    number,
+    number,
+  ];
+  const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [R, G, B] = [lin(r), lin(g), lin(b)];
+  const X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+  const Y = R * 0.2126 + G * 0.7152 + B * 0.0722;
+  const Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const [fx, fy, fz] = [f(X), f(Y), f(Z)];
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+function deltaE(a: string, b: string): number {
+  const [l1, a1, b1] = toLab(a);
+  const [l2, a2, b2] = toLab(b);
+  return Math.sqrt((l1 - l2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2);
+}
+
+// ─── THE TWO SETS ────────────────────────────────────────────────────
+
+const moodColours: { name: string; hex: string }[] = [];
+for (const [id, p] of Object.entries(AURORA_PALETTES)) {
+  moodColours.push({ name: `${id}.accent`, hex: p.accent });
+  moodColours.push({ name: `${id}.accent2`, hex: p.accent2 });
+  p.aurora.forEach((hex, i) => moodColours.push({ name: `${id}.bloom${i + 1}`, hex }));
+}
+for (const step of MOOD_SCALE) {
+  moodColours.push({ name: `moodScale.${step.label.toLowerCase()}`, hex: step.color });
+}
+
+const phases = Object.entries(PHASE_AURORA) as [string, string][];
+
+// ─── CHECK ───────────────────────────────────────────────────────────
+
+const problems: string[] = [];
+let worstMood = Infinity;
+let worstPhase = Infinity;
+
+console.log('\x1b[1m\nDottie — colour audit\x1b[0m');
+console.log(`  mood colours compared against: ${moodColours.length}`);
+
+for (const [phase, hex] of phases) {
+  let nearest = { name: '', d: Infinity, hex: '' };
+  for (const m of moodColours) {
+    const d = deltaE(hex, m.hex);
+    if (d < nearest.d) nearest = { name: m.name, d, hex: m.hex };
+  }
+  worstMood = Math.min(worstMood, nearest.d);
+  const ok = nearest.d >= MIN_MOOD_DISTANCE;
+  console.log(
+    `  ${ok ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m'} ${phase.padEnd(11)} ${hex}` +
+      `  nearest mood ΔE ${nearest.d.toFixed(1).padStart(5)}  (${nearest.name} ${nearest.hex})`
+  );
+  if (!ok) {
+    problems.push(
+      `${phase} ${hex} is only ΔE ${nearest.d.toFixed(1)} from ${nearest.name} ${nearest.hex}` +
+        ` — the mood background and the phase mark read as the same colour.`
+    );
+  }
+}
+
+for (let i = 0; i < phases.length; i++) {
+  for (let j = i + 1; j < phases.length; j++) {
+    const [a, ah] = phases[i]!;
+    const [b, bh] = phases[j]!;
+    const d = deltaE(ah, bh);
+    worstPhase = Math.min(worstPhase, d);
+    if (d < MIN_PHASE_DISTANCE) {
+      problems.push(
+        `${a} and ${b} are only ΔE ${d.toFixed(1)} apart — they sit side by side in the legend.`
+      );
+    }
+  }
+}
+
+console.log(
+  `\n  minimum ΔE to the mood set: ${worstMood.toFixed(1)} (floor ${MIN_MOOD_DISTANCE})` +
+    `\n  minimum ΔE between phases:  ${worstPhase.toFixed(1)} (floor ${MIN_PHASE_DISTANCE})`
+);
+
+if (problems.length === 0) {
+  console.log('\n\x1b[32m✓ no phase colour collides with a mood colour, or with another phase.\x1b[0m\n');
+  process.exit(0);
+}
+console.log(`\n\x1b[31m✗ ${problems.length} colour collision(s):\x1b[0m`);
+for (const p of problems) console.log(`    · ${p}`);
+console.log('');
+process.exit(1);

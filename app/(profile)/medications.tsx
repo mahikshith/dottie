@@ -29,6 +29,7 @@ import {
 } from '../../src/engine/reminders/dedupe';
 import {
   Storage,
+  medicationKinds,
   type MedicationPlan,
   type MedicationKind,
   type ReminderTime,
@@ -63,7 +64,10 @@ export default function MedicationsScreen() {
 
   const [meds, setMeds] = useState<MedicationPlan[]>(() => Storage.medications.get());
   const [name, setName] = useState('');
-  const [kind, setKind] = useState<MedicationKind>('pill');
+  // MULTI-SELECT (device-test-22). A coil plus a daily pill is ordinary; the
+  // single-select row made it un-loggable. The first selected chip stays the
+  // plan's primary `kind` so everything downstream is unchanged.
+  const [kinds, setKinds] = useState<MedicationKind[]>(['pill']);
   const [time, setTime] = useState<ReminderTime>('morning');
   const [permissionDenied, setPermissionDenied] = useState(false);
   // Exact firing time in minutes-of-day. null = just use the preset bucket.
@@ -83,7 +87,8 @@ export default function MedicationsScreen() {
     // typing a name — the disabled button did nothing, which reads as broken.
     // Fall back to the kind's label as the reminder name so the tap always
     // does something. They can rename via remove-and-readd if it matters.
-    const trimmed = name.trim() || kindMeta(kind).label;
+    const primary = kinds[0] ?? 'other';
+    const trimmed = name.trim() || kinds.map((k) => kindMeta(k).label).join(' + ');
     const exact =
       exactMinutes === null
         ? {}
@@ -92,7 +97,13 @@ export default function MedicationsScreen() {
     // Don't silently create a second identical daily reminder — that's how the
     // same notification started firing twice with no obvious cause. Compare on
     // the moment it actually FIRES, not the bucket label (device-test-6).
-    const clash = findDuplicateReminder(meds, { name: trimmed, kind, time, ...exact });
+    // De-dupe on the FULL kind set, not just the primary — "the pill" at 9am
+    // and "the pill + IUD" at 9am are different plans to the user.
+    const kindKey = [...kinds].sort().join('+');
+    const clash = findDuplicateReminder(
+      meds.map((m) => ({ ...m, kind: medicationKinds(m).slice().sort().join('+') as MedicationKind })),
+      { name: trimmed, kind: kindKey, time, ...exact }
+    );
     if (clash) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       setDuplicateNotice(duplicateReminderMessage(clash));
@@ -103,14 +114,15 @@ export default function MedicationsScreen() {
     const plan: MedicationPlan = {
       id: `med_${Date.now().toString(36)}_${Math.floor(Math.random() * 0xffff).toString(36)}`,
       name: trimmed,
-      kind,
+      kind: primary,
+      kinds: [...kinds],
       time,
       ...exact,
       active: true,
     };
     void persist([...meds, plan]);
     setName('');
-    setKind('pill');
+    setKinds(['pill']);
     setTime('morning');
     setExactMinutes(null);
     setDuplicateNotice(null);
@@ -170,16 +182,17 @@ export default function MedicationsScreen() {
 
         {/* Existing */}
         {meds.map((m) => {
-          const meta = kindMeta(m.kind);
+          const metas = medicationKinds(m).map((k: MedicationKind) => kindMeta(k));
+          const meta = metas[0]!;
           const t = TIMES.find((x) => x.key === m.time);
           return (
             <GlassCard key={m.id} style={styles.medCard}>
               <View style={styles.medRow}>
-                <Text style={styles.medEmoji}>{meta.emoji}</Text>
+                <Text style={styles.medEmoji}>{metas.map((k) => k.emoji).join(' ')}</Text>
                 <View style={styles.medBody}>
                   <Text style={[styles.medName, { color: palette.ink }]} numberOfLines={1}>{m.name}</Text>
                   <Text style={[styles.medMeta, { color: palette.ink3 }]}>
-                    {meta.label} · {t?.emoji} {t?.label}
+                    {metas.map((k) => k.label).join(' + ')} · {t?.emoji} {t?.label}
                   </Text>
                 </View>
                 <AuroraSwitch
@@ -212,18 +225,30 @@ export default function MedicationsScreen() {
             accessibilityLabel="Medication name"
           />
 
-          <Text style={[styles.fieldLabel, { color: palette.ink3 }]}>Type</Text>
+          <Text style={[styles.fieldLabel, { color: palette.ink3 }]}>
+            Type — pick as many as fit
+          </Text>
           <View style={styles.chipWrap}>
             {KINDS.map((k) => {
-              const on = kind === k.key;
+              const on = kinds.includes(k.key);
               return (
                 <PressableScale
                   key={k.key}
-                  onPress={() => { Haptics.selectionAsync().catch(() => {}); setKind(k.key); }}
+                  onPress={() => {
+                    Haptics.selectionAsync().catch(() => {});
+                    setDuplicateNotice(null);
+                    setKinds((prev) => {
+                      if (!prev.includes(k.key)) return [...prev, k.key];
+                      // Never empty: the last one stays selected rather than
+                      // leaving a reminder with no type at all.
+                      const next = prev.filter((x) => x !== k.key);
+                      return next.length > 0 ? next : prev;
+                    });
+                  }}
                   haptic="none"
                   style={[styles.chip, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }, on && { backgroundColor: palette.accent, borderColor: palette.accent }]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: on }}
                   accessibilityLabel={k.label}
                 >
                   <Text style={styles.chipEmoji}>{k.emoji}</Text>
@@ -271,7 +296,7 @@ export default function MedicationsScreen() {
             <Text style={[styles.timeValue, { color: palette.ink }]}>
               {formatFiringTime({
                 name: '',
-                kind,
+                kind: kinds[0] ?? 'other',
                 time,
                 ...(exactMinutes === null
                   ? {}

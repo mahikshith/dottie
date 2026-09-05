@@ -28,6 +28,7 @@ import { useGhostModeStore } from '../src/security/ghost-mode-store';
 import { AppLockGate } from '../src/components/safety/AppLockGate';
 import { awardBetaPioneerIfNew } from '../src/services/beta-onboarding';
 import { logSilentFailure } from '../src/diagnostics/silent-failure';
+import { SHEET_PRESENTATION } from '../src/constants/navigation';
 
 // Prevent splash from auto-hiding until hydration completes.
 // We unblock it ourselves inside the hydration effect below.
@@ -174,6 +175,20 @@ export default function RootLayout() {
         const result = await hydrateAppState();
         if (__DEV__) {
           console.log('[Hydration] complete', result);
+        }
+
+        // ─── A PARTIAL HYDRATION IS STILL A FAILURE (device-test-22) ──
+        //
+        //  hydrateAppState CATCHES a user-load failure internally and returns
+        //  it in `result.error` rather than throwing, so this block used to
+        //  see a clean resolve and carry on into the app — with no user in the
+        //  stores and no content engines. Screens that read bundled content
+        //  kept working, which is why it went unnoticed for rounds; the quiz
+        //  screen just sat on its spinner. If hydration says it went wrong
+        //  (it already retried once by now), say so and offer the retry.
+        if (result.error && !cancelled) {
+          setHydrationError(result.error);
+          return;
         }
 
         // After hydration, initialize the Ghost Mode store's lock state.
@@ -383,7 +398,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="(modals)"
           options={{
-            presentation: 'modal',
+            presentation: SHEET_PRESENTATION,
             animation: 'slide_from_bottom',
           }}
         />

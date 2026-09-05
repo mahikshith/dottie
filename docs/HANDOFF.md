@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-05 · DT21 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-05 · DT22 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,53 +10,55 @@
 
 ## 1. OPEN
 
-**DT16, DT18, DT19, DT20 and DT21 are all done and pushed. Five device rounds
-are stacked in the next APK** — most of it has never been seen rendered.
+**DT16 through DT22 are all done and pushed. Six device rounds are stacked in
+the next APK.**
 
 ### Look at this FIRST, and it needs no APK
-`docs/companion-preview.html` — open it in a browser. Every companion in every
-expression, rendered from the same geometry the app draws
-(`npx tsx scripts/companion-preview.ts` regenerates it). This exists because the
-companions were called insects in three rounds and each fix was shipped blind
-in a 25-minute build. **Review art there, not on the phone.**
+`docs/companion-preview.html` — every companion in every expression, rendered
+from the same geometry the app draws (`npx tsx scripts/companion-preview.ts`
+regenerates it). Review art there, never blind into a 25-minute build.
 
-### Verify on the next APK — DT21
-1. **Every toggle in the app.** `AuroraSwitch` replaced React Native's
-   `<Switch>` everywhere (Reminders, Medications, Diagnostics, Ghost Mode).
-   The off state must be a visibly EMPTY track with the knob at the left —
-   that was the whole complaint. Ghost Mode is the cream screen: it passes
-   `surface="light"`, so check its off track is visible there too.
-2. **Reminders.** Three groups now — every day / around your cycle / your own.
-   Exact times on the check-in and hydration nudges, a 1–5 day lead on the
-   heads-up, the did-it-start check, phase changes, a weekly recap, and
-   user-written reminders at any time. The cycle group is disabled until a
-   prediction exists. Nothing here has ever been delivery-tested on a device:
-   `expo-notifications` needs the dev build to actually fire.
-3. **The mood map toggle.** 48pt row, 10pt slop, a labelled Show/Hide pill
-   instead of a bare caret — and the duplicated "Your mood map" title inside
-   the panel is gone.
-4. **Companion picker** (onboarding + Profile → companion). ONE companion per
-   card, cycling eight moods with the mood named underneath. Never three.
-5. **Today → Cycle.** The calendar's entrance is opacity-only now; the page
-   should not visibly assemble itself from the bottom.
-6. **Follicular is blue** (`#4FB8FF`), not the accent teal. Check the calendar
-   legend and the mood map on Home no longer share a green.
-7. **Quiz "Try again"** sits on an opaque footer with its own tinted fill —
-   nothing should scroll through it.
+### Verify on the next APK — DT22
+1. **A quiz opens.** The P0. Root cause was hydration: `populateStoresForUser`
+   fires thirteen repo reads through one `Promise.all`, one rejection killed
+   the lot, and the catch logged to a `__DEV__` console (invisible in the
+   owner's build) while the app carried on with NO content engines. Every
+   screen reading bundled content kept working; the quiz, which needs the
+   engine, sat on its spinner forever. Now: hydration retries once and reports,
+   the root layout shows its recovery screen with a working Try again, and the
+   quiz screen builds its own engine from bundled content after 2.5s rather
+   than waiting for one that is not coming. `test:quiz` walks all 74 quizzes.
+2. **Add to circle, and Today's check-in.** Both were `presentation: 'modal'`,
+   which on Android hands the screen ZERO safe-area insets — so the CTA sat
+   under the nav bar and the check-in title ran through the status bar, while
+   every padding expression was correct. Also killed the duplicate native
+   header on add-to-circle.
+3. **Phase colours.** Menstrual is rose-red, follicular cyan, ovulatory citron,
+   luteal violet. Three of the old four were byte-identical to a mood palette
+   colour. Check the legend against the mood map on Home.
+4. **Every toggle**, including the onboarding "Nudges from me?" screen, which
+   was still hand-rolled: its ON state filled the track with the accent and
+   drew the thumb in 6% white, i.e. invisible.
+5. **The companions are different people now.** Take the same quiz as Pip and
+   as Nyx: different openers, different reactions, different faces, different
+   idle motion, different streak thresholds. Same facts, verbatim.
+6. **Medications** takes more than one type per plan.
+7. **Cycle tab** has a reminders link directly under the legend.
+8. **The export** has a Reminders sheet — built-in, custom and medication.
 
 ### Open
 - `[P2]` App-store rollout groundwork.
 - `[P4]` Learn tab auto-advance report — re-verify.
+- Notification DELIVERY has still never been tested on a device.
+  `expo-notifications` needs the dev build to actually fire; the toggles and
+  persistence are verifiable by reading, delivery is not.
 - Merging Practice and the quiz into one continuous run (owner's DT19
-  suggestion). Deferred deliberately — it is a structural change to the learn
-  flow, not a fix, and it was not asked for again.
-- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines, nothing
-  imports them). Wire in or delete.
-- `buildLessonScript` in `dialogue.ts` is still unrendered by any screen —
-  kept and tested deliberately (the lesson chat was reverted in DT16), but it
-  is dead weight until something wants a scripted conversation.
-- The ESLint config predates v9 and `npm run lint` cannot run. `test:all` does
-  not depend on it, so this is cosmetic — but it means no linting at all.
+  suggestion). Deferred deliberately — structural, and not asked for again.
+- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines). Also
+  `PredictionInput.recentWeightChangeKg`, which nothing collects — deliberately
+  NOT wired to a new check-in question (weight is not a thing to ask a
+  cycle-tracking user for on a mood screen).
+- The ESLint config predates v9 and `npm run lint` cannot run.
 
 ---
 
@@ -77,6 +79,11 @@ Each was added after the same bug came back for the third or fourth time:
 - `audit:ui` — every tappable has an onPress, AND no banned primitive is in
   the tree: `<Modal>` (rule 10) and `<Switch>` (rule 22). Comments are stripped
   before matching, so the prose explaining why not to use them still passes.
+- `audit:colour` — no phase colour may sit within ΔE 18 of any mood colour
+  (DT22 found three at ΔE 0.0), and phases stay ΔE 40 apart from each other.
+- `test:quiz` — opens EVERY lesson's quiz through the real engine, answers it
+  and finishes it. Nothing had ever done that, which is why a quiz that only
+  ever showed a spinner could ship.
 - `audit:silent` — rule 18. `__DEV__` is false in the owner's build, so
   `if (__DEV__) console.warn` in a catch is silence. The rule was written after
   DT15 and applied to a handful of sites; DT18 found **62** still in place.

@@ -22,6 +22,7 @@
 
 import { Stack, useRouter } from 'expo-router';
 import { FeedbackSheet } from '../../src/components/beta/FeedbackSheet';
+import { SHEET_PRESENTATION } from '../../src/constants/navigation';
 
 export default function BetaFeedbackRoute() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function BetaFeedbackRoute() {
       <Stack.Screen
         options={{
           headerShown: false,
-          presentation: 'modal',
+          presentation: SHEET_PRESENTATION,
           // Swipe-down works for casual dismissal — feedback is opt-in,
           // never something the user must complete.
           gestureEnabled: true,

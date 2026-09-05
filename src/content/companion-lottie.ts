@@ -66,7 +66,16 @@ export type CompanionAnim =
   | 'determined'
   | 'cheer'
   | 'confused'
-  | 'relieved';
+  | 'relieved'
+  // DT22 — companions got their own voices, and a voice needs faces the
+  // others don't wear: Nyx smirks where Pip celebrates. See
+  // `src/engine/learn/companion-voice.ts`.
+  | 'happy'
+  | 'caring'
+  | 'excited'
+  | 'smug'
+  | 'annoyed'
+  | 'love';
 
 /** Shared, companion-agnostic animations for big moments. */
 export type MomentAnim =

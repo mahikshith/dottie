@@ -60,6 +60,7 @@ import {
 import {
   QuizAttemptProvider,
 } from '../../engine/content/quiz-engine';
+import { logSilentFailure } from '../../diagnostics/silent-failure';
 
 // ─── DOMAIN TYPES (mirror the engine's expected shapes) ──────────────
 
@@ -370,9 +371,7 @@ export class ContentRepository {
         cache.set(ours.lessonId, ours);
         // Mirror to DB asynchronously
         void this.saveLessonProgress(userId, ours).catch(err => {
-          if (__DEV__) {
-            console.warn('[ContentRepository] saveLessonProgress failed:', err);
-          }
+          logSilentFailure('content.saveLessonProgress', err);
         });
       },
       getAllProgress: () => {
@@ -410,9 +409,7 @@ export class ContentRepository {
         };
         attempts.push(ours);
         void this.saveQuizAttempt(userId, ours).catch(err => {
-          if (__DEV__) {
-            console.warn('[ContentRepository] saveQuizAttempt failed:', err);
-          }
+          logSilentFailure('content.saveQuizAttempt', err);
         });
       },
       getAttemptsForQuiz: (quizId: string) => {

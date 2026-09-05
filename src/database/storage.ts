@@ -45,6 +45,7 @@
  */
 
 import { MMKV } from 'react-native-mmkv';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 import {
   getOrCreateMasterKey,
   isStorageMigrated,
@@ -112,9 +113,7 @@ export async function initEncryptedStorage(): Promise<void> {
       await markStorageMigrated();
     }
   } catch (err) {
-    if (__DEV__) {
-      console.warn('[Storage] hardware-key init failed; falling back to legacy key:', err);
-    }
+    logSilentFailure('storage.hardwareKeyInit', err);
     // Never brick: fall back to the legacy key. Migration flag stays unset so
     // we retry next launch.
     if (!mmkv) {
@@ -745,7 +744,22 @@ export interface MedicationPlan {
   id: string;
   /** User-facing name, e.g. "The pill" or a brand. */
   name: string;
+  /**
+   * The PRIMARY kind. Kept required and first so every already-saved plan,
+   * and everything that reads one (the scheduler, the de-dupe, the export),
+   * keeps working untouched.
+   */
   kind: MedicationKind;
+  /**
+   * EVERY kind this plan covers (device-test-22).
+   *
+   *  Owner: "under medication and birth control users are still not able to
+   *  select multiple options at the same time. It is still one option select."
+   *  They are right and it is not an edge case — a coil plus a daily pill, or
+   *  a patch plus a supplement, is ordinary. Optional, so a plan saved before
+   *  this reads as `[kind]` (see `medicationKinds`).
+   */
+  kinds?: MedicationKind[];
   /** Preset time of day the daily reminder fires. */
   time: ReminderTime;
   /**
@@ -757,6 +771,11 @@ export interface MedicationPlan {
   minute?: number;
   /** Whether this reminder is currently on. */
   active: boolean;
+}
+
+/** Every kind a plan covers, with the pre-multi-select shape folded in. */
+export function medicationKinds(plan: MedicationPlan): MedicationKind[] {
+  return plan.kinds && plan.kinds.length > 0 ? plan.kinds : [plan.kind];
 }
 
 /** A per-day planning entry backing the calendar popover (see Storage.dayPlans). */

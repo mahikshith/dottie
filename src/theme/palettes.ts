@@ -80,24 +80,43 @@ export interface AuroraPalette {
 // ring and calendar and stays legible/consistent. Mood owns the atmosphere;
 // phase owns the ring.
 export const PHASE_AURORA = {
-  menstrual: '#FF6FA5',
-  // ─── FOLLICULAR IS BLUE, NOT TEAL (device-test-21) ───────────────
+  // ─── PHASE COLOURS ARE CHOSEN AGAINST THE MOOD SET (device-test-22) ──
   //
-  //  It was #54E6C8 — the EXACT hex of `A.accent` and of the mood map's top
-  //  score. One colour carried three unrelated meanings: "this is the
-  //  follicular phase", "this is a tappable accent", and "this was a great
-  //  day". On a screen showing a calendar above a mood grid, a green square
-  //  and a green day meant the same thing to the eye and different things to
-  //  the app.
+  //  Owner: "some of the colours still coincide with the phase or cycle
+  //  colour… find out all the colour combinations you have for all the moods
+  //  and make a judgement about contrasting colours."
   //
-  //  Blue rather than another green, because the mood scale owns the whole
-  //  green run (#3FA98A → #54E6C8) and anything near it re-creates the clash.
-  //  It also spaces the four phases evenly around the wheel — pink 340°,
-  //  blue 202°, gold 42°, purple 258° — so no two phases are confusable
-  //  either. Rising, clear, and unmistakably not a mood.
-  follicular: '#4FB8FF',
-  ovulatory: '#FFC24D',
-  luteal: '#9B7BFF',
+  //  They were right, and worse than they knew. Measured in CIELAB, THREE of
+  //  the four phase colours were EXACT copies of a mood colour:
+  //
+  //      menstrual  #FF6FA5 = ember.accent2, and nocturne/radiance's bloom
+  //      ovulatory  #FFC24D = radiance.accent
+  //      luteal     #9B7BFF = nocturne.accent2
+  //
+  //  ΔE 0.0. Not "similar" — the same paint. So whichever mood the app was
+  //  wearing, one phase was always painted in the background's own colour.
+  //
+  //  These four are the result of searching the wheel for the arcs the mood
+  //  system does NOT occupy (it owns red, coral, amber, mint, teal, lavender
+  //  and pink), subject to two rules `audit:colour` now enforces on every
+  //  build:
+  //
+  //      · ≥ ΔE 18 from EVERY colour in EVERY mood palette, and from every
+  //        step of the mood-map scale.
+  //      · ≥ ΔE 40 between any two phases — they sit side by side in the
+  //        legend, so telling them apart matters more than anything.
+  //
+  //  What we got: minimum ΔE 19.8 to the mood set (was 0.0) and minimum
+  //  ΔE 93.3 between phases (was 54.5). Identity is still never colour-alone
+  //  — the legend carries a shape per mark as well — but the colour no longer
+  //  works against it.
+  //
+  //  Phase identity must NOT shift with mood: the phase lives in the cycle
+  //  ring and calendar and stays constant. Mood owns the atmosphere.
+  menstrual: '#FF3D71',  // rose-red — the one convention worth keeping
+  follicular: '#22D3EE', // cyan: rising, clear, nothing like the mint moods
+  ovulatory: '#EBDA23',  // citron: the peak. Far from radiance's amber
+  luteal: '#9D4EFF',     // violet, deeper than twilight's lavenders
 } as const;
 
 // ─── PALETTES ────────────────────────────────────────────────────────

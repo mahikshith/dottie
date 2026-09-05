@@ -36,6 +36,7 @@ import {
   writeSchemaVersion,
 } from './client';
 import { SCHEMA_BY_VERSION } from './schema';
+import { logSilentFailure } from '../diagnostics/silent-failure';
 
 /**
  * Run all pending migrations.
@@ -66,9 +67,10 @@ export async function runMigrations(db: Database): Promise<MigrationResult> {
   for (let v = fromVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) {
     const statements = SCHEMA_BY_VERSION[v];
     if (!statements || statements.length === 0) {
-      if (__DEV__) {
-        console.warn(`[Migrations] no statements registered for v${v}`);
-      }
+      logSilentFailure(
+        'migrations.noStatements',
+        new Error(`no statements registered for v${v}`)
+      );
       continue;
     }
 
@@ -89,13 +91,10 @@ export async function runMigrations(db: Database): Promise<MigrationResult> {
         try {
           await db.execAsync(statement);
         } catch (err) {
-          if (__DEV__) {
-            console.error(
-              `[Migrations] v${v} statement ${i} failed:`,
-              statement.slice(0, 80),
-              err
-            );
-          }
+          // A failed migration statement is the single most consequential
+          // silence in the app: everything downstream reads a table that may
+          // not have the column it expects (device-test-22).
+          logSilentFailure(`migrations.v${v}.statement${i}`, err);
           throw err;
         }
       }
@@ -130,13 +129,7 @@ export async function runMigrations(db: Database): Promise<MigrationResult> {
         console.log(`[Migrations] v${v} committed and recorded`);
       }
     } catch (err) {
-      if (__DEV__) {
-        console.warn(
-          `[Migrations] v${v} DDL committed but version bump failed; ` +
-            `will re-run (idempotently) next launch`,
-          err
-        );
-      }
+      logSilentFailure(`migrations.v${v}.versionBump`, err);
     }
   }
 

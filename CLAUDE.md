@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 24 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 28 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -28,7 +28,9 @@ failure. Notable ones:
 test for the period-log freeze) · `test:app:tz` (simulated user, 5 timezones)
 · `test:fertile` · `test:export` · `test:dialogue` (821 content beats checked
 verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` · `audit:silent` (rule 18)
-· `test:creature` (the C8 block is the anti-insect audit)
+· `test:creature` (the C8 block is the anti-insect audit) · `test:quiz` (opens
+EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
+`audit:colour` (no phase colour may collide with a mood colour)
 
 ## Rules baked into the code (do not undo)
 
@@ -95,8 +97,9 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
    No second date picker anywhere.
 18. **Never `if (__DEV__) console.warn` in a catch** — `__DEV__` is false in
    the owner's build, so that is silence. Use `logSilentFailure(code, err)`.
-   Enforced by `audit:silent`; the rule sat unenforced from DT15 to DT18 and
-   62 sites accumulated behind it.
+   Enforced by `audit:silent`, which now catches the BLOCK form too
+   (`if (__DEV__) {\n console.warn(...)`) — that spelling slipped past for four
+   rounds and hid the hydration failure behind DT22's stuck quiz spinner.
 19. **Walkthrough is opt-in only.** No auto-launch.
 20. **Aurora ground `#0C0A16`** wherever the app can flash. `NAV_THEME` in
    `app/_layout.tsx` forces every navigator surface to it.
@@ -110,6 +113,23 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
 23. **A row that toggles something is tappable across its whole width**, and
    never under 48pt tall. DT21's "sometimes it may open, it may not" was a
    40pt row with an 18pt caret as its only visible affordance.
+24. **Never `presentation: 'modal'`.** On Android that screen's safe-area
+   insets read ZERO, so its padding silently does nothing — the add-to-circle
+   CTA under the nav bar and the check-in title through the status bar were
+   both this, for four rounds, while `audit:safearea` read the (correct)
+   padding expression and passed. Use `SHEET_PRESENTATION`
+   (`src/constants/navigation.ts`): modal on iOS, card on Android, same
+   slide-from-bottom. Enforced by `audit:safearea`.
+25. **Phase colours must clear the mood set.** Every colour in every mood
+   palette is compared against every phase colour in CIELAB by `audit:colour`:
+   ≥ ΔE 18 from any mood colour, ≥ ΔE 40 between phases. DT22 found THREE
+   phase colours that were byte-identical to a palette accent.
+26. **A companion is a voice, a face and a body — not a colour.**
+   `src/engine/learn/companion-voice.ts` gives each of the six its own quiz
+   lines, its own expression per beat, its own idle motion and its own streak
+   threshold. Pass `companion` to `leadFor`/`reactTo`. The FACTS never vary —
+   the explanation is verbatim curriculum whoever is speaking (rule 9), and
+   `test:dialogue` D9 asserts both halves.
 
 ## Design system (never hardcode ad-hoc values)
 
@@ -119,7 +139,8 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
 - Shadows are WARM (`#B48264`) · 4px spacing grid · typography preset ramp.
 - Primitives in `src/components/ui/`: `AuroraBackground`, `AuroraTabBar`,
   `GlassCard`, `PressableScale` (the standard press for ANY tappable),
-  `AuroraSwitch` (the ONLY on/off control), `GradientButton`,
+  `AuroraSwitch` (the ONLY on/off control — a visible channel with a knob that
+  travels, never a colour fill), `GradientButton`,
   `CompanionLottie`, `CompanionExpressions` (ONE companion cycling its moods —
   never a row of copies).
 

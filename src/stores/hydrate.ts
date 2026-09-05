@@ -128,6 +128,11 @@ export async function hydrateAppState(): Promise<HydrationResult> {
   hydrationPromise = doHydrate()
     .then(result => {
       hydrated = true;
+      // A PARTIAL failure must be retryable too (device-test-22). doHydrate
+      // catches a user-load failure and RESOLVES with `error` set, so without
+      // this the memoised promise would hand the same failure back forever and
+      // the root layout's "Try again" button would be decorative.
+      if (result.error) hydrationPromise = null;
       return result;
     })
     .catch(err => {
@@ -192,23 +197,50 @@ async function doHydrate(): Promise<HydrationResult> {
 
       if (user) {
         hasUser = true;
-        await populateStoresForUser(
-          user.id,
-          today,
-          contentResolver,
-          dailyDecodeEngine,
-          questionEngine,
-          bundledLessonProvider,
-          bundledQuizProvider
-        );
+        // ─── ONE RETRY, THEN SAY SO (device-test-22) ──────────────
+        //
+        //  populateStoresForUser fires THIRTEEN repo reads through a single
+        //  Promise.all. One rejection — a SQLite busy on a cold start is the
+        //  realistic one — rejects the whole thing, and the catch below used
+        //  to swallow it into a `__DEV__` console.warn. `__DEV__` is false in
+        //  the owner's build, so a partial hydration was completely silent:
+        //  the app opened, `hasUser` was already true, and the CONTENT STORE
+        //  WAS NEVER SET. Every screen that reads bundled content directly
+        //  kept working; the quiz screen, which needs the engine, sat on
+        //  "Loading quiz..." forever with nothing to say. That is DT22-1.
+        //
+        //  So: try again once (transient locks clear in milliseconds), and if
+        //  it still fails, record the reason and let the caller decide — the
+        //  root layout has a recovery screen with a Try again button, and a
+        //  visible retry beats an app that is quietly half-built.
+        try {
+          await populateStoresForUser(
+            user.id,
+            today,
+            contentResolver,
+            dailyDecodeEngine,
+            questionEngine,
+            bundledLessonProvider,
+            bundledQuizProvider
+          );
+        } catch (first) {
+          logSilentFailure('hydration.populateStores.attempt1', first);
+          await populateStoresForUser(
+            user.id,
+            today,
+            contentResolver,
+            dailyDecodeEngine,
+            questionEngine,
+            bundledLessonProvider,
+            bundledQuizProvider
+          );
+        }
       }
     } catch (err) {
-      // Hydration is best-effort: a corrupt user row shouldn't crash
-      // the app — let onboarding take over and rebuild state.
+      // Still best-effort — a corrupt user row must not crash the app — but
+      // never silent, and never invisible to the caller.
       error = err instanceof Error ? err.message : String(err);
-      if (__DEV__) {
-        console.warn('[Hydration] User load failed:', err);
-      }
+      logSilentFailure('hydration.userLoadFailed', err);
     }
   } else {
     // No user yet — likely first launch. Initialize content store with

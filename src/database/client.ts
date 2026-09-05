@@ -329,9 +329,7 @@ async function migratePlaintextDbIfNeeded(key: string): Promise<void> {
   } catch (err) {
     // Non-destructive: leave the plaintext DB and DON'T mark migrated so we
     // retry next launch. The encrypted DB open proceeds (possibly fresh).
-    if (__DEV__) {
-      console.warn('[DB] plaintext→SQLCipher migration failed (will retry):', err);
-    }
+    logSilentFailure('db.plaintextMigrationFailed', err);
   }
 }
 

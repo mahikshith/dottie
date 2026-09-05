@@ -32,7 +32,62 @@ import type {
   SubmitAnswerResult,
   QuizResult,
 } from '../../src/engine/content';
+// Leaf imports, not the barrel: the barrel also pulls the OTA merge layer,
+// which reaches for MMKV at module scope — and every file under app/ is
+// required at startup (CLAUDE.md rule 7).
+import {
+  QuizEngine,
+  InMemoryQuizAttemptProvider,
+  type QuizProvider,
+} from '../../src/engine/content/quiz-engine';
+import {
+  ContentResolver,
+  InMemoryCohortProvider,
+} from '../../src/engine/content/content-resolver';
+import { QUIZZES, getQuiz as getBundledQuiz, getQuizForLesson } from '../../src/content/quizzes';
 import { logSilentFailure } from '../../src/diagnostics/silent-failure';
+
+/**
+ * How long we are willing to sit on the spinner waiting for the store's quiz
+ * engine before building our own. Hydration normally lands in well under a
+ * second; anything past this is a hydration that is not coming.
+ */
+const ENGINE_WAIT_MS = 2500;
+
+/**
+ * A quiz engine built from bundled content, on the spot.
+ *
+ * ─── WHY A SCREEN BUILDS ITS OWN ENGINE (device-test-22) ────────────
+ *
+ *  Owner: "for some or most of the lessons it is showing loading page for the
+ *  second part of the quiz and it doesn't show anything after the loading
+ *  page."
+ *
+ *  The screen waits for `useContentStore.quizEngine`, which is set at the very
+ *  END of user hydration. If hydration fell over partway — one rejected read
+ *  inside a thirteen-way Promise.all is enough — that engine is never set, and
+ *  this screen's effect returns early forever. Spinner, no error, no way out.
+ *  Hydration itself now retries and reports (see hydrate.ts), but a screen
+ *  should not be one failed database read away from being unusable.
+ *
+ *  The quiz needs exactly two things: the question bank, which is BUNDLED and
+ *  always present, and somewhere to put the attempt. So if the store's engine
+ *  is missing we build one here with an in-memory attempt store. The quiz
+ *  works; the attempt just isn't written to SQLite, which is the right thing
+ *  to lose — a learner who wanted to take a quiz takes it.
+ */
+function buildFallbackEngine(): QuizEngine {
+  const provider: QuizProvider = {
+    getQuiz: (quizId: string) => getBundledQuiz(quizId),
+    getAllQuizzes: () => [...QUIZZES],
+    getQuizForLesson: (lessonId: string) => getQuizForLesson(lessonId),
+  };
+  return new QuizEngine(
+    new ContentResolver(new InMemoryCohortProvider()),
+    new InMemoryQuizAttemptProvider(),
+    provider
+  );
+}
 
 // Fixed aurora (Nocturne) tokens for this focused task screen. The live-palette
 // ground still comes from <AuroraBackground>; the cards are glass (which reads
@@ -139,41 +194,79 @@ export default function QuizScreen() {
   const [attempt, setAttempt] = useState(1);
   const [lastWasMiss, setLastWasMiss] = useState(false);
 
+  /**
+   * The engine we are actually going to use.
+   *
+   * Normally the one hydration built (it persists attempts). When that one has
+   * not arrived after ENGINE_WAIT_MS, we build our own from bundled content
+   * rather than waiting forever — see buildFallbackEngine.
+   */
+  const [fallbackEngine, setFallbackEngine] = useState<QuizEngine | null>(null);
+  const engine = quizEngine ?? fallbackEngine;
+
+  // ─── The watchdog ───────────────────────────────────────────────
+  //
+  // device-test-22: the only failure this screen could previously express was
+  // an infinite spinner, which tells the user nothing and tells us less. Now
+  // the wait is bounded: after ENGINE_WAIT_MS we log WHY (so the shareable
+  // diagnostic trail carries it) and stand up a local engine.
+  useEffect(() => {
+    if (quizEngine || fallbackEngine) return;
+    const timer = setTimeout(() => {
+      logSilentFailure(
+        'quiz.engineMissing',
+        new Error('content store had no quizEngine — falling back to bundled content')
+      );
+      try {
+        setFallbackEngine(buildFallbackEngine());
+      } catch (err) {
+        logSilentFailure('quiz.fallbackEngineFailed', err);
+        setPhase('error');
+        setErrorMessage("Dottie couldn't open this quiz. Reopening the app usually sorts it.");
+      }
+    }, ENGINE_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [quizEngine, fallbackEngine]);
+
   // ─── Start the attempt on mount ─────────────────────────────────
-  // Device-test #3 finding: this used to have `[id]` deps only, so if
-  // `quizEngine` was still null when the effect first ran (hydration
-  // still in flight), it would set phase='error' and never re-fire when
-  // the engine became ready — the user was stuck on the loading spinner
-  // (the "white circle at top-left" reported in test #3). Adding
-  // quizEngine to the deps means the effect re-runs when hydration
-  // finishes. Also: don't flip to error while the engine is missing —
-  // keep the spinner and try again once it lands, so a race no longer
-  // shows a scary error.
+  // Device-test #3 finding: this used to have `[id]` deps only, so if the
+  // engine was still null when the effect first ran (hydration still in
+  // flight), it would set phase='error' and never re-fire when the engine
+  // became ready — the user was stuck on the loading spinner (the "white
+  // circle at top-left" reported in test #3). Adding the engine to the deps
+  // means the effect re-runs when it lands.
   useEffect(() => {
     if (!id) {
       setPhase('error');
       setErrorMessage('No quiz ID provided');
       return;
     }
-    if (!quizEngine) {
-      // Stay in 'starting' — spinner is fine, engine hydration is fast.
+    if (!engine) {
+      // Stay in 'starting'. The watchdog above bounds how long that lasts.
       return;
     }
 
     // Adaptive: true enables Phase 3's tier-aware selection so a new user's
     // first question is always beginner-tier and difficulty climbs on correct
     // answers (promote-only, never demote). Deterministic per session id.
-    const attempt = quizEngine.startAttempt(
-      id,
-      companionType,
-      cyclePhase,
-      dayInCycle,
-      streak.currentStreak,
-      undefined,
-      true
-    );
+    let attempt: QuizAttemptSession | null = null;
+    try {
+      attempt = engine.startAttempt(
+        id,
+        companionType,
+        cyclePhase,
+        dayInCycle,
+        streak.currentStreak,
+        undefined,
+        true
+      );
+    } catch (err) {
+      // A throw here would escape the effect and take the whole tree to the
+      // root error boundary — a white screen for one bad quiz row.
+      logSilentFailure('quiz.startAttemptThrew', err);
+    }
 
-    if (!attempt) {
+    if (!attempt || attempt.questions.length === 0) {
       setPhase('error');
       setErrorMessage("This quiz isn't available yet. Check back soon!");
       return;
@@ -183,7 +276,7 @@ export default function QuizScreen() {
     setCorrectSoFar(0);
     setPhase('asking');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, quizEngine]);
+  }, [id, engine]);
 
   // ─── Current question ───────────────────────────────────────────
   const currentQuestion: RenderedQuizQuestion | null = useMemo(() => {
@@ -207,17 +300,19 @@ export default function QuizScreen() {
       seed: session.sessionId,
       afterMiss: lastWasMiss,
       streak: answerStreak,
+      // DT22: whose voice. Six companions said the same eight words until now.
+      companion: companionType,
     });
-  }, [session, questionIndex, lastWasMiss, answerStreak]);
+  }, [session, questionIndex, lastWasMiss, answerStreak, companionType]);
 
   // ─── Handlers ───────────────────────────────────────────────────
   const handleOptionTap = (optionIndex: number) => {
-    if (phase !== 'asking' || !quizEngine || !session) return;
+    if (phase !== 'asking' || !engine || !session) return;
 
     Haptics.selectionAsync().catch(() => {});
     setSelectedOption(optionIndex);
 
-    const result = quizEngine.submitAnswer(
+    const result = engine.submitAnswer(
       session.sessionId,
       questionIndex,
       optionIndex
@@ -236,6 +331,7 @@ export default function QuizScreen() {
         attempt,
         streak: answerStreak,
         afterMiss: lastWasMiss,
+        companion: companionType,
         explanation: result.explanation,
         explanationEmoji: result.explanationEmoji,
         seed: `${session.sessionId}:${questionIndex}`,
@@ -290,10 +386,10 @@ export default function QuizScreen() {
   };
 
   const finishAttempt = async () => {
-    if (!session || !quizEngine) return;
+    if (!session || !engine) return;
 
     setPhase('finishing');
-    const result = quizEngine.finishAttempt(session.sessionId);
+    const result = engine.finishAttempt(session.sessionId);
 
     if (!result) {
       setPhase('error');
@@ -347,8 +443,8 @@ export default function QuizScreen() {
   };
 
   const handleAbandon = () => {
-    if (session && quizEngine) {
-      quizEngine.abandonSession(session.sessionId);
+    if (session && engine) {
+      engine.abandonSession(session.sessionId);
     }
     router.back();
   };

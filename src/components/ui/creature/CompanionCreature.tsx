@@ -50,6 +50,7 @@ import Animated, {
 import type { CompanionType } from '../../../types/content.types';
 import { expressionFor, type CreatureState } from './expressions';
 import { creatureShapes, SPECIES, EYE, JOINTS, ARM_POSE, type Limb, type Shape } from './geometry';
+import { voiceFor } from '../../../engine/learn/companion-voice';
 
 export interface CompanionCreatureProps {
   type: CompanionType;
@@ -129,7 +130,17 @@ export function CompanionCreature({
   const blink = useSharedValue(1); // 1 = open
   const flap = useSharedValue(0);
 
-  const period = Math.max(220, 1500 / expr.tempo);
+  /**
+   * Per-companion body language (device-test-22).
+   *
+   *  The expression says WHAT it feels; this says HOW MUCH it moves while
+   *  feeling it. Pip is springy and quick, Sage is nearly still, Mira drifts.
+   *  Six identical bodies wearing six names was most of why the companions
+   *  read as one character in different colours.
+   */
+  const motion = voiceFor(type).motion;
+  const bounceGain = expr.bounce * motion.bounce;
+  const period = Math.max(220, 1500 / (expr.tempo * motion.tempo));
 
   // One shared driver for every limb: a -1..1 oscillator. Each limb reads it
   // with its own gain and sign, so the arms swing opposite the legs and the
@@ -163,9 +174,9 @@ export function CompanionCreature({
       ), -1, true
     );
     flap.value = withRepeat(
-      withTiming(1, { duration: sp.wings ? 260 / expr.tempo : period, easing: Easing.inOut(Easing.sin) }), -1, true
+      withTiming(1, { duration: sp.wings ? 260 / (expr.tempo * motion.tempo) : period, easing: Easing.inOut(Easing.sin) }), -1, true
     );
-  }, [reduce, period, expr.tempo, sp.wings, bob, sway, squash, flap, swing]);
+  }, [reduce, period, expr.tempo, motion.tempo, sp.wings, bob, sway, squash, flap, swing]);
 
   // Blinking on its own irregular rhythm — a periodic blink looks mechanical.
   useEffect(() => {
@@ -184,11 +195,11 @@ export function CompanionCreature({
 
   const bodyStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: bob.value * 3.2 * expr.bounce },
-      { translateX: (sway.value - 0.5) * 5 * expr.bounce },
+      { translateY: bob.value * 3.2 * bounceGain },
+      { translateX: (sway.value - 0.5) * 5 * bounceGain },
       { rotate: `${expr.tilt + (sway.value - 0.5) * 4}deg` },
-      { scaleY: 1 - squash.value * 0.05 * expr.bounce },
-      { scaleX: 1 + squash.value * 0.05 * expr.bounce },
+      { scaleY: 1 - squash.value * 0.05 * bounceGain },
+      { scaleX: 1 + squash.value * 0.05 * bounceGain },
     ],
   }));
 

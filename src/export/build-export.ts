@@ -94,6 +94,26 @@ export interface ExportProfile {
   conditions: readonly string[];
 }
 
+/**
+ * A reminder the user has set — built-in, custom, or a medication plan.
+ *
+ * device-test-22, owner: "if we are doing these changes and rewiring it is
+ * important that we wire the same connections to the excel sheet download
+ * feature too." Correct, and it was already missing before this round: the
+ * export carried what the user LOGGED and nothing about what they had ASKED
+ * the app to do. A settings backup is part of "everything you have ever
+ * logged" — it is the part that is annoying to reconstruct by hand.
+ */
+export interface ExportReminder {
+  /** 'Daily check-in', 'Period heads-up', a custom label, a medication name. */
+  what: string;
+  /** 'Built-in', 'Your own', 'Medication'. */
+  kind: string;
+  /** When it fires, in words: 'Every day at 9:00 am', 'Sunday evening'. */
+  when: string;
+  on: boolean;
+}
+
 export interface ExportInput {
   /** ISO date the file was made — passed in, never read from a clock here. */
   generatedOn: string;
@@ -104,6 +124,8 @@ export interface ExportInput {
   checkIns: readonly ExportCheckIn[];
   symptoms: readonly ExportSymptom[];
   predictions: readonly ExportPrediction[];
+  /** Optional so older callers (and the harness fixtures) still type-check. */
+  reminders?: readonly ExportReminder[];
 }
 
 /** Row counts, so the export screen can say what's in the file before making it. */
@@ -460,8 +482,30 @@ export function buildExportWorkbook(input: ExportInput): WorkbookSpec {
     sheets.push(symptomTotalsSheet(input.symptoms));
   }
   if (input.predictions.length > 0) sheets.push(predictionsSheet(input.predictions));
+  if (input.reminders && input.reminders.length > 0) {
+    sheets.push(remindersSheet(input.reminders));
+  }
 
   return { sheets };
+}
+
+/**
+ * What the app has been asked to remind them about (device-test-22).
+ *
+ * No chart: this is a settings list, not a measurement, and a bar chart of
+ * "things that are switched on" would be decoration pretending to be analysis.
+ */
+function remindersSheet(reminders: readonly ExportReminder[]): SheetSpec {
+  return {
+    name: 'Reminders',
+    columns: [
+      { header: 'Reminder', width: 30 },
+      { header: 'Type', width: 14 },
+      { header: 'When', width: 26 },
+      { header: 'On', width: 8 },
+    ],
+    rows: reminders.map((r) => [r.what, r.kind, r.when, r.on ? 'Yes' : 'No']),
+  };
 }
 
 /** `dottie-export-2026-09-04.xlsx` — sorts chronologically in a files app. */

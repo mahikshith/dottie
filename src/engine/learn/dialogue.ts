@@ -67,6 +67,8 @@ import type {
   Exercise,
 } from '../../types/content.types';
 import type { CompanionAnim } from '../../content/companion-lottie';
+import type { CompanionType } from '../../types/companion.types';
+import { voiceFor } from './companion-voice';
 
 // ─── THE SCRIPT ──────────────────────────────────────────────────────
 
@@ -326,6 +328,16 @@ export interface ReactionInput {
    * that treats it like any other correct answer isn't paying attention.
    */
   afterMiss?: boolean;
+  /**
+   * WHOSE voice this is (device-test-22).
+   *
+   * Until now there wasn't one. Every companion said the same eight words in
+   * the same order, which is what made choosing between six of them
+   * decorative. The pools now come from `companion-voice.ts`, and so does the
+   * face and the streak threshold. Omit it and you get the shared pools —
+   * which is what the old call sites did, so nothing breaks.
+   */
+  companion?: CompanionType;
 }
 
 /**
@@ -380,6 +392,10 @@ export function reactTo(input: ReactionInput): Reaction {
     explanation: input.explanation,
     explanationEmoji: input.explanationEmoji,
   };
+  // The companion's own pools when we know who is speaking; the shared ones
+  // otherwise. `explanation` is untouched either way — the FACTS never vary by
+  // companion, only the tone around them (CLAUDE.md rule 9).
+  const v = input.companion ? voiceFor(input.companion) : null;
 
   if (input.correct) {
     // Got there on the SECOND go. This is the beat the old version could never
@@ -390,8 +406,8 @@ export function reactTo(input: ReactionInput): Reaction {
       return {
         ...base,
         kind: 'recovered',
-        opener: pick(RECOVERED, seed, input.index),
-        expression: 'proud',
+        opener: pick(v?.recovered ?? RECOVERED, seed, input.index),
+        expression: v?.faces.recovered ?? 'proud',
         offerRetry: false,
         aside: 'Second look got it. That counts double with me.',
       };
@@ -404,19 +420,26 @@ export function reactTo(input: ReactionInput): Reaction {
       return {
         ...base,
         kind: 'comeback',
-        opener: pick(COMEBACKS, seed, input.index),
-        expression: 'proud',
+        opener: pick(v?.comebacks ?? COMEBACKS, seed, input.index),
+        expression: v?.faces.comeback ?? 'proud',
         offerRetry: false,
         aside: null,
       };
     }
 
-    const streaked = input.streak >= 2;
+    // How many in a row it takes to reach the excited register is itself a
+    // trait: Pip notices at two, Sage needs four — and from Sage that means
+    // more.
+    const streaked = input.streak >= (v?.streakAt ?? 2);
     return {
       ...base,
       kind: streaked ? 'streak' : 'hit',
-      opener: pick(streaked ? STREAK_HITS : HITS, seed, input.index),
-      expression: streaked ? 'celebrate' : 'proud',
+      opener: pick(
+        streaked ? (v?.streakHits ?? STREAK_HITS) : (v?.hits ?? HITS),
+        seed,
+        input.index
+      ),
+      expression: streaked ? (v?.faces.streak ?? 'celebrate') : (v?.faces.hit ?? 'proud'),
       offerRetry: false,
       aside: streaked ? `${input.streak + 1} in a row.` : null,
     };
@@ -427,10 +450,10 @@ export function reactTo(input: ReactionInput): Reaction {
     return {
       ...base,
       kind: 'miss',
-      opener: pick(MISSES, seed, input.index),
-      expression: 'encourage',
+      opener: pick(v?.misses ?? MISSES, seed, input.index),
+      expression: v?.faces.miss ?? 'encourage',
       offerRetry: true,
-      aside: pick(RETRY_ASIDES, seed, input.index),
+      aside: pick(v?.retryAsides ?? RETRY_ASIDES, seed, input.index),
     };
   }
 
@@ -438,10 +461,10 @@ export function reactTo(input: ReactionInput): Reaction {
   return {
     ...base,
     kind: 'told',
-    opener: pick(SECOND_MISSES, seed, input.index),
-    expression: 'cozy',
+    opener: pick(v?.secondMisses ?? SECOND_MISSES, seed, input.index),
+    expression: v?.faces.told ?? 'cozy',
     offerRetry: false,
-    aside: pick(TOLD_ASIDES, seed, input.index),
+    aside: pick(v?.toldAsides ?? TOLD_ASIDES, seed, input.index),
   };
 }
 
@@ -458,6 +481,8 @@ export interface LeadInput {
   afterMiss: boolean;
   /** Consecutive correct answers so far. */
   streak: number;
+  /** Whose voice asks. Omit for the shared pools (device-test-22). */
+  companion?: CompanionType;
 }
 
 /**
@@ -476,13 +501,16 @@ export interface LeadInput {
  */
 export function leadFor(input: LeadInput): string {
   const seed = hash(input.seed) + input.index;
-  if (input.index === 0) return pick(FIRST_LEADS, seed, input.index);
+  const v = input.companion ? voiceFor(input.companion) : null;
+  if (input.index === 0) return pick(v?.firstLeads ?? FIRST_LEADS, seed, input.index);
   if (input.total > 1 && input.index === input.total - 1) {
-    return pick(FINAL_LEADS, seed, input.index);
+    return pick(v?.finalLeads ?? FINAL_LEADS, seed, input.index);
   }
-  if (input.afterMiss) return pick(SOFT_LEADS, seed, input.index);
-  if (input.streak >= 3) return pick(STREAK_LEADS, seed, input.index);
-  return pick(QUESTION_LEADS, seed, input.index);
+  if (input.afterMiss) return pick(v?.softLeads ?? SOFT_LEADS, seed, input.index);
+  if (input.streak >= (v?.streakAt ?? 3)) {
+    return pick(v?.streakLeads ?? STREAK_LEADS, seed, input.index);
+  }
+  return pick(v?.leads ?? QUESTION_LEADS, seed, input.index);
 }
 
 // ─── THE COMPANION'S OWN WORDS ───────────────────────────────────────

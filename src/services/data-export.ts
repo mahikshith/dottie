@@ -30,7 +30,10 @@ import {
   type ExportCounts,
   type ExportInput,
   type ExportProfile,
+  type ExportReminder,
 } from '../export/build-export';
+import { Storage, medicationKinds, type ReminderTime } from '../database/storage';
+import { formatClockTime } from '../engine/reminders/dedupe';
 import { todayCivil } from '../utils/civil-date';
 import { logSilentFailure } from '../diagnostics/silent-failure';
 import type { HealthProfile } from '../types/cycle.types';
@@ -112,6 +115,13 @@ export async function gatherExportData(input: GatherInput): Promise<ExportInput>
     return p ? [p] : [];
   });
 
+  // ─── WHAT THEY ASKED THE APP TO DO (device-test-22) ─────────────
+  //
+  //  Reminders live in MMKV, not SQLite, so they are read here rather than
+  //  through a repository. Wrapped in `safe` like every other read: an
+  //  unreadable preferences blob must not cost the user their cycle history.
+  const reminders = await safe('export.reminders', async () => gatherReminders());
+
   // Sorted oldest-first: a spreadsheet reads down the page, and a line chart
   // drawn from newest-first rows runs backwards.
   const asc = <T extends { date: string }>(rows: T[]) =>
@@ -145,6 +155,7 @@ export async function gatherExportData(input: GatherInput): Promise<ExportInput>
     // The predictions table keeps the live one; the cycle records say what
     // actually happened, so the two are matched here rather than in the pure
     // builder, which must not know about repositories.
+    reminders,
     predictions: latest.map((p) => ({
       predictedNextPeriod: p.predictedNextPeriod,
       windowDays: p.windowDays,
@@ -153,6 +164,80 @@ export async function gatherExportData(input: GatherInput): Promise<ExportInput>
         cycles.find((c) => c.startDate >= p.predictedNextPeriod)?.startDate ?? null,
     })),
   };
+}
+
+/**
+ * Every reminder the user has set, flattened into rows.
+ *
+ * Three sources, one list, because that is how the user thinks about it: the
+ * built-in nudges, the ones they wrote themselves, and their medication plans.
+ */
+function gatherReminders(): ExportReminder[] {
+  const prefs = Storage.reminderPrefs.get();
+  const meds = Storage.medications.get();
+  const rows: ExportReminder[] = [];
+
+  const clock = (hour: number | undefined, minute: number | undefined, fallback: ReminderTime) =>
+    hour === undefined
+      ? `Every day, ${fallback}`
+      : `Every day at ${formatClockTime(hour, minute ?? 0)}`;
+
+  rows.push({
+    what: 'Daily check-in',
+    kind: 'Built-in',
+    when: clock(prefs.checkInHour, prefs.checkInMinute, prefs.checkInTime),
+    on: prefs.checkIn,
+  });
+  rows.push({
+    what: 'Hydration nudge',
+    kind: 'Built-in',
+    when: clock(prefs.hydrationHour, prefs.hydrationMinute, 'midday'),
+    on: prefs.hydration,
+  });
+  rows.push({
+    what: 'Period heads-up',
+    kind: 'Built-in',
+    when: `${prefs.periodHeadsUpLeadDays} day(s) before the predicted period`,
+    on: prefs.periodHeadsUp,
+  });
+  rows.push({
+    what: 'Did it start?',
+    kind: 'Built-in',
+    when: 'On the predicted day',
+    on: prefs.periodArrivedCheck,
+  });
+  rows.push({
+    what: 'Phase changes',
+    kind: 'Built-in',
+    when: 'On the predicted ovulation day',
+    on: prefs.phaseChange,
+  });
+  rows.push({
+    what: 'Weekly recap',
+    kind: 'Built-in',
+    when: 'Sunday evening',
+    on: prefs.weeklyRecap,
+  });
+
+  for (const c of prefs.custom) {
+    rows.push({
+      what: c.label,
+      kind: 'Your own',
+      when: `Every day at ${formatClockTime(c.hour, c.minute)}`,
+      on: c.active,
+    });
+  }
+
+  for (const m of meds) {
+    rows.push({
+      what: `${m.name} (${medicationKinds(m).join(', ')})`,
+      kind: 'Medication',
+      when: clock(m.hour, m.minute, m.time),
+      on: m.active,
+    });
+  }
+
+  return rows;
 }
 
 /** What the export screen shows BEFORE the user commits to making a file. */

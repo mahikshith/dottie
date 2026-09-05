@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { Colors } from '../../src/constants/colors';
+import { SHEET_PRESENTATION } from '../../src/constants/navigation';
 
 /**
  * Modal Stack Layout
@@ -44,7 +45,7 @@ export default function ModalsLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
+        presentation: SHEET_PRESENTATION,
         animation: 'slide_from_bottom',
         contentStyle: { backgroundColor: Colors.surface.background },
       }}

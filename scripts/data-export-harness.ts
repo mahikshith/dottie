@@ -203,6 +203,15 @@ function fixture(): ExportInput {
     checkIns,
     symptoms,
     predictions,
+    // device-test-22: the export carried what was logged and nothing about
+    // what the user had ASKED the app to do. Built-in, custom and medication
+    // reminders now travel with it.
+    reminders: [
+      { what: 'Daily check-in', kind: 'Built-in', when: 'Every day at 8:00 pm', on: true },
+      { what: 'Period heads-up', kind: 'Built-in', when: '3 day(s) before the predicted period', on: true },
+      { what: 'Magnesium', kind: 'Your own', when: 'Every day at 9:00 pm', on: true },
+      { what: 'The pill (pill, iud)', kind: 'Medication', when: 'Every day at 9:00 am', on: false },
+    ],
   };
 }
 
@@ -450,6 +459,27 @@ scenario('E6 · the same data always produces the same file', () => {
   ok('byte-identical', diff === -1, `first difference at ${diff}`);
   ok('the filename is derived from the date', exportFileName('2026-09-04') === 'dottie-export-2026-09-04.xlsx');
   ok('a malformed date does not produce a malformed filename', exportFileName('nonsense') === 'dottie-export-export.xlsx');
+});
+
+// ─── E6b — the reminders sheet (device-test-22) ──────────────────────
+
+scenario('E6b · the file carries the reminders the user set', () => {
+  const names = SPEC.sheets.map((sh) => sh.name);
+  ok('there is a Reminders sheet', names.includes('Reminders'), names.join(', '));
+
+  const sheet = SPEC.sheets.find((sh) => sh.name === 'Reminders')!;
+  ok('one row per reminder', sheet.rows.length === INPUT.reminders!.length);
+  ok('a switched-off reminder still appears, marked off',
+    sheet.rows.some((r) => r[3] === 'No'), JSON.stringify(sheet.rows));
+  ok('the custom reminder keeps the user\'s own words',
+    sheet.rows.some((r) => r[0] === 'Magnesium'));
+  ok('a medication carries every type it covers',
+    sheet.rows.some((r) => String(r[0]).includes('pill, iud')));
+
+  // And it survives the round trip into the actual file.
+  const xml = byPath.get(sheetPathFor('Reminders'))!.text;
+  ok('the sheet is in the workbook', xml.length > 0);
+  ok('Magnesium reached the XML', xml.includes('Magnesium'));
 });
 
 // ─── E7 — the brand-new user ─────────────────────────────────────────

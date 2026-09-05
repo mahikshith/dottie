@@ -925,6 +925,42 @@ export default function CalendarScreen() {
               A key may only name marks the grid actually draws. */}
         </Animated.View>
 
+        {/* ─── REMINDERS, FROM WHERE YOU NOTICE YOU WANT ONE ─────────
+            device-test-22, owner: "put a toggle in the cycle screen section
+            right below the calendar to add reminders which redirects the users
+            to the reminder section under YOU tab — that would make their life
+            easier since we have added more options under reminders."
+
+            Right instinct: the moment you want a heads-up is the moment you
+            are looking at the date it would fire for. It is a LINK, not a
+            second set of switches — one place owns reminders, and a duplicate
+            control here would be a second place for the same setting to
+            disagree with itself (the same reasoning as one calendar, rule 17). */}
+        <Animated.View entering={rise(122)} style={styles.remindersCta}>
+          <PressableScale
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push('/(profile)/reminders');
+            }}
+            haptic="none"
+            style={[styles.remindersRow, { borderColor: palette.glass.edge }]}
+            accessibilityRole="button"
+            accessibilityLabel="Set up reminders"
+            accessibilityHint="Opens your reminder settings"
+          >
+            <Text style={styles.remindersEmoji}>🔔</Text>
+            <View style={styles.remindersText}>
+              <Text style={[styles.remindersTitle, { color: palette.ink }]}>
+                Want a heads-up for these days?
+              </Text>
+              <Text style={[styles.remindersSub, { color: palette.ink3 }]}>
+                Period, phase changes, or your own — all set on your phone
+              </Text>
+            </View>
+            <Text style={[styles.remindersChevron, { color: palette.accent }]}>›</Text>
+          </PressableScale>
+        </Animated.View>
+
         {/* Week-ahead strip — only once there's real cycle data, else every day
             would show the same assumed phase (the repeated-placeholder feel). */}
         {lastPeriodStart != null && weekAhead.length > 0 && (
@@ -2060,6 +2096,22 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     flex: 1,
   },
+  remindersCta: { marginBottom: Spacing.sectionGap },
+  remindersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 56,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+  },
+  remindersEmoji: { fontSize: 20 },
+  remindersText: { flex: 1 },
+  remindersTitle: { ...Typography.preset.bodySemibold },
+  remindersSub: { ...Typography.preset.caption, fontSize: 11, marginTop: 2, lineHeight: 15 },
+  remindersChevron: { ...Typography.preset.h3 },
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',

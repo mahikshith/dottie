@@ -33,6 +33,7 @@ import { useUserStore, selectCompanionType } from '../../src/stores';
 import { COMPANIONS } from '../../src/content/companions';
 import { COMPANION_TYPES } from '../../src/types/companion.types';
 import type { CompanionType } from '../../src/types/companion.types';
+import { voiceFor } from '../../src/engine/learn/companion-voice';
 
 export default function ChangeCompanionScreen(): JSX.Element {
   const router = useRouter();
@@ -124,10 +125,10 @@ export default function ChangeCompanionScreen(): JSX.Element {
               {active ? (
                 <View style={styles.facesRow}>
                   <CompanionExpressions type={type} size={92} playing={active} />
-                  <Text style={styles.facesLabel}>
-                    This is {def.name} — the same face you&apos;ll see on a win, on an
-                    ordinary day, and when yours has been hard.
-                  </Text>
+                  {/* The TRAIT, not a caption naming the current face (DT22).
+                      The face is already on screen; what the user cannot see
+                      is how this one will talk to them. */}
+                  <Text style={styles.facesLabel}>{voiceFor(type).trait}</Text>
                 </View>
               ) : null}
             </Animated.View>

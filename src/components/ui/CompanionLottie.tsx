@@ -154,6 +154,13 @@ const STATE_INTENSITY: Record<CompanionAnim, number> = {
   cheer: 1,
   confused: 0.8,
   relieved: 0.8,
+  // DT22 per-companion faces.
+  happy: 0.9,
+  caring: 0.8,
+  excited: 1,
+  smug: 0.9,
+  annoyed: 0.75,
+  love: 0.9,
 };
 
 /** The moment animation a state gets when the caller doesn't specify one. */
@@ -183,6 +190,13 @@ const ANIM_TO_STATE: Record<CompanionAnim, CreatureState> = {
   cheer: 'cheer',
   confused: 'confused',
   relieved: 'relieved',
+  // DT22 per-companion faces — one-to-one with the rig.
+  happy: 'happy',
+  caring: 'caring',
+  excited: 'excited',
+  smug: 'smug',
+  annoyed: 'annoyed',
+  love: 'love',
 };
 
 const styles = StyleSheet.create({

@@ -36,6 +36,8 @@ import { MoodWordPicker } from '../../src/components/checkin/MoodWordPicker';
 import type { SymptomSeverity } from '../../src/components/checkin/SymptomChip';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logSilentFailure } from '../../src/diagnostics/silent-failure';
+import { stepForScore } from '../../src/engine/mood/mood-map';
+import { PressableScale } from '../../src/components/ui';
 
 /**
  * Daily Check-In Modal — Polished version (Batch 2)
@@ -104,6 +106,8 @@ export default function DailyCheckInScreen() {
   const [symptoms, setSymptoms] = useState<Record<string, SymptomSeverity>>({});
   // Named moods (valence-independent) — persisted as emotional symptom logs.
   const [moodWords, setMoodWords] = useState<Set<string>>(new Set());
+  /** True once the user asks to change a mood they already logged today. */
+  const [editMood, setEditMood] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const toggleMoodWord = useCallback((type: string) => {
@@ -246,6 +250,11 @@ export default function DailyCheckInScreen() {
   // ─── Symptom count (for footer summary) ────────────────────────
   const symptomCount = Object.keys(symptoms).length;
 
+  // Has today's mood already been captured (almost always: on Home, with one
+  // tap)? Then this sheet shows a receipt rather than re-asking.
+  const moodAlreadyLogged = todayCheckIn?.moodScore != null;
+  const loggedStep = stepForScore(mood);
+
   // ─── FORM STATE ────────────────────────────────────────────────
   return (
     <AuroraBackground>
@@ -283,25 +292,69 @@ export default function DailyCheckInScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* MOOD */}
+        {/* ─── MOOD — ASKED ONCE, NOT TWICE (device-test-22) ────────
+            Owner: "we have mood options on the home screen where users can
+            select them, but why are we still showing 'how is your heart today'
+            under the daily check-in again? I believe it's redundant."
+
+            Right. Home's five keys ARE this question — they write the same
+            `moodScore`. Asking again, larger, as the first thing in the sheet
+            made the sheet feel like a form rather than a continuation, and it
+            put the app's most-repeated question in front of the four things
+            only this screen can collect.
+
+            So: if today's mood is already logged, this is a RECEIPT with a
+            change affordance, not a question. If it isn't (someone opened the
+            sheet without tapping a key first) the scale shows in full — the
+            question still has to live somewhere. Never asked twice, never
+            unreachable. */}
         <View style={[styles.section, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
-          <SectionHeader
-            emoji="💛"
-            title="How's your heart today?"
-            hint="Pick whatever feels closest. No wrong answer."
-          />
-          <MoodScale
-            kind="mood"
-            value={mood}
-            onChange={(v, origin) => {
-              setMood(v);
-              // Logging the mood recolours the whole app (the signature idea) —
-              // pass the tap point so the colour RADIATES from the emoji you hit.
-              applyMood(v, origin);
-            }}
-          />
+          {moodAlreadyLogged && !editMood ? (
+            <PressableScale
+              onPress={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setEditMood(true);
+              }}
+              haptic="none"
+              style={styles.moodReceipt}
+              accessibilityRole="button"
+              accessibilityLabel={`Mood logged as ${loggedStep?.label ?? 'set'}. Change it`}
+            >
+              <Text style={styles.moodReceiptEmoji}>{loggedStep?.emoji ?? '💛'}</Text>
+              <View style={styles.moodReceiptText}>
+                <Text style={[styles.moodReceiptTitle, { color: palette.ink }]}>
+                  You logged {loggedStep?.label.toLowerCase() ?? 'your mood'} today
+                </Text>
+                <Text style={[styles.moodReceiptHint, { color: palette.ink3 }]}>
+                  Tap to change it
+                </Text>
+              </View>
+              <Text style={[styles.moodReceiptChevron, { color: palette.accent }]}>›</Text>
+            </PressableScale>
+          ) : (
+            <>
+              <SectionHeader
+                emoji="💛"
+                title="How's your heart today?"
+                hint="Pick whatever feels closest. No wrong answer."
+              />
+              <MoodScale
+                kind="mood"
+                value={mood}
+                onChange={(v, origin) => {
+                  setMood(v);
+                  // Logging the mood recolours the whole app (the signature
+                  // idea) — pass the tap point so the colour RADIATES from the
+                  // emoji you hit.
+                  applyMood(v, origin);
+                }}
+              />
+            </>
+          )}
           {/* Named moods — the valence scale sets the colour, these name the
-              feelings (they can layer). Stored as emotional symptom logs. */}
+              feelings (they can layer). Stored as emotional symptom logs.
+              These are NOT a duplicate of Home: Home logs a score, this logs
+              which feelings they were. */}
           <Text style={[styles.moodWordsLabel, { color: palette.ink3 }]}>
             What's the mood? Optional — pick any that fit
           </Text>
@@ -472,6 +525,18 @@ const styles = StyleSheet.create({
   scaleLabel: {
     ...Typography.preset.bodySemibold,
   },
+  moodReceipt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 48,
+    paddingVertical: Spacing.xs,
+  },
+  moodReceiptEmoji: { fontSize: 28 },
+  moodReceiptText: { flex: 1 },
+  moodReceiptTitle: { ...Typography.preset.bodySemibold },
+  moodReceiptHint: { ...Typography.preset.caption, fontSize: 11, marginTop: 2 },
+  moodReceiptChevron: { ...Typography.preset.h3 },
   moodWordsLabel: {
     ...Typography.preset.caption,
     fontWeight: '700',

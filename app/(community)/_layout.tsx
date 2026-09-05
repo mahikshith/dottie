@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { Typography } from '../../src/constants/typography';
 import { A } from '../../src/theme';
+import { SHEET_PRESENTATION } from '../../src/constants/navigation';
 
 /**
  * Community Route Group Layout — "The Circle"
@@ -48,7 +49,7 @@ export default function CommunityLayout() {
         name="new-post"
         options={{
           title: 'Share with The Circle',
-          presentation: 'modal',
+          presentation: SHEET_PRESENTATION,
           animation: 'slide_from_bottom',
         }}
       />

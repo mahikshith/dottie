@@ -47,9 +47,21 @@ import { PressableScale } from '../PressableScale';
 import { Shadows } from '../../../constants/shadows';
 import { useAurora } from '../../../theme';
 
-const TRACK_W = 52;
+/**
+ * Proportions (device-test-22).
+ *
+ *  The first version filled the whole track with the accent and put a 26pt
+ *  knob in a 32pt channel, leaving 3pt of track showing. Filled, that read as
+ *  a solid capsule — the owner's "it doesn't look like a toggle at all, it
+ *  looks like a colour fill". A switch is legible because you can SEE THE
+ *  CHANNEL the knob has travelled along, so the knob is smaller relative to
+ *  the track now (24 in 32 = 4pt of groove above and below, and 22pt of empty
+ *  channel beside it) and the track carries an inner rim so the groove reads
+ *  as a groove rather than as a border.
+ */
+const TRACK_W = 54;
 const TRACK_H = 32;
-const KNOB = 26;
+const KNOB = 24;
 const PAD = (TRACK_H - KNOB) / 2;
 const TRAVEL = TRACK_W - KNOB - PAD * 2;
 
@@ -129,6 +141,10 @@ export function AuroraSwitch({
       style={[styles.tap, disabled ? styles.disabled : null, style]}
     >
       <Animated.View style={[styles.track, trackStyle]}>
+        {/* The groove. A darker rim inside the track edge is what makes the
+            channel read as a recess for the knob to sit in, in BOTH states —
+            without it, "on" is just a coloured pill. */}
+        <View style={styles.groove} pointerEvents="none" />
         <Animated.View style={[styles.knob, knobStyle]}>
           {/* A hairline ring keeps the white knob from dissolving into the
               accent track at the "on" end. */}
@@ -149,6 +165,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     padding: PAD,
     justifyContent: 'center',
+  },
+  groove: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: TRACK_H / 2,
+    borderWidth: 1,
+    borderColor: 'rgba(12,10,22,0.30)',
   },
   knob: {
     width: KNOB,

@@ -390,6 +390,81 @@ scenario('D8b · consecutive questions do not open with the same line', () => {
   ok('no back-to-back repeat across 20 questions', repeats === 0, `${repeats} repeats`);
 });
 
+// ─── D9 — SIX COMPANIONS, SIX VOICES (device-test-22) ────────────────
+//
+//  Owner: "IF EVERY COMPANION REMAINS THE SAME THEN WHAT IS THE USE OF HAVING
+//  THESE MANY COMPANIONS?" Before DT22 the answer was: none. leadFor and
+//  reactTo took no companion at all, so Nyx the blunt cat and Pip the sunshine
+//  bunny said the same eight words in the same order.
+//
+//  This asserts the two halves of rule 9 at once: the TONE must differ per
+//  companion, and the FACTS must not.
+
+scenario('D9 · every companion has its own voice, and none of them invent facts', () => {
+  const types = ['fox', 'bunny', 'butterfly', 'cat', 'owl', 'blossom'] as const;
+  const explanation = 'Day 1 is the first day of bleeding.';
+
+  const hits = new Map<string, string>();
+  const leads = new Map<string, string>();
+  const misses = new Map<string, string>();
+
+  for (const companion of types) {
+    const hit = reactTo({
+      explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0, companion,
+    });
+    const miss = reactTo({
+      explanation, seed: 'q1', index: 0, correct: false, attempt: 1, streak: 0, companion,
+    });
+    const lead = leadFor({ index: 2, total: 5, seed: 'sess', afterMiss: false, streak: 0, companion });
+
+    hits.set(companion, hit.opener);
+    misses.set(companion, miss.opener);
+    leads.set(companion, lead);
+
+    ok(`${companion}: the explanation is still verbatim`, hit.explanation === explanation);
+    ok(`${companion}: a miss carries the explanation too`, miss.explanation === explanation);
+    ok(`${companion}: never says wrong`, !/\bwrong\b|\bincorrect\b/i.test(miss.opener), miss.opener);
+    ok(`${companion}: says something on a hit`, hit.opener.trim().length > 0);
+    ok(`${companion}: offers the retry on a first miss`, miss.offerRetry);
+  }
+
+  // The point of the whole exercise: they must not all sound the same.
+  ok('all six hit lines are distinct', new Set(hits.values()).size === 6,
+    [...hits.values()].join(' | '));
+  ok('all six question leads are distinct', new Set(leads.values()).size === 6,
+    [...leads.values()].join(' | '));
+  ok('all six miss lines are distinct', new Set(misses.values()).size === 6,
+    [...misses.values()].join(' | '));
+
+  // And they must not all pull the same face.
+  const faces = new Set(
+    types.map((companion) =>
+      reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0, companion })
+        .expression
+    )
+  );
+  ok('the companions do not all wear one face on a correct answer', faces.size >= 3,
+    [...faces].join(', '));
+
+  // Omitting the companion must still work — the shared pools are the default,
+  // and several call sites (and the harness above) rely on that.
+  const anon = reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0 });
+  ok('no companion still produces a line', anon.opener.trim().length > 0);
+});
+
+scenario('D9b · a companion never repeats itself back to back', () => {
+  for (const companion of ['fox', 'bunny', 'butterfly', 'cat', 'owl', 'blossom'] as const) {
+    let repeats = 0;
+    let prev = '';
+    for (let i = 0; i < 20; i++) {
+      const line = leadFor({ index: i, total: 30, seed: 'sess', afterMiss: false, streak: 0, companion });
+      if (line === prev) repeats++;
+      prev = line;
+    }
+    ok(`${companion}: no back-to-back repeat across 20 questions`, repeats === 0, `${repeats}`);
+  }
+});
+
 console.log(
   failures === 0
     ? '\n\x1b[32m✓ lesson conversation: the companion speaks, and never makes anything up\x1b[0m\n'

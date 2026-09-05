@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { Typography } from '../../src/constants/typography';
 import { A } from '../../src/theme';
+import { SHEET_PRESENTATION } from '../../src/constants/navigation';
 
 /**
  * Sisterhood Route Group Layout
@@ -61,7 +62,12 @@ export default function SisterhoodLayout() {
         name="add-member"
         options={{
           title: 'Add to circle',
-          presentation: 'modal',
+          // No native header: the wizard draws its own top bar with a ✕ and
+          // the step dots, so the header was a SECOND one stacked above it
+          // (device-test-22, image 2) — two titles, and ~56pt of the screen
+          // spent saying the same thing twice.
+          headerShown: false,
+          presentation: SHEET_PRESENTATION,
           animation: 'slide_from_bottom',
         }}
       />
@@ -81,7 +87,7 @@ export default function SisterhoodLayout() {
         name="shadow-log/[id]/check-in"
         options={{
           title: 'Quick check-in',
-          presentation: 'modal',
+          presentation: SHEET_PRESENTATION,
           animation: 'slide_from_bottom',
         }}
       />
@@ -89,7 +95,7 @@ export default function SisterhoodLayout() {
         name="shadow-log/[id]/transfer"
         options={{
           title: 'Hand off profile',
-          presentation: 'modal',
+          presentation: SHEET_PRESENTATION,
           animation: 'slide_from_bottom',
         }}
       />

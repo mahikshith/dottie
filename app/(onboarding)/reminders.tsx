@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { AuroraBackground, GradientButton, PressableScale } from '../../src/components/ui';
+import { AuroraBackground, AuroraSwitch, GradientButton, PressableScale } from '../../src/components/ui';
 import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { DEFAULT_REMINDER_PREFS, type ReminderTime } from '../../src/database/storage';
@@ -193,9 +193,17 @@ function ToggleRow({
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowHint}>{hint}</Text>
       </View>
-      <View style={[styles.track, value && styles.trackOn]}>
-        <View style={[styles.thumb, value && styles.thumbOn]} />
-      </View>
+      {/* device-test-22: this used to be a hand-rolled track whose "on" state
+          filled with the accent and whose thumb was `A.glass` — 6% white over
+          teal, i.e. invisible. The owner saw a solid capsule and said so:
+          "the toggle doesn't look like a toggle at all… rather than colour
+          fill". One switch component now, everywhere (CLAUDE.md rule 22). */}
+      <AuroraSwitch
+        value={value}
+        onValueChange={() => onToggle()}
+        accessibilityLabel={label}
+        accessibilityHint={hint}
+      />
     </PressableScale>
   );
 }
@@ -231,17 +239,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowLabel: { ...Typography.preset.bodySemibold, color: A.ink },
   rowHint: { ...Typography.preset.caption, color: A.ink3, marginTop: 2, lineHeight: 16 },
-
-  track: {
-    width: 44, height: 26, borderRadius: 13,
-    backgroundColor: A.edge, padding: 2, justifyContent: 'center',
-  },
-  trackOn: { backgroundColor: A.accent },
-  thumb: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
-  },
-  thumbOn: { transform: [{ translateX: 18 }] },
 
   subLabel: { ...Typography.preset.overline, color: A.ink3, marginTop: Spacing.sm, marginBottom: Spacing.xs },
   timeRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs },

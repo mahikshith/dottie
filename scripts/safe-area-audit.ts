@@ -31,7 +31,7 @@
  */
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, dirname, basename } from 'node:path';
+import { join, dirname, basename, relative } from 'node:path';
 
 const ROOT = process.cwd();
 const APP = join(ROOT, 'app');
@@ -188,8 +188,38 @@ for (const file of walk(APP)) {
   if (problems.length > 0) findings.push({ file: rel, problems });
 }
 
+// ─── AND THE ONE THAT DEFEATS ALL OF THE ABOVE ───────────────────────
+//
+//  `presentation: 'modal'` on Android puts the screen in a container that does
+//  not carry the window's system-bar insets, so useSafeAreaInsets() inside it
+//  reports ZERO at the covered edge. Every padding expression this audit reads
+//  is then correct AND evaluates to nothing — which is exactly how the
+//  add-to-circle "Next" button spent four rounds under the navigation bar
+//  while this audit reported green (device-test-22).
+//
+//  Use SHEET_PRESENTATION from src/constants/navigation.ts: modal on iOS,
+//  card on Android, same slide-from-bottom animation either way.
+
+const modalHits: { file: string; line: number }[] = [];
+for (const file of walk(join(ROOT, 'app'), [])) {
+  const src = readFileSync(file, 'utf8');
+  const rel = relative(ROOT, file).split('\\').join('/');
+  src.split('\n').forEach((line, i) => {
+    if (/presentation:\s*'modal'/.test(line)) modalHits.push({ file: rel, line: i + 1 });
+  });
+}
+
 console.log(`\n\x1b[1mSafe-area audit\x1b[0m`);
 console.log(`  scrolling screens scanned: ${scanned}`);
+
+if (modalHits.length > 0) {
+  console.log(`\n\x1b[31m✗ ${modalHits.length} screen(s) use presentation: 'modal'.\x1b[0m`);
+  console.log("  On Android that screen's safe-area insets read ZERO, so its padding");
+  console.log('  silently does nothing. Use SHEET_PRESENTATION (src/constants/navigation.ts).');
+  for (const h of modalHits) console.log(`    ${h.file}:${h.line}`);
+  console.log('');
+  process.exit(1);
+}
 
 if (findings.length === 0) {
   console.log(`\n\x1b[32m✓ every scrolling screen pads both ends.\x1b[0m\n`);

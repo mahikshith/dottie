@@ -112,7 +112,12 @@ export interface CompanionExpressionsProps {
   faces?: readonly CreatureState[];
   /** Square size of the companion. */
   size?: number;
-  /** Name the current mood underneath. Default true. */
+  /**
+   * Name the current mood underneath. Default FALSE (device-test-22): on the
+   * picker the caption sat under a 78pt companion in a 47%-wide card and
+   * truncated to "when yours has bee…", which is worse than silence. The
+   * expression is the point; a truncated sentence describing it is noise.
+   */
   showLabel?: boolean;
   /** Stop on the first face (e.g. an unselected card). Default true. */
   playing?: boolean;
@@ -123,7 +128,7 @@ export function CompanionExpressions({
   type,
   faces = DEFAULT_FACES,
   size = 84,
-  showLabel = true,
+  showLabel = false,
   playing = true,
   style,
 }: CompanionExpressionsProps): JSX.Element {

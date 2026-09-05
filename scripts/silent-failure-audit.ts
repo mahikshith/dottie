@@ -17,6 +17,19 @@
  *
  *  A rule nothing checks is a comment. This is the check.
  *
+ * ─── AND THE CHECK HAD A HOLE (device-test-22) ──────────────────────
+ *
+ *  It matched only the one-line form. The BLOCK form —
+ *
+ *      if (__DEV__) {
+ *        console.warn('[Hydration] User load failed:', err);
+ *      }
+ *
+ *  — is the same silence and sailed straight through for four rounds. That
+ *  exact site was the hydration failure that left the quiz screen spinning
+ *  forever with nothing to report (DT22-1). So the audit now reads the file as
+ *  TEXT, not as lines, and catches the pattern across a newline.
+ *
  *      npm run audit:silent
  */
 
@@ -33,8 +46,18 @@ const SKIP_DIRS = new Set(['node_modules', '.git', '.expo', 'android', 'ios']);
  */
 const ALLOWED = new Set(['src/diagnostics/silent-failure.ts']);
 
-/** The shape the rule forbids: a dev-only console call carrying an error. */
-const OFFENDER = /if \(__DEV__\)\s*console\.(warn|error)\(/;
+/**
+ * The shape the rule forbids, in both spellings:
+ *
+ *   if (__DEV__) console.warn(err)
+ *   if (__DEV__) { console.error(err) }
+ *
+ * `[\s\S]*?` is bounded by a `{` and the first console call, so it cannot
+ * run away and pair an `if (__DEV__)` with an unrelated console line further
+ * down the file. console.LOG is deliberately not matched — a dev trace of
+ * something that worked is not a swallowed error.
+ */
+const OFFENDER = /if \(__DEV__\)\s*(?:\{\s*)?console\.(warn|error)\(/;
 
 function walk(dir: string, out: string[]): string[] {
   for (const name of readdirSync(dir)) {
@@ -53,10 +76,19 @@ const hits: { file: string; line: number; text: string }[] = [];
 for (const file of files) {
   const rel = relative(ROOT, file).split('\\').join('/');
   if (ALLOWED.has(rel)) continue;
-  const lines = readFileSync(file, 'utf8').split('\n');
-  lines.forEach((text, i) => {
-    if (OFFENDER.test(text)) hits.push({ file: rel, line: i + 1, text: text.trim() });
-  });
+  const source = readFileSync(file, 'utf8');
+  // Scan the whole file so the block form is caught, then map the byte offset
+  // back to a line number for the report.
+  const re = new RegExp(OFFENDER.source, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    const line = source.slice(0, m.index).split('\n').length;
+    hits.push({
+      file: rel,
+      line,
+      text: m[0].replace(/\s+/g, ' ').trim() + ' …',
+    });
+  }
 }
 
 console.log('\x1b[1mSilent-failure audit (CLAUDE.md rule 18)\x1b[0m');
