@@ -366,6 +366,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
+    // Sections had NO vertical separation of their own here, so each block sat
+    // against whatever margin the one above happened to leave — which on this
+    // screen was often nothing, and the card borders touched (device-test-19,
+    // "the UI is cluttered and the borders are closing in"). One gap, applied
+    // once, instead of a margin negotiated per block.
+    gap: Spacing.sectionGap,
   },
   loadingContainer: {
     flex: 1,

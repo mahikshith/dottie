@@ -34,7 +34,15 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, PanResponder, type GestureResponderEvent } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  PanResponder,
+  InteractionManager,
+  type GestureResponderEvent,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
@@ -178,6 +186,34 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (typeof logFor === 'string' && logFor.length > 0) setLogTargetId(logFor);
   }, [logFor]);
+
+  /**
+   * ─── BELOW THE FOLD WAITS FOR THE FIRST PAINT (device-test-19) ────
+   *
+   *  Today → Cycle showed WHITE for ~2s while Cycle → Learn merely took ~2s
+   *  with no white, and that asymmetry is the whole diagnosis.
+   *
+   *  This screen renders a cheap FIRST pass (empty state, no data yet) and
+   *  commits it immediately — so the tab attaches and the old screen is torn
+   *  down — and only THEN do its effects run and its engines compute, blocking
+   *  the JS thread for a second or two with an all-but-empty view on screen.
+   *  Whatever the window is painted with shows through that gap; it used to be
+   *  the Android default, which is white. Learn has no early commit, so the
+   *  user simply waits on the previous tab and never sees a gap.
+   *
+   *  `app.json` now paints the window in the aurora ground, so the gap can no
+   *  longer be white. This closes the other half: the grid, the legend and the
+   *  week-ahead strip — everything actually on screen — mount in the first
+   *  pass, and the explainer, the charts, the insights and the science panels
+   *  wait until after the first frame. Nothing below the fold is visible
+   *  during that wait, so deferring it costs the user nothing and gives back
+   *  the two seconds.
+   */
+  const [belowFold, setBelowFold] = useState(false);
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => setBelowFold(true));
+    return () => task.cancel();
+  }, []);
 
   useEffect(() => {
     const all = Storage.dayPlans.getAll();
@@ -822,6 +858,10 @@ export default function CalendarScreen() {
         )}
 
 
+        {/* Everything from here down is BELOW THE FOLD and waits for the
+            first paint — see `belowFold` above. */}
+        {!belowFold ? null : (
+        <>
         {/* One tap to the maths. Sits directly under the grid because that is
             where the question gets asked — "why is my period drawn there?" —
             and the answer used to be ten screens away with nothing pointing at
@@ -1136,6 +1176,8 @@ export default function CalendarScreen() {
         <View onLayout={(e) => { explainerY.current = e.nativeEvent.layout.y; }}>
           <PredictionExplainerCard subject={sisterSubject} />
         </View>
+        </>
+        )}
       </ScrollView>
 
       {/* Day detail popover — magnifies from the tapped cell over a scrim */}
