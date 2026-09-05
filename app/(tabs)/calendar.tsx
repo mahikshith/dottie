@@ -86,6 +86,7 @@ import {
 } from '../../src/engine/calendar/fertile-window';
 import { log, timed } from '../../src/diagnostics/logger';
 import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
+import { predictNextPeriod } from '../../src/engine/prediction/predictor';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
 import { WeekAheadStrip, type WeekAheadItem } from '../../src/components/calendar/WeekAheadStrip';
@@ -268,46 +269,6 @@ export default function CalendarScreen() {
     [cycleHistory]
   );
 
-  // ─── Fertile window ─────────────────────────────────────────────
-  // Dottie already computed `predictedOvulation` inside the predictor and then
-  // drew nothing with it. This turns it into the thing every other tracker
-  // shows — with the confidence and the not-contraception wording attached,
-  // because a crisp six-day band drawn from two cycles would be the most
-  // misleading pixels in the app. Pure + deterministic: same inputs, same days.
-  const fertileWindow = useMemo(
-    () =>
-      buildFertileWindow({
-        predictedNextPeriod: latestPrediction?.predictedNextPeriod ?? null,
-        cycleLengths,
-      }),
-    [latestPrediction?.predictedNextPeriod, cycleLengths]
-  );
-
-  // ─── Compute calendar grid ──────────────────────────────────────
-  const monthGrid = useMemo(
-    () =>
-      buildMonthGrid({
-        viewedMonth,
-        lastPeriodStart,
-        avgCycleLength: userHealth?.averageCycleLength ?? 28,
-        avgPeriodLength: userHealth?.averagePeriodLength ?? 5,
-        periodDays,
-        predictedNextPeriod: latestPrediction?.predictedNextPeriod ?? null,
-        predictionWindowDays: latestPrediction?.windowDays ?? 3,
-        fertileDays: fertileWindow.days,
-      }),
-    [
-      viewedMonth,
-      fertileWindow,
-      lastPeriodStart,
-      userHealth?.averageCycleLength,
-      userHealth?.averagePeriodLength,
-      periodDays,
-      latestPrediction?.predictedNextPeriod,
-      latestPrediction?.windowDays,
-    ]
-  );
-
   const monthLabel = useMemo(
     () =>
       viewedMonth.toLocaleDateString(undefined, {
@@ -355,53 +316,6 @@ export default function CalendarScreen() {
   const onWeekDayPress = (iso: string, e: GestureResponderEvent) => {
     setSelected(buildSelected(iso, iso > todayIso, e));
   };
-
-  // ─── Week-ahead model: next 7 days from today ───────────────────
-  const weekAhead = useMemo<WeekAheadItem[]>(() => {
-    const predicted = latestPrediction?.predictedNextPeriod ?? null;
-    const windowDays = latestPrediction?.windowDays ?? 3;
-    const avgPeriodLength = userHealth?.averagePeriodLength ?? 5;
-    const base = new Date(`${todayIso}T00:00:00`);
-    const items: WeekAheadItem[] = [];
-
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
-      const iso = formatISO(d);
-      const p = phaseForDate(iso, lastPeriodStart, userHealth) ?? phase;
-      const isPeriodDay = periodDays.has(iso);
-      const du = daysUntil(iso, predicted);
-      const set = buildDaySuggestions({
-        phase: p,
-        daysUntilPredictedPeriod: du,
-        isPeriodDay,
-        mode,
-        conditions,
-      });
-      items.push({
-        iso,
-        dayLabel: d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase(),
-        dayNum: d.getDate(),
-        phase: p,
-        mini: miniLabel(set.headline, du),
-        isWindow: inPredictedWindow(iso, predicted, windowDays, avgPeriodLength),
-        isPeriodDay,
-        planned: plannedDays.has(iso),
-        isToday: iso === todayIso,
-      });
-    }
-    return items;
-  }, [
-    todayIso,
-    lastPeriodStart,
-    userHealth,
-    phase,
-    periodDays,
-    latestPrediction?.predictedNextPeriod,
-    latestPrediction?.windowDays,
-    mode,
-    conditions,
-    plannedDays,
-  ]);
 
   // Log the currently-selected day as a period day (from inside the sheet).
   const onLogSelectedPeriod = async (flowLevel: number) => {
@@ -580,25 +494,12 @@ export default function CalendarScreen() {
     [latestPrediction, userHealth, overlaySisters]
   );
 
-  /**
-   * Every day where your predicted window and a sister's overlap.
-   *
-   * findCycleOverlaps already computes the exact shared stretch for the
-   * sentence it writes; this expands that range into a set so the GRID can say
-   * the same thing visually. The prose and the glow are therefore guaranteed to
-   * agree — they come from one calculation, not two (device-test-16).
+  /*
+   * `coincidingDays` lived here: it expanded each overlap range into a set so
+   * the GRID could glow on a shared day. The grid draws one person now, so
+   * there is nothing to glow — the overlap survives as the sentence
+   * `cycleOverlaps` already writes, which is what it always really was.
    */
-  const coincidingDays = useMemo(() => {
-    const set = new Set<string>();
-    for (const o of cycleOverlaps) {
-      const span = daysBetween(o.overlapStart, o.overlapEnd);
-      // Bounded, and requires forward progress — the civil-date rule.
-      for (let i = 0; i >= 0 && i <= span && i < 40; i++) {
-        set.add(addDays(o.overlapStart, i));
-      }
-    }
-    return set;
-  }, [cycleOverlaps]);
 
   const sisterOverlay = useMemo(
     () =>
@@ -698,6 +599,158 @@ export default function CalendarScreen() {
       },
     };
   }, [logTarget, sisterAllDays, rawMembersById]);
+
+  // ─── ONE PERSON PER CALENDAR (device-test-20) ───────────────────
+  //
+  //  The grid used to draw the user AND every sister at once: her days as gold
+  //  arcs under your cells, shared days with a gold halo. The owner's verdict
+  //  after living with it: "no matter how good we make the UI, how
+  //  differentiating the colours, the user is still going to get confused."
+  //
+  //  That is the right call, and it is not a colour problem. Two people's
+  //  cycles on one grid asks the reader to hold two models at once on the one
+  //  screen whose whole job is to answer "where am I". Adding a third mark for
+  //  the overlap makes it worse, not clearer.
+  //
+  //  So the chips at the top choose WHOSE calendar this is, and the answer is
+  //  always exactly one person. Selecting a sister swaps the subject of the
+  //  grid, the fertile window, the week ahead and every panel below it — the
+  //  same model, run on her data — and nothing of yours is drawn beside it.
+  //
+  //  The overlap is not lost. It was never really a colour: it is a sentence,
+  //  and it still appears as one (the "same days" insight below), where it
+  //  cannot be misread as a state of a day.
+  const gridSubject = useMemo(() => {
+    if (!sisterSubject || !logTarget) {
+      return {
+        isSister: false,
+        name: 'You',
+        periodDays,
+        lastPeriodStart,
+        avgCycleLength: userHealth?.averageCycleLength ?? 28,
+        avgPeriodLength: userHealth?.averagePeriodLength ?? 5,
+        predictedNextPeriod: latestPrediction?.predictedNextPeriod ?? null,
+        predictionWindowDays: latestPrediction?.windowDays ?? 3,
+        cycleLengths,
+      };
+    }
+
+    //  Her prediction comes from the SAME predictor, not a simplified
+    //  stand-in — one definition of correct, or the two calendars would
+    //  disagree about the same maths.
+    let predicted: string | null = null;
+    let windowDays = 3;
+    if (sisterSubject.lastPeriodStart) {
+      try {
+        const out = predictNextPeriod({
+          cycleHistory: sisterSubject.cycleHistory,
+          healthProfile: sisterSubject.healthProfile,
+          lastPeriodStart: new Date(sisterSubject.lastPeriodStart),
+        });
+        predicted = formatISO(out.predictedDate);
+        windowDays = out.windowDays;
+      } catch (err) {
+        logSilentFailure('calendar.sisterPrediction', err);
+      }
+    }
+
+    return {
+      isSister: true,
+      name: logTarget.displayName,
+      periodDays: new Set(sisterAllDays),
+      lastPeriodStart: sisterSubject.lastPeriodStart,
+      avgCycleLength: sisterSubject.healthProfile.averageCycleLength ?? 28,
+      avgPeriodLength: 5,
+      predictedNextPeriod: predicted,
+      predictionWindowDays: windowDays,
+      // Newest first, to match the user branch — the fertile window weighs
+      // recent regularity and would read the history backwards otherwise.
+      cycleLengths: sisterSubject.cycleHistory.map((c) => c.cycleLength).reverse(),
+    };
+  }, [
+    sisterSubject,
+    logTarget,
+    sisterAllDays,
+    periodDays,
+    lastPeriodStart,
+    userHealth?.averageCycleLength,
+    userHealth?.averagePeriodLength,
+    latestPrediction?.predictedNextPeriod,
+    latestPrediction?.windowDays,
+    cycleLengths,
+  ]);
+
+  // ─── Fertile window ─────────────────────────────────────────────
+  // Dottie already computed `predictedOvulation` inside the predictor and then
+  // drew nothing with it. This turns it into the thing every other tracker
+  // shows — with the confidence and the not-contraception wording attached,
+  // because a crisp six-day band drawn from two cycles would be the most
+  // misleading pixels in the app. Pure + deterministic: same inputs, same days.
+  const fertileWindow = useMemo(
+    () =>
+      buildFertileWindow({
+        predictedNextPeriod: gridSubject.predictedNextPeriod,
+        cycleLengths: gridSubject.cycleLengths,
+      }),
+    [gridSubject]
+  );
+
+  // ─── Compute calendar grid ──────────────────────────────────────
+  const monthGrid = useMemo(
+    () =>
+      buildMonthGrid({
+        viewedMonth,
+        lastPeriodStart: gridSubject.lastPeriodStart,
+        avgCycleLength: gridSubject.avgCycleLength,
+        avgPeriodLength: gridSubject.avgPeriodLength,
+        periodDays: gridSubject.periodDays,
+        predictedNextPeriod: gridSubject.predictedNextPeriod,
+        predictionWindowDays: gridSubject.predictionWindowDays,
+        fertileDays: fertileWindow.days,
+      }),
+    [viewedMonth, gridSubject, fertileWindow]
+  );
+
+  // ─── Week-ahead model: next 7 days from today ───────────────────
+  const weekAhead = useMemo<WeekAheadItem[]>(() => {
+    // Same subject as the grid above it. A strip that still described YOUR
+    // week under HER calendar would be the exact confusion this change exists
+    // to remove (device-test-20).
+    const predicted = gridSubject.predictedNextPeriod;
+    const windowDays = gridSubject.predictionWindowDays;
+    const avgPeriodLength = gridSubject.avgPeriodLength;
+    const base = new Date(`${todayIso}T00:00:00`);
+    const items: WeekAheadItem[] = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      const iso = formatISO(d);
+      const p = phaseForDate(iso, gridSubject.lastPeriodStart, userHealth) ?? phase;
+      const isPeriodDay = gridSubject.periodDays.has(iso);
+      const du = daysUntil(iso, predicted);
+      const set = buildDaySuggestions({
+        phase: p,
+        daysUntilPredictedPeriod: du,
+        isPeriodDay,
+        mode,
+        conditions,
+      });
+      items.push({
+        iso,
+        dayLabel: d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase(),
+        dayNum: d.getDate(),
+        phase: p,
+        mini: miniLabel(set.headline, du),
+        isWindow: inPredictedWindow(iso, predicted, windowDays, avgPeriodLength),
+        isPeriodDay,
+        planned: plannedDays.has(iso),
+        isToday: iso === todayIso,
+      });
+    }
+    return items;
+  }, [todayIso, gridSubject, userHealth, phase, mode, conditions, plannedDays]);
+
+
 
 
   // Today's suggestion set — powers the richer phase card (why you're in this
@@ -813,7 +866,13 @@ export default function CalendarScreen() {
         {logTarget && (
           <View style={[styles.whoBanner, { borderColor: A.gold, backgroundColor: `${A.gold}18` }]}>
             <Text style={[styles.whoBannerText, { color: palette.ink }]}>
-              {logTarget.emoji} Marking days for {logTarget.displayName}. Tap “You” to switch back.
+              {/* The chip no longer just redirects logging — it changes whose
+                  calendar this IS, so the banner has to say that. Calling it
+                  "marking days for" while the grid, the window and every panel
+                  below had quietly become hers would be the label disagreeing
+                  with the screen. */}
+              {logTarget.emoji} You’re looking at {logTarget.displayName}’s cycle — her days, her
+              window, her science. Tap “You” to come back.
             </Text>
           </View>
         )}
@@ -831,11 +890,12 @@ export default function CalendarScreen() {
 
           <View style={styles.grid}>
             {monthGrid.map((cell) => (
+              /* No sister arcs, no coinciding halo — the grid draws exactly
+                 one person, whoever the chips above selected. See
+                 `gridSubject`. */
               <DayCell
                 key={cell.iso}
                 cell={cell}
-                sisterMark={sisterMarkFor(sisterOverlay.marksByDate.get(cell.iso))}
-                coincides={coincidingDays.has(cell.iso)}
                 onPress={(e) => onDayTap(cell.iso, cell, e)}
               />
             ))}
@@ -861,8 +921,8 @@ export default function CalendarScreen() {
               <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" kind="ring" />
             </>
           ) : null}
-          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" kind="arc" />}
-          {coincidingDays.size > 0 && <LegendChip color={A.gold} label="Same days" kind="glow" />}
+          {/* "Sister" and "Same days" are gone with the overlay they described.
+              A key may only name marks the grid actually draws. */}
         </Animated.View>
 
         {/* Week-ahead strip — only once there's real cycle data, else every day
@@ -1509,10 +1569,6 @@ const PHASE_LABELS: Record<Phase, string> = {
  * draws. A real logged day outranks a predicted one — if anyone actually bled
  * that day, that's the honest thing to show.
  */
-function sisterMarkFor(marks: SisterDayMark[] | undefined): 'logged' | 'predicted' | undefined {
-  if (!marks || marks.length === 0) return undefined;
-  return marks.some((m) => m.kind === 'logged') ? 'logged' : 'predicted';
-}
 
 function phaseLabel(phase: Phase): string {
   return PHASE_LABELS[phase] ?? 'Cycle';
