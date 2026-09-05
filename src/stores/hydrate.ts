@@ -272,6 +272,31 @@ async function doHydrate(): Promise<HydrationResult> {
     usePredictsStore.setState({ hydrated: true });
   }
 
+  // ─── 7.4 Warm the PREDICTION + EXPLANATION (device-test-20) ─────
+  //
+  //  The owner: "the scientific information under the calendar loads a bit
+  //  late — is the prediction engine taking time in the background?" It was,
+  //  and it was doing it at the worst possible moment.
+  //
+  //  `PredictionExplainerCard` prefers `latestExplanation` from this store and
+  //  falls back to computing one ITSELF when the store has none. Nothing ever
+  //  populated it on a cold start — `recomputePrediction` ran only after a
+  //  cycle-data mutation — so on the first visit to the Cycle tab every one of
+  //  those cards ran the full Bayesian predictor inline, in the render path,
+  //  on the JS thread, while the user watched.
+  //
+  //  Warming it here is the right answer to "why don't we load the other
+  //  screens in the background": the expensive thing is not the screen, it is
+  //  this computation, and it can be done once while the user is still reading
+  //  Today. Fire-and-forget — nothing on Today needs it, and the Cycle tab now
+  //  finds it already waiting.
+  if (hasUser) {
+    void useCycleStore
+      .getState()
+      .recomputePrediction()
+      .catch((err) => logSilentFailure('hydration.predictionWarm', err));
+  }
+
   // ─── 7.5 Warm the beta-feedback table (chunk 12) ────────────────
   //
   // The beta_feedback table is created lazily via ensureTables() on the

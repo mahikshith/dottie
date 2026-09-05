@@ -40,7 +40,6 @@ import {
   StyleSheet,
   ScrollView,
   PanResponder,
-  InteractionManager,
   type GestureResponderEvent,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -211,8 +210,25 @@ export default function CalendarScreen() {
    */
   const [belowFold, setBelowFold] = useState(false);
   useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => setBelowFold(true));
-    return () => task.cancel();
+    // TWO FRAMES, NOT `runAfterInteractions`.
+    //
+    //  The first version waited on InteractionManager, which clears only once
+    //  EVERY registered interaction has finished — including the tab bar's
+    //  pill spring, which runs on every single tab switch. So the panels did
+    //  not arrive a frame after the grid, they arrived after the whole tab
+    //  animation settled, and the owner saw the science "loading a bit late".
+    //
+    //  One frame lets the grid paint; the second mounts the rest. That is
+    //  ~32ms rather than ~500ms, which is below the threshold where a person
+    //  reads it as loading at all.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setBelowFold(true));
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      if (inner) cancelAnimationFrame(inner);
+    };
   }, []);
 
   useEffect(() => {
