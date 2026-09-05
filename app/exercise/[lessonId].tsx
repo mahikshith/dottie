@@ -297,7 +297,14 @@ const styles = StyleSheet.create({
   // companion"). This margin is clearance, not decoration.
   // Clear air under the character so the big numeral can never sit on it.
   resultScore: { alignItems: 'center', gap: 2, marginTop: Spacing.xl },
-  resultBig: { ...Typography.preset.h1, fontSize: 52 },
+  // ─── lineHeight MUST follow fontSize ───────────────────────────
+  //  `Typography.preset.h1` is 36pt text in a 43pt line box. Spreading it and
+  //  then overriding fontSize to 52 left the LINE BOX at 43 — shorter than the
+  //  glyphs — so the top of every digit was sliced off. The owner read that as
+  //  "the 2/3 is going under the companion"; nothing was overlapping it, the
+  //  text was clipping itself. Any preset override that changes fontSize has to
+  //  change lineHeight with it.
+  resultBig: { ...Typography.preset.h1, fontSize: 52, lineHeight: 62 },
   resultSub: { ...Typography.preset.body },
   rewards: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.md, alignSelf: 'stretch' },
   rewardItem: { flex: 1, alignItems: 'center' },

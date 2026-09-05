@@ -210,23 +210,30 @@ export function CompanionCreature({
   //  the 100x100 box, so a shoulder still rotates from the shoulder. RN 0.76
   //  supports transformOrigin natively, so this costs nothing extra.
   //
-  //  Arms swing further than legs, and each side leads the other — a creature
-  //  whose limbs move in perfect unison looks like a wind-up toy.
+  //  AMPLITUDES ARE BIG ON PURPOSE (device-test-19). The first pass used ±9°
+  //  on the arms and ±4° on the legs, which at a 96px companion is a two-pixel
+  //  wobble — the owner's verdict was that the limbs "are not actually moving",
+  //  and at that size they effectively were not. A celebrating companion now
+  //  swings its arms through ~50° and splays its legs like a jumping jack;
+  //  a sleepy one still barely stirs, because `limbSwing` runs from 0.2 to 2.
+  //
+  //  Each side leads the other, and the legs run OPPOSITE the arms — a creature
+  //  whose limbs move in unison looks like a wind-up toy.
   const gain = expr.limbSwing;
   const armLStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${armLBase + swing.value * 9 * gain}deg` }],
+    transform: [{ rotate: `${armLBase + swing.value * 26 * gain}deg` }],
   }));
   const armRStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${armRBase - swing.value * 9 * gain}deg` }],
+    transform: [{ rotate: `${armRBase - swing.value * 26 * gain}deg` }],
   }));
   const legLStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${-swing.value * 4 * gain}deg` }],
+    transform: [{ rotate: `${-swing.value * 9 * gain}deg` }],
   }));
   const legRStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${swing.value * 4 * gain}deg` }],
+    transform: [{ rotate: `${swing.value * 9 * gain}deg` }],
   }));
   const tailStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${swing.value * 11 * gain}deg` }],
+    transform: [{ rotate: `${swing.value * 16 * gain}deg` }],
   }));
   const LIMB_STYLE: Partial<Record<Limb, ReturnType<typeof useAnimatedStyle>>> = {
     armL: armLStyle, armR: armRStyle, legL: legLStyle, legR: legRStyle, tail: tailStyle,
@@ -247,62 +254,83 @@ export function CompanionCreature({
       accessibilityRole={accessibilityLabel ? 'image' : undefined}
     >
       <Animated.View style={[StyleSheet.absoluteFill, bodyStyle]}>
-        <Svg width={S} height={S} viewBox="0 0 100 100">
-          <Defs>
-            <RadialGradient id={`glow_${type}`} cx="50%" cy="50%" r="50%">
-              <Stop offset="0" stopColor={sp.accent} stopOpacity={0.5} />
-              <Stop offset="1" stopColor={sp.accent} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
+        {/* ─── ONE LAYER PER RUN, IN PAINT ORDER (device-test-19) ────
+            The first attempt drew the whole creature in a single <Svg> and
+            then appended the animated limbs AFTER it. Stacking order is DOM
+            order, so every limb ended up on top of everything: the legs floated
+            over the belly and the arms over the face, which is exactly the
+            "the legs and hands are not properly attached to the body" the owner
+            photographed.
 
-          {/* celebration halo */}
-          {expr.sparkles > 0 && <Circle cx={50} cy={52} r={46} fill={`url(#glow_${type})`} />}
+            Now each contiguous run gets its own absolutely-positioned layer in
+            sequence, so the legs sit behind the body and the arms between the
+            body and the head, exactly as `creatureShapes` orders them. A limb
+            run is wrapped in an Animated.View whose `transformOrigin` is that
+            limb's joint, so it pivots from the shoulder or hip. */}
+        {runs.map((run, r) => {
+          const inner = (
+            <Svg width={S} height={S} viewBox="0 0 100 100">
+              {/* The halo belongs to the very first layer so it stays behind
+                  everything else. */}
+              {r === 0 && expr.sparkles > 0 ? (
+                <>
+                  <Defs>
+                    <RadialGradient id={`glow_${type}`} cx="50%" cy="50%" r="50%">
+                      <Stop offset="0" stopColor={sp.accent} stopOpacity={0.5} />
+                      <Stop offset="1" stopColor={sp.accent} stopOpacity={0} />
+                    </RadialGradient>
+                  </Defs>
+                  <Circle cx={50} cy={52} r={46} fill={`url(#glow_${type})`} />
+                </>
+              ) : null}
+              {run.shapes.map((sh, i) => (
+                <Draw key={i} s={sh} />
+              ))}
+            </Svg>
+          );
 
-          {runs.map((run, r) => {
-            const inner = run.shapes.map((sh, i) => <Draw key={i} s={sh} />);
-            // When the limbs animate they are lifted OUT of this Svg into their
-            // own layers below, so skip them here and keep the gap in the paint
-            // order. When they don't, the pose is baked in with a plain SVG
-            // rotate about the joint.
-            if (!run.limb) return <G key={r}>{inner}</G>;
-            if (animateLimbs && LIMB_STYLE[run.limb]) return null;
-            const [ox, oy] = JOINTS[run.limb];
-            const angle = run.limb === 'armL' ? armLBase : run.limb === 'armR' ? armRBase : 0;
+          const limbStyle = run.limb ? LIMB_STYLE[run.limb] : undefined;
+          if (!run.limb || !limbStyle || !animateLimbs) {
+            // Static layer. A limb that is not animated still needs its POSE,
+            // which is a plain SVG rotate about the joint.
+            const pose =
+              run.limb && !animateLimbs
+                ? `rotate(${run.limb === 'armL' ? armLBase : run.limb === 'armR' ? armRBase : 0} ${
+                    JOINTS[run.limb][0]
+                  } ${JOINTS[run.limb][1]})`
+                : undefined;
             return (
-              <G key={r} transform={`rotate(${angle} ${ox} ${oy})`}>
-                {inner}
-              </G>
-            );
-          })}
-        </Svg>
-        {/* Animated limb layers, in the same order as the runs above so the
-            legs stay behind the body and the arms stay in front of it. Each is
-            a full-size overlay containing only that limb. */}
-        {animateLimbs
-          ? runs.map((run, r) => {
-              if (!run.limb) return null;
-              const limbStyle = LIMB_STYLE[run.limb];
-              if (!limbStyle) return null;
-              const [ox, oy] = JOINTS[run.limb];
-              return (
-                <Animated.View
-                  key={`limb-${r}`}
-                  pointerEvents="none"
-                  style={[
-                    StyleSheet.absoluteFill,
-                    { transformOrigin: `${ox}% ${oy}%` },
-                    limbStyle,
-                  ]}
-                >
+              <View key={r} pointerEvents="none" style={StyleSheet.absoluteFill}>
+                {pose ? (
                   <Svg width={S} height={S} viewBox="0 0 100 100">
-                    {run.shapes.map((sh, i) => (
-                      <Draw key={i} s={sh} />
-                    ))}
+                    <G transform={pose}>
+                      {run.shapes.map((sh, i) => (
+                        <Draw key={i} s={sh} />
+                      ))}
+                    </G>
                   </Svg>
-                </Animated.View>
-              );
-            })
-          : null}
+                ) : (
+                  inner
+                )}
+              </View>
+            );
+          }
+
+          const [ox, oy] = JOINTS[run.limb];
+          return (
+            <Animated.View
+              key={r}
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                { transformOrigin: `${ox}% ${oy}%` },
+                limbStyle,
+              ]}
+            >
+              {inner}
+            </Animated.View>
+          );
+        })}
       </Animated.View>
 
       {/* Eyelids ride above the SVG so a blink can cross any eye shape. */}

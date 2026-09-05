@@ -834,19 +834,19 @@ export default function CalendarScreen() {
             immediately under the month grid, in reading order: the grid, then
             what its colours mean, then the days coming up. */}
         <Animated.View entering={rise(118)} style={styles.legend}>
-          <LegendChip color={PHASE_AURORA.menstrual} label="Period" />
-          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" />
-          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" />
-          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" />
-          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" dashed />
+          <LegendChip color={PHASE_AURORA.menstrual} label="Period" kind="fill" />
+          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" kind="fill" />
+          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" kind="fill" />
+          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" kind="fill" />
+          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" kind="dashed" />
           {fertileWindow.ovulation ? (
             <>
-              <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" />
-              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" ring />
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" kind="tint" />
+              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" kind="ring" />
             </>
           ) : null}
-          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" />}
-          {coincidingDays.size > 0 && <LegendChip color={A.gold} label="Same days" ring />}
+          {overlaySisters.length > 0 && <LegendChip color={A.gold} label="Sister" kind="arc" />}
+          {coincidingDays.size > 0 && <LegendChip color={A.gold} label="Same days" kind="glow" />}
         </Animated.View>
 
         {/* Week-ahead strip — only once there's real cycle data, else every day
@@ -1398,17 +1398,37 @@ const SISTER_ARC_W = 20;
 const SISTER_ARC_H = 7;
 const SISTER_ARC_PATH = `M1,1 Q${SISTER_ARC_W / 2},${SISTER_ARC_H} ${SISTER_ARC_W - 1},1`;
 
+/**
+ * ─── THE SWATCH IS THE MARK (device-test-19) ────────────────────────
+ *
+ *  The legend used a coloured dot for almost everything, so "Ovulatory",
+ *  "Fertile (est.)" and "Sister" were three IDENTICAL gold dots, and
+ *  "Ovulation (est.)" and "Same days" were two identical rings. The grid above
+ *  distinguishes all five perfectly well; the key underneath it did not — which
+ *  makes the key worse than useless, because it states that different things
+ *  are the same.
+ *
+ *  Each swatch now draws exactly what a DayCell draws for that state:
+ *
+ *    fill    solid colour               — Period and the phase bands
+ *    tint    faint wash, no border      — Fertile (est.), deliberately the
+ *                                         faintest thing here because it is
+ *                                         the least certain thing on the grid
+ *    dashed  dashed ring                — Predicted
+ *    ring    solid ring over a tint     — Ovulation (est.)
+ *    arc     a gold arc under the day   — Sister
+ *    glow    ring plus a warm halo      — Same days
+ */
+type LegendKind = 'fill' | 'tint' | 'dashed' | 'ring' | 'arc' | 'glow';
+
 function LegendChip({
   color,
   label,
-  dashed,
-  ring,
+  kind = 'fill',
 }: {
   color: string;
   label: string;
-  dashed?: boolean;
-  /** Outlined swatch — matches the ovulation day's ring on the grid. */
-  ring?: boolean;
+  kind?: LegendKind;
 }) {
   const { palette } = useAurora();
   return (
@@ -1418,18 +1438,40 @@ function LegendChip({
         { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
       ]}
     >
-      <View
-        style={[
-          styles.legendSwatch,
-          { backgroundColor: dashed || ring ? 'transparent' : color },
-          dashed && {
-            borderWidth: 1.5,
-            borderStyle: 'dashed',
-            borderColor: color,
-          },
-          ring && { borderWidth: 1.5, borderColor: color, backgroundColor: `${color}2E` },
-        ]}
-      />
+      <View style={styles.legendSwatchBox}>
+        <View
+          style={[
+            styles.legendSwatch,
+            kind === 'fill' ? { backgroundColor: color } : null,
+            kind === 'tint' ? { backgroundColor: `${color}3D` } : null,
+            kind === 'dashed'
+              ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor: color }
+              : null,
+            kind === 'ring'
+              ? { borderWidth: 1.5, borderColor: color, backgroundColor: `${color}2E` }
+              : null,
+            kind === 'glow'
+              ? {
+                  borderWidth: 2,
+                  borderColor: color,
+                  shadowColor: color,
+                  shadowOpacity: 0.9,
+                  shadowRadius: 5,
+                  shadowOffset: { width: 0, height: 0 },
+                  elevation: 5,
+                }
+              : null,
+            kind === 'arc' ? { backgroundColor: `${color}1A` } : null,
+          ]}
+        />
+        {/* The sister mark is an arc UNDER the day, not a fill — so the key
+            shows an arc under a day too. */}
+        {kind === 'arc' ? (
+          <Svg width={12} height={4} style={styles.legendArc} pointerEvents="none">
+            <Path d="M1 3 Q6 0.5 11 3" stroke={color} strokeWidth={2} strokeLinecap="round" fill="none" />
+          </Svg>
+        ) : null}
+      </View>
       <Text style={[styles.legendLabel, { color: palette.ink2 }]}>{label}</Text>
     </View>
   );
@@ -1949,11 +1991,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Spacing.radius.full,
   },
-  legendSwatch: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  legendSwatchBox: {
+    width: 14,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: Spacing.xs,
+  },
+  legendSwatch: {
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+  },
+  legendArc: {
+    position: 'absolute',
+    bottom: 0,
   },
   legendLabel: {
     ...Typography.preset.caption,

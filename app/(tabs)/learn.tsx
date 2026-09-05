@@ -533,6 +533,8 @@ function PaceChooser({
 
 // Trail geometry (px).
 const NODE = 62;
+/** How far the completion halo extends beyond the node on each side. */
+const HALO = 22;
 // Device-test #5: bumped 104 → 140 so a node's 2-line label doesn't run into
 // the next node's icon (the owner's "lesson head overwrites the icon" ask).
 const ROW_H = 140;
@@ -605,7 +607,13 @@ function PathTrail({
       lesson,
       // Locked shows the DIMMED lesson emoji (+ a tiny lock badge in render) —
       // friendlier than a gloomy padlock glyph. Done = check.
-      glyph: isComplete ? '✓' : lesson.emoji,
+      // ─── A COMPLETED LESSON KEEPS ITS OWN ICON (device-test-19) ──
+      //  It used to be replaced by a '✓'. That throws away the one thing that
+      //  made each node recognisable — you scroll a path of identical ticks
+      //  and cannot tell which lesson was which — and it turns a map into a
+      //  checklist. The icon stays; completion is carried by the GLOW on the
+      //  node instead (see `nodeDoneGlow` below).
+      glyph: lesson.emoji,
       title: lesson.title,
       meta: `${lesson.estimatedMinutes} min · ${lesson.xpReward} XP${lesson.quizId ? ' · Quiz' : ''}`,
       state,
@@ -731,6 +739,26 @@ function PathTrail({
                       <HoppingCompanion type={companionType} />
                     </View>
                   )}
+                  {/* ─── THE GLOW IS A VIEW, NOT A SHADOW (device-test-19) ──
+                      shadowColor / shadowOpacity / shadowRadius are iOS-ONLY in React
+                      Native. On the owner's Android phone a shadow-based glow renders
+                      as nothing at all (elevation draws a black shadow, not a coloured
+                      one), so "make the finished lesson glow" has to be a real drawn
+                      halo: a larger, softer disc sitting behind the node. */}
+                  {(n.state === 'done' || isCurrent || n.state === 'reward-on') && (
+                    <View
+                      pointerEvents="none"
+                      style={[
+                        styles.nodeHalo,
+                        {
+                          left: p.x - (NODE + HALO) / 2,
+                          top: p.y - (NODE + HALO) / 2,
+                          backgroundColor: `${n.state === 'done' ? AURORA_SUCCESS : accent}1A`,
+                          borderColor: `${n.state === 'done' ? AURORA_SUCCESS : accent}38`,
+                        },
+                      ]}
+                    />
+                  )}
                   <PressableScale
                     onPress={() => tappable && n.lesson && onLessonTap(n.lesson.id)}
                     disabled={!tappable}
@@ -739,15 +767,16 @@ function PathTrail({
                     style={[
                       styles.node,
                       { left: p.x - NODE / 2, top: p.y - NODE / 2, borderColor: palette.glass.edge, backgroundColor: palette.glass.bg },
-                      n.state === 'done' && { backgroundColor: `${AURORA_SUCCESS}22`, borderColor: AURORA_SUCCESS },
+                      // Done = the node lights up and keeps its icon. A soft
+                      // success-coloured halo reads as "this one is finished"
+                      // from across the screen without hiding what it was.
+                      n.state === 'done' && {
+                        backgroundColor: `${AURORA_SUCCESS}1F`,
+                        borderColor: AURORA_SUCCESS,
+                      },
                       (isCurrent || n.state === 'reward-on') && {
                         borderColor: accent,
                         backgroundColor: `${accent}22`,
-                        shadowColor: accent,
-                        shadowOpacity: 0.6,
-                        shadowRadius: 16,
-                        shadowOffset: { width: 0, height: 0 },
-                        elevation: 8,
                       },
                       // Locked = soft dashed accent ring (NOT glass, NOT gloomy).
                       locked && { backgroundColor: `${accent}12`, borderColor: `${accent}66`, borderStyle: 'dashed', opacity: 0.9 },
@@ -914,6 +943,15 @@ const styles = StyleSheet.create({
   companionPerch: { position: 'absolute', width: 48, alignItems: 'center', zIndex: 4 },
   glowHost: { position: 'absolute', width: NODE, height: NODE, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   pulseRing: { position: 'absolute', width: NODE, height: NODE, borderRadius: 22, borderWidth: 2.5 },
+  // The drawn glow behind a done / current node. A translucent disc with a
+  // faint ring — visible on Android, where shadow props are ignored.
+  nodeHalo: {
+    position: 'absolute',
+    width: NODE + HALO,
+    height: NODE + HALO,
+    borderRadius: (NODE + HALO) / 2,
+    borderWidth: 1,
+  },
   node: {
     position: 'absolute',
     width: 62,

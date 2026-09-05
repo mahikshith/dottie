@@ -92,10 +92,10 @@ export type Limb = 'armL' | 'armR' | 'legL' | 'legR' | 'tail' | 'earL' | 'earR';
 
 /** Where each limb pivots. Shoulders, hips, and the base of the tail. */
 export const JOINTS: Record<Limb, readonly [number, number]> = {
-  armL: [34, 57],
-  armR: [66, 57],
-  legL: [45.5, 72],
-  legR: [54.5, 72],
+  armL: [34, 56],
+  armR: [66, 56],
+  legL: [45.5, 68],
+  legR: [54.5, 68],
   tail: [66, 70],
   earL: [42, 22],
   earR: [58, 22],
@@ -248,10 +248,15 @@ export function creatureShapes(type: CompanionType, expr: Expression): Shape[] {
  * all — just two detached foot-ellipses under a body that reached the floor.
  */
 function groundShapes(sp: Species): Shape[] {
+  // The leg starts at y=68 — well INSIDE the body, whose outline reaches 76 —
+  // so the joint is buried and the limb reads as growing out of the hip rather
+  // than being parked underneath it. It is also thicker than the first attempt:
+  // a 7px line under a 36px-wide body looked like a detached stick
+  // (device-test-19, "the legs are not properly attached").
   const leg = (limb: 'legL' | 'legR', hx: number, fx: number): Shape[] => [
-    { k: 'path', limb, role: 'leg', d: `M${hx} 72 Q${hx} 80 ${fx} 87`, stroke: sp.fur, sw: 7 },
-    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 89.5, rx: 7, ry: 4, fill: sp.furDark, opacity: 0.95 },
-    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 90, rx: 3.8, ry: 2, fill: sp.belly, opacity: 0.55 },
+    { k: 'path', limb, role: 'leg', d: `M${hx} 68 Q${hx} 79 ${fx} 86`, stroke: sp.fur, sw: 9.5 },
+    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 89, rx: 7.4, ry: 4.2, fill: sp.furDark, opacity: 0.95 },
+    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 89.5, rx: 4, ry: 2.1, fill: sp.belly, opacity: 0.55 },
   ];
   return [
     { k: 'ellipse', role: 'shadow', cx: 50, cy: 93.5, rx: 19, ry: 3, fill: '#000000', opacity: 0.16 },
@@ -269,9 +274,13 @@ function groundShapes(sp: Species): Shape[] {
  * the arms keep swinging while they hold a pose.
  */
 function armShapes(sp: Species): Shape[] {
+  // Rooted at y=56, inside the torso, and ending at 74 — just short of the
+  // body's own bottom edge (76). The first version hung to 81.5, so the lower
+  // half of every arm dangled OUTSIDE the silhouette with nothing behind it and
+  // read as a floating pill.
   const arm = (limb: 'armL' | 'armR', sx: number, hx: number): Shape[] => [
-    { k: 'path', limb, role: 'arm', d: `M${sx} 57 Q${hx} 68 ${hx} 79`, stroke: sp.fur, sw: 6.5 },
-    { k: 'circle', limb, role: 'hand', cx: hx, cy: 81.5, r: 4.6, fill: sp.furDark, opacity: 0.95 },
+    { k: 'path', limb, role: 'arm', d: `M${sx} 56 Q${hx} 65 ${hx} 74`, stroke: sp.fur, sw: 8 },
+    { k: 'circle', limb, role: 'hand', cx: hx, cy: 75.5, r: 5, fill: sp.furDark, opacity: 0.95 },
   ];
   return [...arm('armL', 35, 32), ...arm('armR', 65, 68)];
 }
@@ -619,11 +628,11 @@ export const SPARKLE_FLOOR_Y = HEAD.cy;
  * hold its hands on its hips and still be visibly breathing.
  */
 export const ARM_POSE: Record<ArmPose, readonly [number, number]> = {
-  rest: [2, -2],
-  up: [137, -137],
-  wave: [139, -5],
-  chin: [-103, -5],
-  hips: [-34, 34],
-  cover: [142, -142],
-  clap: [-52, 52],
+  rest: [0, 0],
+  up: [133, -133],
+  wave: [136, -4],
+  chin: [-105, -4],
+  hips: [-38, 38],
+  cover: [140, -140],
+  clap: [-57, 57],
 };

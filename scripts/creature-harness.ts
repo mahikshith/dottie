@@ -242,15 +242,23 @@ scenario('C8f — every arm pose is reachable and distinct', () => {
     seen.add(pose);
   }
   ok('more than one pose is actually used', seen.size >= 5, `${seen.size} poses`);
-  // Not "both arms must mirror" — `wave` and `chin` are one-armed gestures on
-  // purpose, and asymmetry is the whole reason these stopped reading as
-  // specimens. What must hold is that the two arms are never IDENTICAL, which
-  // would stack them on top of each other and lose one.
+  // The MIRRORING LIVES IN THE GEOMETRY — the left arm is drawn hanging to
+  // the left and the right arm to the right — so `rest: [0, 0]` is correct and
+  // an earlier version of this check wrongly called it a collapse. What
+  // actually matters:
+  //   · every angle is a real rotation, not a typo like 400°;
+  //   · no two DIFFERENT poses are identical, or one of them is dead weight;
+  //   · at least one is a one-armed gesture, because a rig that can only move
+  //     both arms together cannot wave or put a hand to its chin.
+  const seenAngles = new Map<string, string>();
   for (const [pose, [l, r]] of Object.entries(ARM_POSE)) {
-    ok(`${pose}: the two arms are not the same angle`, l !== r, `${l} / ${r}`);
+    ok(`${pose}: angles are in range`, Math.abs(l) <= 180 && Math.abs(r) <= 180, `${l} / ${r}`);
+    const key = `${l}|${r}`;
+    ok(`${pose}: is not a duplicate of ${seenAngles.get(key) ?? ''}`, !seenAngles.has(key), key);
+    seenAngles.set(key, pose);
   }
-  const asymmetric = Object.values(ARM_POSE).filter(([l, r]) => Math.abs(l) !== Math.abs(r));
-  ok('at least one pose is a one-armed gesture', asymmetric.length >= 1, `${asymmetric.length}`);
+  const oneArmed = Object.values(ARM_POSE).filter(([l, r]) => Math.abs(l) !== Math.abs(r));
+  ok('at least one pose is a one-armed gesture', oneArmed.length >= 1, `${oneArmed.length}`);
 });
 
 scenario('C8g — the shape list is pure and stable', () => {
