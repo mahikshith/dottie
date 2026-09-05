@@ -211,7 +211,6 @@ function ResultCard({
         state={perfect ? 'celebrate' : score >= 0.5 ? 'proud' : 'cozy'}
         size={120}
         loop={false}
-        moment={perfect ? 'confetti' : null}
       />
       {/* The score sits in its own block below the character. It used to ride
           on the container's small gap and collided with the companion's feet
@@ -292,8 +291,12 @@ const styles = StyleSheet.create({
   title: { ...Typography.preset.h3, textAlign: 'center' },
 
   resultWrap: { alignItems: 'center', gap: Spacing.sm, paddingTop: Spacing.lg },
+  // The rig BOBS. Its shadow sits at the very bottom of its box and the bounce
+  // carries it a few px lower still, so a score pressed up against it got
+  // clipped by the companion's feet (device-test-19, "1/3 pulled under the
+  // companion"). This margin is clearance, not decoration.
   // Clear air under the character so the big numeral can never sit on it.
-  resultScore: { alignItems: 'center', gap: 2, marginTop: Spacing.base },
+  resultScore: { alignItems: 'center', gap: 2, marginTop: Spacing.xl },
   resultBig: { ...Typography.preset.h1, fontSize: 52 },
   resultSub: { ...Typography.preset.body },
   rewards: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.md, alignSelf: 'stretch' },

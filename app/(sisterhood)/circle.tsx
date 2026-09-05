@@ -38,6 +38,8 @@ import { getCompanion } from '../../src/content/companions';
 import { MemberCard } from '../../src/components/sisterhood/MemberCard';
 import { PhaseSyncBanner } from '../../src/components/sisterhood/PhaseSyncBanner';
 import { MAX_FREE_MEMBERS } from '../../src/types/sisterhood.types';
+import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
+import type { CompanionType } from '../../src/types/content.types';
 
 /**
  * Sisterhood Circle Dashboard
@@ -251,7 +253,7 @@ export default function SisterhoodCircleScreen() {
           </View>
         ) : (
           <EmptyState
-            companionEmoji={companion.emoji}
+            companionType={companion.type}
             companionName={companion.name}
             onAdd={handleAddMember}
           />
@@ -287,17 +289,18 @@ export default function SisterhoodCircleScreen() {
 // ─── EMPTY STATE ─────────────────────────────────────────────────────
 
 function EmptyState({
-  companionEmoji,
+  companionType,
   companionName,
   onAdd,
 }: {
-  companionEmoji: string;
+  companionType: CompanionType;
   companionName: string;
   onAdd: () => void;
 }) {
   return (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>{companionEmoji}</Text>
+      {/* The drawn rig, not an emoji stand-in (device-test-19, rule 8). */}
+      <CompanionCreature type={companionType} state="caring" size={96} />
       <Text style={styles.emptyTitle}>Care is sweeter shared 🌷</Text>
       <Text style={styles.emptyBody}>
         Add a little sister, a cousin, your best friend — or someone who

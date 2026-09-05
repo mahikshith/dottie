@@ -39,7 +39,6 @@ import { View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Ellipse, Path, G, Defs, RadialGradient, Stop } from 'react-native-svg';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -69,16 +68,6 @@ export interface CompanionCreatureProps {
  * browser. That loop is why these finally stopped looking like insects — see
  * the header of that file for what each signal was.
  */
-
-/**
- * `G` with animatable `rotation` / `originX` / `originY`.
- *
- * These three are plain numeric props on react-native-svg, so Reanimated can
- * drive them from the UI thread without a re-render — which is what lets four
- * limbs swing on a screen that is also scrolling. Animating a `transform`
- * STRING here would go back through JS every frame.
- */
-const AnimatedG = Animated.createAnimatedComponent(G);
 
 /** One geometry shape → one react-native-svg element. */
 function Draw({ s }: { s: Shape }): JSX.Element {
@@ -206,17 +195,49 @@ export function CompanionCreature({
   const S = size;
   const eyeLid = useAnimatedStyle(() => ({ opacity: 1 - blink.value }));
 
-  // Arms swing further than legs, and each side leads the other — a creature
-  // whose limbs move in perfect unison looks like a wind-up toy.
+  // ─── LIMB MOTION (device-test-19) ───────────────────────────────
+  //
+  //  DT18 rotated each limb with `animatedProps` on a react-native-svg <G>
+  //  (rotation / originX / originY). On the owner's device NOTHING moved: the
+  //  only animation left in a companion was the confetti. Reanimated can only
+  //  drive a prop the underlying native component actually applies per-frame,
+  //  and <G> is not one of them — so the whole reason for adding arms and legs
+  //  was silently a no-op.
+  //
+  //  These are plain VIEW transforms now, which Reanimated has always been able
+  //  to drive on the UI thread. Each limb is its own absolutely-positioned
+  //  layer with `transformOrigin` set to that limb's joint as a percentage of
+  //  the 100x100 box, so a shoulder still rotates from the shoulder. RN 0.76
+  //  supports transformOrigin natively, so this costs nothing extra.
+  //
+  //  Arms swing further than legs, and each side leads the other — a creature
+  //  whose limbs move in perfect unison looks like a wind-up toy.
   const gain = expr.limbSwing;
-  const armL = useAnimatedProps(() => ({ rotation: armLBase + swing.value * 9 * gain }));
-  const armR = useAnimatedProps(() => ({ rotation: armRBase - swing.value * 9 * gain }));
-  const legL = useAnimatedProps(() => ({ rotation: -swing.value * 4 * gain }));
-  const legR = useAnimatedProps(() => ({ rotation: swing.value * 4 * gain }));
-  const tail = useAnimatedProps(() => ({ rotation: swing.value * 11 * gain }));
-  const LIMB_PROPS: Partial<Record<Limb, ReturnType<typeof useAnimatedProps>>> = {
-    armL, armR, legL, legR, tail,
+  const armLStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${armLBase + swing.value * 9 * gain}deg` }],
+  }));
+  const armRStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${armRBase - swing.value * 9 * gain}deg` }],
+  }));
+  const legLStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${-swing.value * 4 * gain}deg` }],
+  }));
+  const legRStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${swing.value * 4 * gain}deg` }],
+  }));
+  const tailStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${swing.value * 11 * gain}deg` }],
+  }));
+  const LIMB_STYLE: Partial<Record<Limb, ReturnType<typeof useAnimatedStyle>>> = {
+    armL: armLStyle, armR: armRStyle, legL: legLStyle, legR: legRStyle, tail: tailStyle,
   };
+
+  /**
+   * Below this size a companion is an inline glyph beside a line of text, and
+   * splitting it into six animated layers buys motion nobody can see. Small
+   * ones draw as ONE static Svg with the pose baked in.
+   */
+  const animateLimbs = !reduce && S >= 44;
 
   return (
     <View
@@ -239,17 +260,49 @@ export function CompanionCreature({
 
           {runs.map((run, r) => {
             const inner = run.shapes.map((sh, i) => <Draw key={i} s={sh} />);
+            // When the limbs animate they are lifted OUT of this Svg into their
+            // own layers below, so skip them here and keep the gap in the paint
+            // order. When they don't, the pose is baked in with a plain SVG
+            // rotate about the joint.
             if (!run.limb) return <G key={r}>{inner}</G>;
+            if (animateLimbs && LIMB_STYLE[run.limb]) return null;
             const [ox, oy] = JOINTS[run.limb];
-            const animatedProps = LIMB_PROPS[run.limb];
-            if (!animatedProps) return <G key={r}>{inner}</G>;
+            const angle = run.limb === 'armL' ? armLBase : run.limb === 'armR' ? armRBase : 0;
             return (
-              <AnimatedG key={r} originX={ox} originY={oy} animatedProps={animatedProps}>
+              <G key={r} transform={`rotate(${angle} ${ox} ${oy})`}>
                 {inner}
-              </AnimatedG>
+              </G>
             );
           })}
         </Svg>
+        {/* Animated limb layers, in the same order as the runs above so the
+            legs stay behind the body and the arms stay in front of it. Each is
+            a full-size overlay containing only that limb. */}
+        {animateLimbs
+          ? runs.map((run, r) => {
+              if (!run.limb) return null;
+              const limbStyle = LIMB_STYLE[run.limb];
+              if (!limbStyle) return null;
+              const [ox, oy] = JOINTS[run.limb];
+              return (
+                <Animated.View
+                  key={`limb-${r}`}
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { transformOrigin: `${ox}% ${oy}%` },
+                    limbStyle,
+                  ]}
+                >
+                  <Svg width={S} height={S} viewBox="0 0 100 100">
+                    {run.shapes.map((sh, i) => (
+                      <Draw key={i} s={sh} />
+                    ))}
+                  </Svg>
+                </Animated.View>
+              );
+            })
+          : null}
       </Animated.View>
 
       {/* Eyelids ride above the SVG so a blink can cross any eye shape. */}

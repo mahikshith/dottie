@@ -299,7 +299,8 @@ export default function TransferScreen() {
       </ScrollView>
 
       {/* Bottom action bar */}
-      <View style={styles.bottomBar}>
+      {/* Pinned bars clear the gesture bar themselves (device-test-19). */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + Spacing.lg }]}>
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => [

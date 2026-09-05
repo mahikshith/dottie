@@ -10,7 +10,7 @@ import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground } from '../../src/components/ui';
 import { CompanionLottie } from '../../src/components/ui';
 import { QuizAnswerReaction } from '../../src/components/learn/QuizAnswerReaction';
-import { reactTo, type Reaction } from '../../src/engine/learn/dialogue';
+import { leadFor, reactTo, type Reaction } from '../../src/engine/learn/dialogue';
 import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
 import {
   useUserStore,
@@ -122,6 +122,22 @@ export default function QuizScreen() {
    */
   const [answerStreak, setAnswerStreak] = useState(0);
   const [reaction, setReaction] = useState<Reaction | null>(null);
+  /**
+   * Which try this is on the CURRENT question, and whether the PREVIOUS one
+   * was missed.
+   *
+   * `attempt` was hardcoded to 1 at the one call site, so `reactTo`'s entire
+   * second-attempt branch — the retry offer, the "let me just tell you" pool,
+   * the softer expression — was unreachable code. The engine had specified
+   * "two attempts, then the answer" since DT14 and no screen ever asked for
+   * the second one.
+   *
+   * `lastWasMiss` drives the comeback beat: getting one right straight after a
+   * stumble deserves noticing, and a companion that says "Nice." either way
+   * isn't listening, it's counting.
+   */
+  const [attempt, setAttempt] = useState(1);
+  const [lastWasMiss, setLastWasMiss] = useState(false);
 
   // ─── Start the attempt on mount ─────────────────────────────────
   // Device-test #3 finding: this used to have `[id]` deps only, so if
@@ -175,6 +191,25 @@ export default function QuizScreen() {
     return session.questions[questionIndex] ?? null;
   }, [session, questionIndex]);
 
+  /**
+   * The companion's line BEFORE the question.
+   *
+   * Until now it only ever spoke after an answer — it reacted, but it never
+   * asked, which is why the screen read as a scorecard with a mascot attached
+   * rather than a conversation. Memoised on the question so a re-render cannot
+   * swap the sentence while it is being read.
+   */
+  const lead = useMemo(() => {
+    if (!session) return '';
+    return leadFor({
+      index: questionIndex,
+      total: session.questions.length,
+      seed: session.sessionId,
+      afterMiss: lastWasMiss,
+      streak: answerStreak,
+    });
+  }, [session, questionIndex, lastWasMiss, answerStreak]);
+
   // ─── Handlers ───────────────────────────────────────────────────
   const handleOptionTap = (optionIndex: number) => {
     if (phase !== 'asking' || !quizEngine || !session) return;
@@ -198,8 +233,9 @@ export default function QuizScreen() {
     setReaction(
       reactTo({
         correct: result.correct,
-        attempt: 1,
+        attempt,
         streak: answerStreak,
+        afterMiss: lastWasMiss,
         explanation: result.explanation,
         explanationEmoji: result.explanationEmoji,
         seed: `${session.sessionId}:${questionIndex}`,
@@ -207,14 +243,37 @@ export default function QuizScreen() {
       })
     );
     setAnswerStreak(result.correct ? answerStreak + 1 : 0);
-    if (result.correct) setCorrectSoFar((n) => n + 1);
+    // The tally follows the SCORE, and the score is the first attempt (the
+    // engine keeps that one deliberately) — so a question rescued on the retry
+    // is not counted here either. Getting there eventually is worth a warm word
+    // from the companion, not a mark.
+    if (result.correct && attempt === 1) setCorrectSoFar((n) => n + 1);
     setLastAnswer(result);
     setPhase('reviewing');
+  };
+
+  /**
+   * Take the second go. Puts the same question back with the options live
+   * again — no third attempt, because a third go is a trap rather than a
+   * lesson, and `reactTo` hands the answer over plainly on the second miss.
+   */
+  const handleRetry = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setAttempt(2);
+    setSelectedOption(null);
+    setLastAnswer(null);
+    setReaction(null);
+    setPhase('asking');
   };
 
   const handleNext = () => {
     if (!session) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+    // Remember how this question actually went before moving on: the score
+    // counts the first attempt, so a question rescued on the retry still "was
+    // a miss" as far as the next question's opening line is concerned.
+    const missed = lastAnswer ? !lastAnswer.correct || attempt > 1 : false;
 
     const isLast = questionIndex >= session.questions.length - 1;
     if (isLast) {
@@ -223,6 +282,9 @@ export default function QuizScreen() {
       setQuestionIndex((idx) => idx + 1);
       setSelectedOption(null);
       setLastAnswer(null);
+      setReaction(null);
+      setAttempt(1);
+      setLastWasMiss(missed);
       setPhase('asking');
     }
   };
@@ -384,14 +446,33 @@ export default function QuizScreen() {
           </Text>
         </View>
 
-        {/* Companion encouragement (only on first question) */}
-        {questionIndex === 0 && session?.companionEncouragement && phase === 'asking' && (
-          <View style={styles.companionEncouragement}>
-            <Text style={styles.companionEmoji}>{companion.emoji}</Text>
-            <Text style={styles.companionEncouragementText}>
-              {session.companionEncouragement}
+        {/* ─── THE COMPANION ASKS ────────────────────────────────────
+            Two things were wrong here. It rendered `companion.emoji` — a raw
+            emoji, which rule 8 forbids, and a THIRD face on a screen that
+            already had two. And it only appeared on question one, so for the
+            rest of the quiz the companion never spoke until after an answer:
+            it reacted, but it never asked, which is most of why this read as a
+            scorecard rather than a conversation.
+
+            The drawn rig asks every question now, in a register that follows
+            where you are — an opener on the first, a softer one straight after
+            a miss, a wind-up on a streak, "last one" at the end. */}
+        {phase === 'asking' && lead !== '' && (
+          <Animated.View
+            key={`lead-${questionIndex}-${attempt}`}
+            entering={FadeInDown.duration(300).springify().damping(16)}
+            style={styles.leadRow}
+          >
+            <CompanionLottie
+              type={companionType}
+              state={attempt > 1 ? 'determined' : lastWasMiss ? 'encourage' : 'curious'}
+              size={34}
+              loop={false}
+            />
+            <Text style={styles.leadText}>
+              {attempt > 1 ? 'One more look — take your time.' : lead}
             </Text>
-          </View>
+          </Animated.View>
         )}
 
         {/* Question */}
@@ -454,9 +535,11 @@ export default function QuizScreen() {
             <QuizAnswerReaction
               companionType={companionType}
               correct={lastAnswer.correct}
-              seed={questionIndex}
+              headline={reaction?.opener ?? lastAnswer.companionReaction}
+              state={reaction?.expression ?? (lastAnswer.correct ? 'celebrate' : 'cozy')}
+              seed={questionIndex * 2 + attempt}
               headlineColor={lastAnswer.correct ? A.success : A.gold}
-              />
+            />
 
             {/* The learning payload — why this answer is what it is. */}
             <View style={styles.feedbackExplainRow}>
@@ -464,22 +547,15 @@ export default function QuizScreen() {
               <Text style={styles.feedbackExplainText}>{lastAnswer.explanation}</Text>
             </View>
 
-            {/* Companion's own line. The opener rotates and never repeats back
-                to back; the aside carries a streak when there is one. Falls
-                back to the engine's own line if a reaction is somehow missing. */}
-            <View style={styles.companionReactionRow}>
-              <CompanionLottie
-                type={companionType}
-                state={lastAnswer.correct ? 'celebrate' : 'cozy'}
-                size={28}
-                loop={false}
-              />
-              <Text style={styles.companionReactionText}>
-                {reaction
-                  ? `${reaction.opener}${reaction.aside ? ` ${reaction.aside}` : ''}`
-                  : lastAnswer.companionReaction}
-              </Text>
-            </View>
+            {/* The aside — a streak count, the offer of another go, a "don't
+                dwell on it". The SECOND companion that used to sit here is
+                gone: the rig above is already the companion, and two of them
+                celebrating the same answer with two confetti bursts was the
+                clutter the owner reported twice (DT16, DT19). One character,
+                once, per panel. */}
+            {reaction?.aside ? (
+              <Text style={styles.companionReactionText}>{reaction.aside}</Text>
+            ) : null}
 
             {/* Running progress — motivating, and it uses the empty space. */}
             <Animated.View
@@ -515,23 +591,61 @@ export default function QuizScreen() {
           style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md }]}
           pointerEvents="box-none"
         >
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextButton,
-              pressed && styles.nextButtonPressed,
-            ]}
-            onPress={handleNext}
-            accessibilityRole="button"
-            accessibilityLabel={
-              questionIndex >= (session?.questions.length ?? 0) - 1 ? 'Finish quiz' : 'Next question'
-            }
-          >
-            <Text style={styles.nextButtonText}>
-              {questionIndex >= (session?.questions.length ?? 0) - 1
-                ? 'Finish Quiz'
-                : 'Next Question'}
-            </Text>
-          </Pressable>
+          {/* TRY AGAIN, or move on.
+
+              `reaction.offerRetry` is only ever true on the FIRST miss of a
+              question — the engine hands the answer over on the second,
+              because a third go is a trap rather than a lesson. This branch is
+              what makes that rule real: the screen used to pass attempt: 1
+              always, so the retry was specified, tested, and unreachable.
+
+              The score still records the first attempt (see quiz-engine), so
+              this button costs nothing and teaches something. */}
+          {reaction?.offerRetry ? (
+            <View style={styles.footerRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  pressed && styles.nextButtonPressed,
+                ]}
+                onPress={handleRetry}
+                accessibilityRole="button"
+                accessibilityLabel="Try this question again"
+              >
+                <Text style={styles.retryButtonText}>Try again</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.nextButton,
+                  styles.nextButtonSplit,
+                  pressed && styles.nextButtonPressed,
+                ]}
+                onPress={handleNext}
+                accessibilityRole="button"
+                accessibilityLabel="Skip to the next question"
+              >
+                <Text style={styles.nextButtonText}>Move on</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={({ pressed }) => [
+                styles.nextButton,
+                pressed && styles.nextButtonPressed,
+              ]}
+              onPress={handleNext}
+              accessibilityRole="button"
+              accessibilityLabel={
+                questionIndex >= (session?.questions.length ?? 0) - 1 ? 'Finish quiz' : 'Next question'
+              }
+            >
+              <Text style={styles.nextButtonText}>
+                {questionIndex >= (session?.questions.length ?? 0) - 1
+                  ? 'Finish Quiz'
+                  : 'Next Question'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       )}
     </AuroraBackground>
@@ -680,29 +794,42 @@ const styles = StyleSheet.create({
     minWidth: 40,
     textAlign: 'right',
   },
-  companionEncouragement: {
+  footerRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  // Secondary weight: "Try again" is the encouraged path but must not look
+  // like the only one — someone who wants to move on should not feel blocked.
+  retryButton: {
+    flex: 1,
+    height: Spacing.buttonHeight.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Spacing.radius.xl,
+    borderWidth: 1.5,
+    borderColor: A.accent,
+    backgroundColor: 'transparent',
+  },
+  retryButtonText: {
+    ...Typography.preset.button,
+    color: A.accent,
+  },
+  nextButtonSplit: {
+    flex: 1,
+  },
+  // The companion's line above the question. Deliberately quiet — it is an
+  // invitation, not a headline, and it must not out-shout the question.
+  leadRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: A.glass,
-    padding: Spacing.md,
-    borderRadius: Spacing.radius.xl,
-    marginBottom: Spacing.base,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
   },
-  companionEncouragementText: {
+  leadText: {
     ...Typography.preset.body,
     color: A.ink2,
     flex: 1,
-    marginLeft: Spacing.md,
-    fontStyle: 'italic',
-    lineHeight: 22,
-  },
-  companionEmoji: {
-    fontSize: 32,
   },
   questionCard: {
     backgroundColor: A.glass,
@@ -791,22 +918,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: Spacing.md,
   },
-  companionReactionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: A.edge,
-  },
-  companionReactionEmoji: {
-    fontSize: 20,
-    marginRight: Spacing.sm,
-  },
   companionReactionText: {
     ...Typography.preset.caption,
     color: A.ink2,
-    flex: 1,
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: Spacing.xs,
   },
   // ─── Rich answer feedback panel (fills the empty space) ─────────
   feedbackPanel: {

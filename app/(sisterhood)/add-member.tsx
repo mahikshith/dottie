@@ -39,6 +39,8 @@ import { KindCard } from '../../src/components/sisterhood/KindCard';
 import { EmojiPicker } from '../../src/components/sisterhood/EmojiPicker';
 import { PrivacyLevelCard } from '../../src/components/sisterhood/PrivacyLevelCard';
 import { logSilentFailure } from '../../src/diagnostics/silent-failure';
+import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
+import type { CompanionType } from '../../src/types/content.types';
 
 /**
  * Add-Member Wizard
@@ -429,7 +431,7 @@ export default function AddMemberScreen() {
         {step === 'celebration' && (
           <Animated.View entering={rise(40)}>
             <CelebrationStep
-              companionEmoji={companion.emoji}
+              companionType={companion.type}
               companionName={companion.name}
               memberEmoji={emoji ?? defaultMemberEmoji(kind ?? 'shadow')}
               memberName={displayName.trim()}
@@ -440,8 +442,14 @@ export default function AddMemberScreen() {
         <View style={{ height: Spacing['5xl'] }} />
       </ScrollView>
 
-      {/* Bottom action bar */}
-      <View style={styles.actionBar}>
+      {/* Bottom action bar — clears the gesture bar ITSELF (device-test-19).
+
+          A StyleSheet is created outside the component and can never see
+          `insets`, so a pinned bar styled only from the sheet is guaranteed to
+          sit under the Android nav bar. That is why the owner photographed a
+          half-visible "Next" button: the ScrollView above was padded correctly
+          and this bar, which does not scroll, was not. */}
+      <View style={[styles.actionBar, { paddingBottom: insets.bottom + Spacing.lg }]}>
         {step !== 'kind' && step !== 'celebration' && (
           <PressableScale
             onPress={goBack}
@@ -839,12 +847,12 @@ function ShadowStep({
 // ─── STEP: CELEBRATION ───────────────────────────────────────────────
 
 function CelebrationStep({
-  companionEmoji,
+  companionType,
   companionName,
   memberEmoji,
   memberName,
 }: {
-  companionEmoji: string;
+  companionType: CompanionType;
   companionName: string;
   memberEmoji: string;
   memberName: string;
@@ -852,7 +860,9 @@ function CelebrationStep({
   return (
     <View style={styles.celebration}>
       <View style={styles.celebrationEmojiRow}>
-        <Text style={styles.celebrationEmoji}>{companionEmoji}</Text>
+        {/* The companion celebrates as itself — an emoji of it was a second,
+            different-looking character on the same screen (device-test-19). */}
+        <CompanionCreature type={companionType} state="celebrate" size={72} />
         <Text style={styles.celebrationHeart}>🩷</Text>
         <Text style={styles.celebrationEmoji}>{memberEmoji}</Text>
       </View>

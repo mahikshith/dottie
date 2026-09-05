@@ -366,7 +366,20 @@ export default function DailyCheckInScreen() {
       </ScrollView>
 
       {/* Sticky footer */}
-      <View style={[styles.footer, { backgroundColor: palette.ground, borderTopColor: palette.glass.edge }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: palette.ground,
+            borderTopColor: palette.glass.edge,
+            // Clears the gesture bar on its OWN element — a StyleSheet is
+            // created outside the component and can never see insets, so a
+            // pinned bar styled only from the sheet always sits under the
+            // Android nav bar (device-test-19).
+            paddingBottom: insets.bottom + Spacing.lg,
+          },
+        ]}
+      >
         {symptomCount > 0 && (
           <Text style={[styles.footerSummary, { color: palette.ink3 }]}>
             {symptomCount} symptom{symptomCount === 1 ? '' : 's'} selected

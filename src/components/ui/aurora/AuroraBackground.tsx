@@ -25,7 +25,6 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -120,7 +119,6 @@ export function AuroraBackground({
 }: AuroraBackgroundProps): JSX.Element {
   const { palette, paletteId } = useAurora();
   const reduce = useReducedMotion();
-  const insets = useSafeAreaInsets();
 
   // Gentle "re-bloom" dip when the mood palette changes.
   const fieldOpacity = useSharedValue(1);
@@ -145,36 +143,38 @@ export function AuroraBackground({
         ))}
       </Animated.View>
       {children}
-      {/* Status-bar veil — EXACTLY the safe-area strip, and not one pixel more.
+      {/* ─── THERE IS NO STATUS VEIL, AND THERE MUST NOT BE ONE ─────
+          (device-test-19)
 
-          WHY IT EXISTS: every aurora screen pads its content by insets.top, but
-          that only protects the INITIAL position. As a ScrollView scrolls, its
-          headings slide up under the translucent Android status bar and collide
-          with the clock/battery (device-test-6).
+          A veil lived here from DT7 to DT18 and it is the single longest-
+          running bug in this app. The owner reported "the top of my UI is
+          being eaten" in device tests 3, 6, 7, 16 and 19. Every round it was
+          re-tuned — a gradient, then a shorter gradient, then an opaque strip
+          of exactly `insets.top` — and every round it came back, because the
+          veil was never the fix. It was the bug.
 
-          WHY IT IS NO LONGER A GRADIENT (device-test-16): DT7 replaced the
-          opaque block with a veil that stayed solid over insets.top and then
-          FADED OUT over another 14dp. That tail was the mistake. It sits below
-          the status bar, over live content, so a heading scrolling past it got
-          progressively dimmed before it disappeared — and dimming text in the
-          middle of the screen reads exactly as "the app is eating my UI", which
-          is what the owner reported on the Cycle tab, the sisterhood screens
-          and every lesson.
+          TWO THINGS WERE WRONG.
 
-          The veil is now the status bar's own height, fully opaque. Content
-          passes under the OS status bar the way it does in every other app —
-          which the owner explicitly said is fine — and nothing below that strip
-          is ever tinted, faded or clipped. pointerEvents="none" so taps pass
-          through. */}
-      {insets.top > 0 ? (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.statusCap,
-            { height: insets.top, backgroundColor: palette.ground },
-          ]}
-        />
-      ) : null}
+          1. It protected against something that cannot happen. `app.json` sets
+             androidStatusBar.translucent:false and app/_layout.tsx renders
+             <StatusBar translucent={false}>, so the app window BEGINS below the
+             status bar. Nothing has ever been able to scroll under it. The veil
+             was written for a translucent status bar this app does not have.
+
+          2. It was positioned in the wrong coordinate space. `top: 0` is the top
+             of THIS COMPONENT'S box, not the top of the window. On any screen
+             with a navigation header — every lesson, every exercise, the whole
+             sisterhood and profile stacks — AuroraBackground starts BELOW the
+             header, so an `insets.top`-tall opaque band was painted straight
+             across the first ~110px of the content. That is precisely the black
+             bar in the owner's screenshots, and precisely why it looked like the
+             app was eating the UI: it was.
+
+          Do not reintroduce a cap, a veil, a gradient or a spacer here. If
+          content ever genuinely needs to clear the status bar, that is the
+          SCREEN's padding to own — `audit:safearea` checks the real geometry
+          now — and never a sibling that paints over whatever happens to be
+          beneath it. */}
     </View>
   );
 }
@@ -186,12 +186,5 @@ const styles = StyleSheet.create({
   },
   bloom: {
     position: 'absolute',
-  },
-  statusCap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 5,
   },
 });

@@ -134,13 +134,12 @@ export function ExercisePlayer({
           scrolled. Either way the thumb had to go hunting (device-test-10).
           Now the action is always in the same place, where the thumb already
           rests. */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-      {/* Progress */}
+      {/* Progress — PINNED above the scroller (device-test-19).
+
+          It used to scroll with the content, so on a short exercise it sat in
+          the middle of a mostly-empty screen and on the result card it slid up
+          under the companion. A progress indicator that moves is worse than no
+          progress indicator. */}
       <View style={styles.progressRow}>
         <View style={[styles.progressTrack, { backgroundColor: palette.glass.edge }]}>
           <View
@@ -155,7 +154,21 @@ export function ExercisePlayer({
         </Text>
       </View>
 
-      {/* Prompt */}
+      {/* ─── SCROLLING CONTENT ─────────────────────────────────────
+          `flexGrow: 1` + `justifyContent: 'center'` is the whole fix for
+          "there is so much space and you still crammed everything at the top"
+          (device-test-19). A fill-in-the-blank is four short lines; top-aligned
+          it left two-thirds of the screen empty with the answer chips as far
+          from the thumb as they could physically be. Centred, a short exercise
+          sits in the middle of its own space and a long one scrolls exactly as
+          before — `flexGrow` only takes effect when the content is shorter than
+          the viewport. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <Animated.Text
         key={`prompt_${exercise.id}`}
         entering={FadeInDown.duration(360)}
@@ -666,7 +679,7 @@ const styles = StyleSheet.create({
   // Fills the screen so the footer below can pin to its bottom edge.
   root: { flex: 1 },
   scroll: { flex: 1 },
-  scrollContent: { gap: Spacing.lg, paddingBottom: Spacing.lg },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', gap: Spacing.lg, paddingBottom: Spacing.lg },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   progressTrack: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },

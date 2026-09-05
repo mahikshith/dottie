@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dottie",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -25,7 +25,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0C0A16"
       },
-      "package": "com.dottie.app"
+      "package": "com.dottie.app",
+      "backgroundColor": "#0C0A16"
     },
     "androidStatusBar": {
       "barStyle": "light-content",
@@ -67,6 +68,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "backgroundColor": "#0C0A16"
   }
 }

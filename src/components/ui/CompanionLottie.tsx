@@ -84,9 +84,20 @@ export function CompanionLottie({
   const intensity = STATE_INTENSITY[state] ?? 1;
 
   // The moment overlay is the only Lottie left on this path.
-  const overlay = moment === null ? null : getMomentLottie(moment ?? DEFAULT_MOMENT[state] ?? 'confetti');
-  const showOverlay =
-    !reduce && moment !== null && (moment !== undefined || DEFAULT_MOMENT[state] !== undefined);
+  // ─── THE COMPANION DOES THE CELEBRATING (device-test-19) ────────
+  //
+  //  A Lottie emoji badge (🤯 / 🎉) used to ride over the rig, and it was
+  //  chosen by DEFAULT_MOMENT whenever a caller did not pass `moment` — so a
+  //  perfect quiz showed a drawn cat with its arms up AND a mind-blown emoji
+  //  pasted on top, doing the actual reacting. The owner: "what's the whole
+  //  point of adding a companion in the first place if they are not even shown
+  //  with different expressions?"
+  //
+  //  The rig answers that now — 26 expressions, sparkles, and limbs that move.
+  //  So there is no implicit overlay any more: it appears ONLY when a caller
+  //  explicitly asks for one, and nothing in the app currently does.
+  const overlay = moment == null ? null : getMomentLottie(moment);
+  const showOverlay = !reduce && overlay != null;
 
   return (
     <View style={[{ width: size, height: size }, styles.center, style]}>

@@ -1830,7 +1830,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   weekAhead: {
-    marginBottom: Spacing.base,
+    marginBottom: Spacing.sectionGap,
   },
   phaseSummary: {
     flexDirection: 'row',
@@ -1893,6 +1893,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     justifyContent: 'center',
     marginTop: Spacing.base,
+    // The legend had NO bottom margin, so its last chip row sat flush against
+    // "The week ahead" and the two blocks' edges touched (device-test-19).
+    // Sections on this screen are separated by `sectionGap`, not by whatever
+    // margin the previous block happened to leave behind.
+    marginBottom: Spacing.sectionGap,
   },
   legendChip: {
     flexDirection: 'row',

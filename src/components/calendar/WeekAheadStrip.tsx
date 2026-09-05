@@ -97,7 +97,11 @@ function phaseShort(p: Phase): string {
 
 const styles = StyleSheet.create({
   heading: { ...Typography.preset.h4, marginBottom: Spacing.sm },
-  row: { gap: Spacing.sm, paddingRight: Spacing.sm, paddingBottom: 2 },
+  // A floating action button sits over the right-hand end of this strip, so
+  // the last card could never be scrolled clear of it — it was permanently
+  // half-covered (device-test-19). The trailing pad is FAB-sized so the strip
+  // can always be scrolled to a position where every day is readable.
+  row: { gap: Spacing.sm, paddingRight: Spacing['4xl'], paddingBottom: 2 },
   card: {
     width: 96,
     borderWidth: 1.5,

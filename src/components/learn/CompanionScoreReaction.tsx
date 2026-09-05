@@ -122,18 +122,16 @@ export function CompanionScoreReaction({
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={r.headline}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={charStyle}>
-          {/* The real animated character, with the emotion layered over it.
-              A PERFECT run gets the 🤯 moment animation on top — visibly a
-              bigger event than the 🎉 an 80% gets, which is the whole point of
-              a top-of-the-ladder reaction. Reduce Motion falls back to the
-              drawn rig holding a still 'mindblown' pose (see CompanionLottie). */}
-          <CompanionLottie
-            type={companionType}
-            state={r.state}
-            size={size}
-            loop={!excited}
-            moment={score >= 1 ? 'quiz_perfect' : score >= 0.8 ? 'confetti' : null}
-          />
+          {/* The companion IS the reaction (device-test-19).
+
+              A 🤯 Lottie used to sit on top of it for a perfect run, so the
+              emoji did the celebrating while the drawn character stood behind
+              it — which is exactly the thing the rig was built to stop. The
+              ladder is carried by the rig's own face and body now: `mindblown`
+              at 100% blows its eyes wide, opens its jaw, throws both arms up
+              and fans sparkles over its head; `celebrate` at 80% is visibly
+              smaller; `encourage` and `cozy` below that. No badge. */}
+          <CompanionLottie type={companionType} state={r.state} size={size} loop={!excited} />
         </Animated.View>
         {/* The emoji badge that used to ride here (🤯/🎉/💪/🫂) is gone. It
             existed to carry an emotion the old emoji companion could not show;

@@ -313,8 +313,16 @@ export default function LessonDetailScreen() {
           ))}
         </View>
 
-        {/* Complete CTA — compact when already done (owner: don't hog space) */}
-        {isComplete ? (
+        {/* Complete CTA — compact when already done (owner: don't hog space).
+
+            HIDDEN WHILE THE CELEBRATION DIALOG IS UP (device-test-19). Finishing
+            a lesson flipped `isComplete` AND opened the dialog in the same
+            commit, so the screen showed "Practice ✨" in the dialog and
+            "Practice →" on the page behind it at the same time — two buttons
+            for one action, which is just a question the user has to answer
+            twice. The dialog owns the moment; this row is what is waiting for
+            them when they come back to the lesson later. */}
+        {dialog !== null ? null : isComplete ? (
           <View style={styles.completeRow}>
             <View style={[styles.donePill, { backgroundColor: `${AURORA_SUCCESS}22`, borderColor: AURORA_SUCCESS }]}>
               <Text style={[styles.donePillText, { color: AURORA_SUCCESS }]}>✓ Completed</Text>

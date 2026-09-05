@@ -189,7 +189,17 @@ export default function CheckInScreen() {
         </ScrollView>
 
         {/* Bottom action bar */}
-        <View style={[styles.actionBar, { backgroundColor: palette.ground, borderTopColor: palette.glass.edge }]}>
+        <View
+          style={[
+            styles.actionBar,
+            {
+              backgroundColor: palette.ground,
+              borderTopColor: palette.glass.edge,
+              // See device-test-19: pinned bars clear the nav bar themselves.
+              paddingBottom: insets.bottom + Spacing.lg,
+            },
+          ]}
+        >
           <Pressable
             onPress={() => router.back()}
             style={({ pressed }) => [

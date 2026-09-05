@@ -41,19 +41,32 @@ import { CompanionLottie } from '../ui';
 import type { CompanionAnim } from '../../content/companion-lottie';
 import type { CompanionType } from '../../types/content.types';
 
-// Rotating headlines keep repeated answers from feeling canned.
-const CORRECT_HEADLINES = ['Correct!', 'Nailed it!', 'Yes! 🎉', 'Brilliant!', 'Spot on!'];
-const WRONG_HEADLINES = ['Good try!', 'Almost!', 'Not quite —', 'So close!', "That's okay!"];
-
-
-function pick<T>(arr: T[], seed: number): T {
-  return arr[Math.abs(seed) % arr.length]!;
-}
+// ─── ONE VOICE (device-test-16, device-test-19) ──────────────────────
+//
+//  This component owned two headline pools of its own — "Nailed it!", "Good
+//  try!" — while the panel underneath rendered a SECOND, smaller companion
+//  speaking a line from the dialogue engine's pools, with its own confetti.
+//  So a single answer produced two faces, two congratulations and two bursts
+//  of confetti stacked on top of each other. That is the "cluttered, and you
+//  can't tell who is talking" the owner reported in DT16 and again in DT19.
+//
+//  Both pools are gone. The headline is what the companion actually says
+//  (`reaction.opener`), passed in by the screen, and the expression is the one
+//  the engine chose for that beat — so a comeback looks different from a lucky
+//  guess, which it should.
 
 export interface QuizAnswerReactionProps {
   companionType: CompanionType;
   correct: boolean;
-  /** Varies the headline so repeats don't feel canned (e.g. question index). */
+  /**
+   * The companion's line, from `reactTo()`. Required: there is no fallback
+   * pool here any more, because a second pool is how the screen ended up
+   * saying two different things at once.
+   */
+  headline: string;
+  /** The face for this beat, from `reactTo().expression`. */
+  state: CompanionAnim;
+  /** Re-plays the entrance animation when it changes (e.g. question index). */
   seed?: number;
   size?: number;
   headlineColor: string;
@@ -62,14 +75,13 @@ export interface QuizAnswerReactionProps {
 export function QuizAnswerReaction({
   companionType,
   correct,
+  headline,
+  state,
   seed = 0,
   size = 96,
   headlineColor,
 }: QuizAnswerReactionProps): JSX.Element {
   const reduce = useReducedMotion();
-
-  const state: CompanionAnim = correct ? 'celebrate' : 'cozy';
-  const headline = correct ? pick(CORRECT_HEADLINES, seed) : pick(WRONG_HEADLINES, seed);
 
   const pop = useSharedValue(reduce ? 1 : 0);
   const bob = useSharedValue(0);
