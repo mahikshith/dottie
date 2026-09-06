@@ -49,7 +49,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { CompanionType } from '../../../types/content.types';
 import { expressionFor, type CreatureState } from './expressions';
-import { creatureShapes, SPECIES, EYE, JOINTS, ARM_POSE, type Limb, type Shape } from './geometry';
+import { creatureShapes, SPECIES, eyeMetrics, JOINTS, ARM_POSE, type Limb, type Shape } from './geometry';
 import { voiceFor } from '../../../engine/learn/companion-voice';
 
 export interface CompanionCreatureProps {
@@ -122,13 +122,43 @@ export function CompanionCreature({
     return out;
   }, [shapes]);
   const [armLBase, armRBase] = ARM_POSE[expr.armPose];
+  /** Where this species' eyes actually are, for the blink lids. */
+  const lid = useMemo(() => eyeMetrics(type), [type]);
 
   // ── Rig ────────────────────────────────────────────────────────
   const bob = useSharedValue(0);
   const sway = useSharedValue(0);
-  const squash = useSharedValue(0);
   const blink = useSharedValue(1); // 1 = open
   const flap = useSharedValue(0);
+  /**
+   * The jump timeline, -1 (deep crouch) … 0 (standing) … 1 (top of the leap).
+   *
+   * ─── WHY THIS REPLACED A SINE (device-test-26) ────────────────────
+   *
+   *  The old idle was a sine wave on translateY with a separate sine on
+   *  scale. Nothing in it had WEIGHT: the creature rose and fell at a constant
+   *  speed, never crouched before leaving the ground, never landed heavily,
+   *  never wobbled after stopping. That is the whole difference between "it
+   *  moves" and "it is alive", and it is why the owner kept saying the
+   *  companions were not properly animated while looking at drawings that were
+   *  actually fine.
+   *
+   *  So a happy companion now runs the animator's beat sheet:
+   *
+   *     crouch (anticipation) → launch → hang → land hard (squash) → settle
+   *
+   *  with the settle overshooting slightly and easing back, and the squash
+   *  DERIVED from this one value so the body is always widest at the moment it
+   *  is lowest. One timeline, physically coherent, no two curves to keep in
+   *  step.
+   */
+  const hop = useSharedValue(0);
+  /**
+   * The same swing, a beat late. Ears and tails are not rigidly attached to a
+   * body: they arrive after it does and carry on after it stops. Everything
+   * light on the character reads this instead of `swing`.
+   */
+  const lag = useSharedValue(0);
 
   /**
    * Per-companion body language (device-test-22).
@@ -147,36 +177,68 @@ export function CompanionCreature({
   // whole thing stays in step without four separate timelines to keep aligned.
   const swing = useSharedValue(0);
 
+  /**
+   * A per-companion phase offset, so six of them in a picker row are not a
+   * chorus line. Derived from the name, so it is stable across renders.
+   */
+  const phase = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < type.length; i++) h = (h * 31 + type.charCodeAt(i)) % 997;
+    return (h / 997) * 600;
+  }, [type]);
+
+  /** Above this, the idle is a JUMP; below it, a breath. */
+  const jumpy = expr.bounce >= 0.9;
+
   useEffect(() => {
     if (reduce) {
-      bob.value = 0; sway.value = 0; squash.value = 0; blink.value = 1; flap.value = 0; swing.value = 0;
+      bob.value = 0; sway.value = 0; hop.value = 0; blink.value = 1; flap.value = 0;
+      swing.value = 0; lag.value = 0;
       return;
     }
+    // The beat sheet. Percentages of one cycle: 22% gathering, 34% going up,
+    // 20% hanging at the top (hang time is what sells a jump), 24% falling and
+    // landing, then a settle that overshoots and eases back.
+    const beats = () =>
+      withSequence(
+        withTiming(-0.55, { duration: period * 0.22, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: period * 0.34, easing: Easing.out(Easing.cubic) }),
+        withTiming(0.88, { duration: period * 0.2, easing: Easing.inOut(Easing.sin) }),
+        withTiming(-0.7, { duration: period * 0.24, easing: Easing.in(Easing.cubic) }),
+        withTiming(0, { duration: period * 0.42, easing: Easing.elastic(1.15) }),
+      );
+    // A breath: slow, shallow, and asymmetric — in quickly, out slowly, which
+    // is how breathing actually looks.
+    const breath = () =>
+      withSequence(
+        withTiming(0.35, { duration: period * 0.8, easing: Easing.out(Easing.sin) }),
+        withTiming(-0.12, { duration: period * 1.25, easing: Easing.inOut(Easing.sin) }),
+      );
+    hop.value = withDelay(phase, withRepeat(jumpy ? beats() : breath(), -1, false));
+
     bob.value = withRepeat(
       withSequence(
         withTiming(-1, { duration: period, easing: Easing.inOut(Easing.sin) }),
         withTiming(1, { duration: period, easing: Easing.inOut(Easing.sin) })
       ), -1, true
     );
-    sway.value = withRepeat(
+    sway.value = withDelay(phase, withRepeat(
       withTiming(1, { duration: period * 2.6, easing: Easing.inOut(Easing.sin) }), -1, true
-    );
-    squash.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: period * 0.5, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: period * 0.5, easing: Easing.in(Easing.quad) })
-      ), -1, true
-    );
-    swing.value = withRepeat(
+    ));
+    const swingSeq = () =>
       withSequence(
         withTiming(1, { duration: period * 0.9, easing: Easing.inOut(Easing.sin) }),
         withTiming(-1, { duration: period * 0.9, easing: Easing.inOut(Easing.sin) })
-      ), -1, true
-    );
+      );
+    swing.value = withDelay(phase, withRepeat(swingSeq(), -1, true));
+    // The lag is the same wave started a fifth of a cycle later. Because the
+    // delay is applied ONCE, outside the repeat, the offset is permanent —
+    // which is exactly the overlapping action we want and costs nothing.
+    lag.value = withDelay(phase + period * 0.22, withRepeat(swingSeq(), -1, true));
     flap.value = withRepeat(
       withTiming(1, { duration: sp.wings ? 260 / (expr.tempo * motion.tempo) : period, easing: Easing.inOut(Easing.sin) }), -1, true
     );
-  }, [reduce, period, expr.tempo, motion.tempo, sp.wings, bob, sway, squash, flap, swing]);
+  }, [reduce, period, phase, jumpy, expr.tempo, motion.tempo, sp.wings, bob, sway, hop, flap, swing, lag]);
 
   // Blinking on its own irregular rhythm — a periodic blink looks mechanical.
   useEffect(() => {
@@ -193,15 +255,24 @@ export function CompanionCreature({
     return () => clearInterval(id);
   }, [reduce, expr.eyeArc, expr.eyeOpen, blink]);
 
-  const bodyStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: bob.value * 3.2 * bounceGain },
-      { translateX: (sway.value - 0.5) * 5 * bounceGain },
-      { rotate: `${expr.tilt + (sway.value - 0.5) * 4}deg` },
-      { scaleY: 1 - squash.value * 0.05 * bounceGain },
-      { scaleX: 1 + squash.value * 0.05 * bounceGain },
-    ],
-  }));
+  const bodyStyle = useAnimatedStyle(() => {
+    // Everything below is derived from ONE value, so the character can never
+    // be stretched while airborne and squashed while rising — the incoherence
+    // that made the old two-sine rig read as a bouncing sticker.
+    const air = Math.max(0, hop.value);
+    const crouch = Math.max(0, -hop.value);
+    return {
+      transform: [
+        { translateY: (-air * 9 + crouch * 3.4) * bounceGain },
+        { translateX: (sway.value - 0.5) * 5 * bounceGain },
+        { rotate: `${expr.tilt + (sway.value - 0.5) * 4}deg` },
+        // Widest at the bottom of the crouch and the moment of landing,
+        // tallest at the top of the leap. Volume is roughly conserved.
+        { scaleY: 1 + air * 0.07 * bounceGain - crouch * 0.12 * bounceGain },
+        { scaleX: 1 - air * 0.05 * bounceGain + crouch * 0.1 * bounceGain },
+      ],
+    };
+  });
 
   const S = size;
   const eyeLid = useAnimatedStyle(() => ({ opacity: 1 - blink.value }));
@@ -243,11 +314,25 @@ export function CompanionCreature({
   const legRStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${swing.value * 9 * gain}deg` }],
   }));
+  // ─── FOLLOW-THROUGH (device-test-26) ────────────────────────────
+  //
+  //  A tail and a pair of ears are not welded to the skull. They read `lag`,
+  //  the same wave a fifth of a cycle late, so they arrive after the body and
+  //  keep going after it stops. It is the cheapest trick in animation and the
+  //  most missed: without it, a character reads as one rigid cut-out no matter
+  //  how much the body moves.
   const tailStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${swing.value * 16 * gain}deg` }],
+    transform: [{ rotate: `${lag.value * 20 * gain - Math.max(0, hop.value) * 8 * gain}deg` }],
+  }));
+  const earLStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${-lag.value * 9 * gain - Math.max(0, hop.value) * 5 * gain}deg` }],
+  }));
+  const earRStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${lag.value * 9 * gain + Math.max(0, hop.value) * 5 * gain}deg` }],
   }));
   const LIMB_STYLE: Partial<Record<Limb, ReturnType<typeof useAnimatedStyle>>> = {
-    armL: armLStyle, armR: armRStyle, legL: legLStyle, legR: legRStyle, tail: tailStyle,
+    armL: armLStyle, armR: armRStyle, legL: legLStyle, legR: legRStyle,
+    tail: tailStyle, earL: earLStyle, earR: earRStyle,
   };
 
   /**
@@ -348,10 +433,13 @@ export function CompanionCreature({
       {!expr.eyeArc && expr.eyeOpen >= 0.3 && (
         <Animated.View style={[StyleSheet.absoluteFill, eyeLid]} pointerEvents="none">
           <Svg width={S} height={S} viewBox="0 0 100 100">
+            {/* Per-species, because the eyes now sit on that species' own head
+                (device-test-26) — a lid drawn at the reference position missed
+                the deer's eyes by three pixels and blinked next to its face. */}
             {!expr.winkLeft && (
-              <Ellipse cx={EYE.lx} cy={EYE.cy} rx={EYE.rx0 + 1.6} ry={EYE.ry0 + 1.2} fill={sp.fur} />
+              <Ellipse cx={lid.lx} cy={lid.cy} rx={lid.rx + 1.8} ry={lid.ry + 1.4} fill={sp.fur} />
             )}
-            <Ellipse cx={EYE.rx} cy={EYE.cy} rx={EYE.rx0 + 1.6} ry={EYE.ry0 + 1.2} fill={sp.fur} />
+            <Ellipse cx={lid.rx0} cy={lid.cy} rx={lid.rx + 1.8} ry={lid.ry + 1.4} fill={sp.fur} />
           </Svg>
         </Animated.View>
       )}

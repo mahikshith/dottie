@@ -92,13 +92,13 @@ export type Limb = 'armL' | 'armR' | 'legL' | 'legR' | 'tail' | 'earL' | 'earR';
 
 /** Where each limb pivots. Shoulders, hips, and the base of the tail. */
 export const JOINTS: Record<Limb, readonly [number, number]> = {
-  armL: [34, 56],
-  armR: [66, 56],
-  legL: [45.5, 68],
-  legR: [54.5, 68],
-  tail: [66, 70],
-  earL: [42, 22],
-  earR: [58, 22],
+  armL: [36, 60],
+  armR: [64, 60],
+  legL: [45, 75],
+  legR: [55, 75],
+  tail: [64, 76],
+  earL: [43, 18],
+  earR: [57, 18],
 };
 
 export interface BaseShape {
@@ -169,55 +169,146 @@ export interface Species {
 
 export const SPECIES: Record<CompanionType, Species> = {
   fox: {
-    fur: '#F2914A', furDark: '#C9611F', belly: '#FFF3E6', accent: '#FFD8B8',
+    fur: '#FF9A3C', furDark: '#D65E14', belly: '#FFEBD6', accent: '#FFC49A',
     ink: '#2E2438', ear: 'pointy', tail: 'bushy', face: 'muzzle', spots: false, wings: false, petals: false, tuft: true,
   },
   bunny: {
-    fur: '#E9E2F5', furDark: '#BCAFD6', belly: '#FFFFFF', accent: '#FFB7CE',
+    fur: '#EDE5FF', furDark: '#B9A6E4', belly: '#FFFFFF', accent: '#FFA9C6',
     ink: '#3A3050', ear: 'long', tail: 'puff', face: 'muzzle', spots: false, wings: false, petals: false, tuft: false,
   },
   // `butterfly` keeps its ID so nobody's saved companion breaks, but it is
   // drawn as a DEER. It has soft leaf ears and a forehead tuft — and
   // deliberately NO antler nubs, which is what DT16 got wrong.
   butterfly: {
-    fur: '#BCA4FF', furDark: '#8468E0', belly: '#F5F0FF', accent: '#FFD98A',
-    ink: '#2E2438', ear: 'leaf', tail: 'none', face: 'muzzle', spots: true, wings: false, petals: false, tuft: true,
+    fur: '#B99BFF', furDark: '#7A5AE0', belly: '#F3ECFF', accent: '#FFD27A',
+    ink: '#2E2438', ear: 'leaf', tail: 'none', face: 'muzzle', spots: true, wings: false, petals: false, tuft: false,
   },
   cat: {
-    fur: '#6B6486', furDark: '#433D5E', belly: '#EFEBF9', accent: '#FFC98A',
+    fur: '#6E63AE', furDark: '#3D3474', belly: '#EDE9FC', accent: '#FFC489',
     ink: '#241E36', ear: 'pointy', tail: 'thin', face: 'muzzle', spots: false, wings: false, petals: false, tuft: false,
   },
   owl: {
-    fur: '#CFA274', furDark: '#9A7346', belly: '#FBEEDC', accent: '#FFD08A',
-    ink: '#3A2A1E', ear: 'tufted', tail: 'none', face: 'beak', spots: false, wings: true, petals: false, tuft: false,
+    fur: '#D99A52', furDark: '#8A5A28', belly: '#FFF6E6', accent: '#FFB43C',
+    ink: '#3A2A1E', ear: 'none', tail: 'none', face: 'beak', spots: false, wings: true, petals: false, tuft: false,
   },
   blossom: {
-    fur: '#FF97B6', furDark: '#E76A92', belly: '#FFF2F6', accent: '#FFE08A',
+    fur: '#FF8FBE', furDark: '#E05A94', belly: '#FFE9F2', accent: '#FFDC8A',
     ink: '#43263A', ear: 'none', tail: 'none', face: 'muzzle', spots: false, wings: false, petals: true, tuft: false,
   },
 };
 
 // ─── PROPORTIONS ─────────────────────────────────────────────────────
 //
-// A chibi build: a big head on a SMALLER body, joined by a visible neck. The
-// head is wider than the body at every height, so the silhouette reads
-// head → neck → shoulders → belly → feet. The old rig had a body as wide as
-// the head directly beneath it, which is a thorax/abdomen and why it read
-// as an insect no matter what the face did.
+// ─── WHAT WAS WRONG (device-test-26) ────────────────────────────────
+//
+//  "Okayish, not fun." Correct, and the reason is measurable: every species
+//  shared ONE head circle, ONE body path and ONE face layout, and differed
+//  only by ear shape, tail and hue. That is six colourways of a single plush
+//  toy, and no amount of expression work fixes it, because the thing you
+//  recognise first — the silhouette — was identical for all six.
+//
+//  Two changes:
+//
+//  1. APPEAL PROPORTIONS. Head r 22 → 25 on a NARROWER body, eyes half again
+//     as big. Big head, big eyes, small body is the whole of chibi appeal and
+//     ours was timid on all three counts.
+//  2. A PER-SPECIES BUILD. Each companion carries its own head size and
+//     position, body width, leg length, stance and props, so a leggy fawn, a
+//     squat owl and a slim cat are different SHAPES before a single colour is
+//     applied. That is what survives at 28 pixels in a tab bar.
+//
+//  Everything below is expressed in terms of the build, so changing one
+//  number moves the ears, the face and the limbs together instead of leaving
+//  a face floating off a skull.
 
-/** Head centre and radius. */
-export const HEAD = { cx: 50, cy: 37, r: 22 } as const;
-/** Eye centres. 17 apart on a 44-wide head — 0.39, a mammal ratio. */
-export const EYE = { lx: 41.5, rx: 58.5, cy: 39.5, rx0: 5.0, ry0: 6.2 } as const;
-/** The body's widest half-width, and where it starts and stops. */
-export const BODY = { top: 48, bottom: 76, halfWidth: 18 } as const;
+/** The reference head. Every species scales from here. */
+export const HEAD = { cx: 50, cy: 34, r: 25 } as const;
+/** Eye centres on the reference head. 18 apart on 50 wide — 0.36, a mammal ratio. */
+export const EYE = { lx: 41, rx: 59, cy: 37.5, rx0: 6.6, ry0: 8 } as const;
+/** The reference body. Never as wide as the head. */
+export const BODY = { top: 54, bottom: 82, halfWidth: 15 } as const;
 
 /**
- * The body outline. Narrow at the shoulders, widest low, tucked at the base —
- * a pear, not an oval. It is never wider than the head.
+ * One companion's build. This is the silhouette; the colours are decoration.
  */
-const BODY_PATH =
-  'M50 48 C40 48 33 55 32 63 C31 71 39 76 50 76 C61 76 69 71 68 63 C67 55 60 48 50 48 Z';
+export interface Build {
+  headR: number;
+  headCy: number;
+  bodyTop: number;
+  bodyBottom: number;
+  halfWidth: number;
+  /** Hip and foot height. A leggy fawn and a squat owl are mostly these two. */
+  hipY: number;
+  footY: number;
+  /** How far apart the feet plant, either side of the midline. */
+  stance: number;
+  /** Shoulder height for the arms. */
+  shoulderY: number;
+  /** Limb thickness. A chunky owl and a delicate deer differ here too. */
+  limbW: number;
+}
+
+export const BUILD: Record<CompanionType, Build> = {
+  // Slim and alert, with the tail doing the talking.
+  fox: { headR: 25, headCy: 35, bodyTop: 56, bodyBottom: 82, halfWidth: 13.5,
+    hipY: 75, footY: 90, stance: 8.5, shoulderY: 61, limbW: 8 },
+  // Sits lower so the ears have room — one of them flops, which is the whole
+  // character in one number.
+  bunny: { headR: 23, headCy: 38, bodyTop: 58, bodyBottom: 84, halfWidth: 14,
+    hipY: 77, footY: 91, stance: 8, shoulderY: 63, limbW: 8 },
+  // The fawn: smaller head, long legs, high hips. Reads as a different animal
+  // from across the room, which the old build never did.
+  butterfly: { headR: 22.5, headCy: 31, bodyTop: 50, bodyBottom: 74, halfWidth: 11.5,
+    hipY: 68, footY: 92, stance: 10, shoulderY: 55, limbW: 6.5 },
+  // Long and lean, tail curled high.
+  cat: { headR: 24.5, headCy: 34, bodyTop: 55, bodyBottom: 81, halfWidth: 12.5,
+    hipY: 74, footY: 90, stance: 7.5, shoulderY: 60, limbW: 7.5 },
+  // Squat and wide, almost no legs — an owl is a barrel with a face.
+  owl: { headR: 25.5, headCy: 33, bodyTop: 52, bodyBottom: 85, halfWidth: 19,
+    hipY: 80, footY: 91, stance: 11, shoulderY: 60, limbW: 9 },
+  // Round and soft, the petal crown widening the top of the silhouette.
+  blossom: { headR: 24.5, headCy: 36, bodyTop: 57, bodyBottom: 83, halfWidth: 15,
+    hipY: 76, footY: 90, stance: 9, shoulderY: 62, limbW: 8.5 },
+};
+
+/**
+ * The body outline: narrow at the shoulders, widest low, tucked at the base.
+ * A pear, never an oval, and never wider than the head.
+ */
+function bodyPath(b: Build): string {
+  const w = b.halfWidth;
+  const t = b.bodyTop;
+  const h = b.bodyBottom - b.bodyTop;
+  const r = (n: number): number => Math.round(n * 10) / 10;
+  return (
+    `M50 ${r(t)} ` +
+    `C${r(50 - w * 0.72)} ${r(t + h * 0.04)} ${r(50 - w)} ${r(t + h * 0.38)} ${r(50 - w)} ${r(t + h * 0.63)} ` +
+    `C${r(50 - w)} ${r(t + h * 0.93)} ${r(50 - w * 0.6)} ${r(b.bodyBottom)} 50 ${r(b.bodyBottom)} ` +
+    `C${r(50 + w * 0.6)} ${r(b.bodyBottom)} ${r(50 + w)} ${r(t + h * 0.93)} ${r(50 + w)} ${r(t + h * 0.63)} ` +
+    `C${r(50 + w)} ${r(t + h * 0.38)} ${r(50 + w * 0.72)} ${r(t + h * 0.04)} 50 ${r(t)} Z`
+  );
+}
+
+/**
+ * Where one species' eyes sit and how big they are.
+ *
+ * The face is built from the species' own head now, so anything drawing OVER
+ * the face — the blink lids in the rig — has to ask rather than assume the
+ * reference head. A lid at the reference position blinked beside the deer's
+ * eyes instead of over them (device-test-26).
+ */
+export function eyeMetrics(type: CompanionType): {
+  lx: number; rx0: number; cy: number; rx: number; ry: number;
+} {
+  const b = BUILD[type];
+  return {
+    lx: 50 - b.headR * 0.72,
+    rx0: 50 + b.headR * 0.72,
+    cy: b.headCy + b.headR * 0.14,
+    rx: b.headR * 0.265,
+    ry: b.headR * 0.32,
+  };
+}
 
 // ─── BUILDING ONE COMPANION ──────────────────────────────────────────
 
@@ -229,14 +320,15 @@ const BODY_PATH =
  */
 export function creatureShapes(type: CompanionType, expr: Expression): Shape[] {
   const sp = SPECIES[type];
+  const b = BUILD[type];
   return [
-    ...groundShapes(sp),
+    ...groundShapes(sp, b),
     ...sparkleShapes(expr.sparkles, sp.accent),
-    ...behindShapes(sp),
-    ...bodyShapes(sp),
-    ...armShapes(sp),
-    ...headShapes(sp),
-    ...faceShapes(sp, expr),
+    ...behindShapes(sp, b),
+    ...bodyShapes(sp, b),
+    ...armShapes(sp, b),
+    ...headShapes(sp, b),
+    ...faceShapes(sp, b, expr),
   ];
 }
 
@@ -247,341 +339,468 @@ export function creatureShapes(type: CompanionType, expr: Expression): Shape[] {
  * "not six legs" cue in the whole rig, and until DT18 there were no legs at
  * all — just two detached foot-ellipses under a body that reached the floor.
  */
-function groundShapes(sp: Species): Shape[] {
-  // The leg starts at y=68 — well INSIDE the body, whose outline reaches 76 —
-  // so the joint is buried and the limb reads as growing out of the hip rather
-  // than being parked underneath it. It is also thicker than the first attempt:
-  // a 7px line under a 36px-wide body looked like a detached stick
-  // (device-test-19, "the legs are not properly attached").
+function groundShapes(sp: Species, b: Build): Shape[] {
+  // The leg starts INSIDE the body outline, so the joint is buried and the
+  // limb reads as growing out of the hip rather than parked underneath it.
   const leg = (limb: 'legL' | 'legR', hx: number, fx: number): Shape[] => [
-    { k: 'path', limb, role: 'leg', d: `M${hx} 68 Q${hx} 79 ${fx} 86`, stroke: sp.fur, sw: 9.5 },
-    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 89, rx: 7.4, ry: 4.2, fill: sp.furDark, opacity: 0.95 },
-    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: 89.5, rx: 4, ry: 2.1, fill: sp.belly, opacity: 0.55 },
+    { k: 'path', limb, role: 'leg', d: `M${hx} ${b.hipY} Q${hx} ${b.footY - 4} ${fx} ${b.footY - 1}`, stroke: sp.fur, sw: b.limbW * 1.15 },
+    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: b.footY + 1.5, rx: b.limbW * 0.92, ry: b.limbW * 0.5, fill: sp.furDark, opacity: 0.95 },
+    { k: 'ellipse', limb, role: 'foot', cx: fx, cy: b.footY + 2, rx: b.limbW * 0.5, ry: b.limbW * 0.26, fill: sp.belly, opacity: 0.55 },
   ];
   return [
-    { k: 'ellipse', role: 'shadow', cx: 50, cy: 93.5, rx: 19, ry: 3, fill: '#000000', opacity: 0.16 },
-    ...leg('legL', 45.5, 42),
-    ...leg('legR', 54.5, 58),
+    { k: 'ellipse', role: 'shadow', cx: 50, cy: b.footY + 5, rx: b.halfWidth + 4, ry: 2.8, fill: '#000000', opacity: 0.16 },
+    ...leg('legL', 50 - b.stance * 0.55, 50 - b.stance),
+    ...leg('legR', 50 + b.stance * 0.55, 50 + b.stance),
   ];
 }
 
 /**
- * Arms, drawn hanging straight down from the shoulder.
+ * Arms, drawn hanging from the shoulder with a slight outward curve.
  *
  * The POSE is a rotation about the joint, applied by the rig — so this geometry
  * only ever has to describe one arm, and "hands on hips", "both up", "hand to
- * chin" are all the same two shapes at different angles. That is also what lets
- * the arms keep swinging while they hold a pose.
+ * chin" are all the same two shapes at different angles.
  */
-function armShapes(sp: Species): Shape[] {
-  // Rooted at y=56, inside the torso, and ending at 74 — just short of the
-  // body's own bottom edge (76). The first version hung to 81.5, so the lower
-  // half of every arm dangled OUTSIDE the silhouette with nothing behind it and
-  // read as a floating pill.
-  const arm = (limb: 'armL' | 'armR', sx: number, hx: number): Shape[] => [
-    { k: 'path', limb, role: 'arm', d: `M${sx} 56 Q${hx} 65 ${hx} 74`, stroke: sp.fur, sw: 8 },
-    { k: 'circle', limb, role: 'hand', cx: hx, cy: 75.5, r: 5, fill: sp.furDark, opacity: 0.95 },
-  ];
-  return [...arm('armL', 35, 32), ...arm('armR', 65, 68)];
+function armShapes(sp: Species, b: Build): Shape[] {
+  const handY = b.bodyBottom - 4;
+  const arm = (limb: 'armL' | 'armR', dir: -1 | 1): Shape[] => {
+    const sx = 50 + dir * (b.halfWidth - 1);
+    const hx = 50 + dir * (b.halfWidth + 2.5);
+    return [
+      { k: 'path', limb, role: 'arm', d: `M${sx} ${b.shoulderY} Q${hx} ${b.shoulderY + 7} ${hx} ${handY}`, stroke: sp.fur, sw: b.limbW },
+      { k: 'circle', limb, role: 'hand', cx: hx, cy: handY + 1.5, r: b.limbW * 0.62, fill: sp.furDark, opacity: 0.95 },
+    ];
+  };
+  return [...arm('armL', -1), ...arm('armR', 1)];
 }
 
 /** Tail, petals, ears — everything drawn BEHIND the body and head. */
-function behindShapes(sp: Species): Shape[] {
+function behindShapes(sp: Species, b: Build): Shape[] {
   const out: Shape[] = [];
 
-  // Tail. Always on ONE side: the asymmetry is the point. A perfectly
-  // mirror-symmetric creature is read as a bug; one that leans is a character.
+  // Tail. Always on ONE side: the asymmetry is the point, and it now rides the
+  // `tail` limb so the rig can swing it a beat behind the body — follow-through
+  // is most of what separates "moves" from "alive".
   if (sp.tail === 'bushy') {
+    // The fox's tail is deliberately HUGE: nearly as big as its body, which is
+    // the single most recognisable thing about the character at any size.
     out.push({
-      k: 'path', role: 'tail',
-      d: 'M66 76 C79 80 89 71 87 60 C86 53 79 50 75 55 C71 60 76 65 80 62',
-      stroke: sp.fur, sw: 11, fill: 'none', opacity: 1,
+      k: 'path', limb: 'tail', role: 'tail',
+      d: 'M64 78 C82 82 94 70 90 56 C88 47 78 44 74 51 C70 58 78 64 83 60',
+      stroke: sp.fur, sw: 13, fill: 'none',
     });
     out.push({
-      k: 'path', role: 'tail',
-      d: 'M86 60 C86 54 80 51 76 55',
-      stroke: sp.belly, sw: 8, fill: 'none', opacity: 0.95,
+      k: 'path', limb: 'tail', role: 'tail',
+      d: 'M89 56 C88 48 80 45 76 51',
+      stroke: sp.belly, sw: 9, fill: 'none', opacity: 0.95,
     });
   }
   if (sp.tail === 'thin') {
+    // A cat's tail curls UP, not down — it is a question mark, and it gives the
+    // silhouette a second high point nothing else in the cast has.
     out.push({
-      k: 'path', role: 'tail',
-      d: 'M66 78 C80 79 88 70 85 60 C83 54 78 53 77 58',
-      stroke: sp.fur, sw: 5.5, fill: 'none',
+      k: 'path', limb: 'tail', role: 'tail',
+      d: 'M63 78 C80 80 90 68 86 54 C84 47 76 46 76 53',
+      stroke: sp.fur, sw: 6, fill: 'none',
+    });
+    out.push({
+      k: 'path', limb: 'tail', role: 'tail',
+      d: 'M86 54 C85 48 79 46 77 51',
+      stroke: sp.belly, sw: 4.5, fill: 'none', opacity: 0.9,
     });
   }
   if (sp.tail === 'puff') {
-    out.push({ k: 'circle', role: 'tail', cx: 72, cy: 79, r: 7.5, fill: sp.belly, opacity: 0.95 });
+    out.push({ k: 'circle', limb: 'tail', role: 'tail', cx: 50 + b.halfWidth + 3, cy: b.bodyBottom - 5, r: 8, fill: sp.belly, opacity: 0.97 });
   }
 
   // Petals — a CROWN over the head, not a ring around the whole body. The old
   // version rotated six petals about the body centre, so two of them sat down
   // by the feet and read as legs.
   if (sp.petals) {
-    for (const a of [-72, -36, 0, 36, 72]) {
+    const R = b.headR - 3;
+    for (const a of [-76, -38, 0, 38, 76]) {
       out.push({
         k: 'ellipse', role: 'petal',
-        cx: 50 + Math.sin((a * Math.PI) / 180) * 20,
-        cy: 37 - Math.cos((a * Math.PI) / 180) * 20,
-        rx: 10, ry: 13, fill: sp.fur, opacity: 0.97, rotate: a,
+        cx: 50 + Math.sin((a * Math.PI) / 180) * R,
+        cy: b.headCy - Math.cos((a * Math.PI) / 180) * R,
+        rx: 10.5, ry: 13.5, fill: sp.fur, opacity: 0.97, rotate: a,
+      });
+    }
+    // A darker inner ring so the crown reads as petals rather than a hedge.
+    for (const a of [-76, -38, 0, 38, 76]) {
+      out.push({
+        k: 'ellipse', role: 'petal',
+        cx: 50 + Math.sin((a * Math.PI) / 180) * (R - 2),
+        cy: b.headCy - Math.cos((a * Math.PI) / 180) * (R - 2),
+        rx: 5, ry: 6.5, fill: sp.furDark, opacity: 0.28, rotate: a,
       });
     }
   }
 
-  out.push(...earShapes(sp));
+  out.push(...earShapes(sp, b));
   return out;
 }
 
-function earShapes(sp: Species): Shape[] {
+/**
+ * Ears, anchored to the head rather than to absolute coordinates.
+ *
+ * They ride the `earL` / `earR` limbs, so the rig can flick them — an ear that
+ * lags the head turn by a frame is worth more than any amount of detail.
+ */
+function earShapes(sp: Species, b: Build): Shape[] {
+  const cy = b.headCy;
+  const R = b.headR;
+  const crown = cy - R;
   switch (sp.ear) {
-    case 'pointy':
-      // Rooted low on the head and rounded at the tip, so they read as ears
-      // rather than horns. Inner ear in accent, offset slightly inward.
-      return [
-        { k: 'path', role: 'ear', d: 'M33 24 Q28 8 45 17 Z', fill: sp.fur },
-        { k: 'path', role: 'ear', d: 'M67 24 Q72 8 55 17 Z', fill: sp.fur },
-        { k: 'path', role: 'ear', d: 'M35 23 Q32 13 43 18 Z', fill: sp.accent, opacity: 0.7 },
-        { k: 'path', role: 'ear', d: 'M65 23 Q68 13 57 18 Z', fill: sp.accent, opacity: 0.7 },
-      ];
+    case 'pointy': {
+      // Big triangular ears rooted wide on the skull. Bigger than before by
+      // half: timid ears on a big head is what made these read as bear cubs.
+      const ear = (limb: 'earL' | 'earR', dir: -1 | 1): Shape[] => {
+        const baseX = 50 + dir * R * 0.74;
+        const innerX = 50 + dir * R * 0.22;
+        const tipX = 50 + dir * R * 1.02;
+        return [
+          { k: 'path', limb, role: 'ear',
+            d: `M${baseX} ${cy - R * 0.5} Q${tipX} ${crown - R * 0.34} ${innerX} ${cy - R * 0.86} Z`,
+            fill: sp.fur },
+          { k: 'path', limb, role: 'ear',
+            d: `M${baseX + dir * 1.5} ${cy - R * 0.54} Q${tipX - dir * 2.5} ${crown - R * 0.14} ${innerX + dir * 1} ${cy - R * 0.8} Z`,
+            fill: sp.accent, opacity: 0.75 },
+        ];
+      };
+      return [...ear('earL', -1), ...ear('earR', 1)];
+    }
     case 'long':
+      // ONE EAR FLOPS. The cheapest character beat in the whole rig: a perfectly
+      // matched pair is a diagram, one ear over is a personality.
       return [
-        { k: 'ellipse', role: 'ear', cx: 41, cy: 13, rx: 6.2, ry: 13.5, fill: sp.fur, rotate: -11 },
-        { k: 'ellipse', role: 'ear', cx: 59, cy: 12, rx: 6.2, ry: 13.5, fill: sp.fur, rotate: 14 },
-        { k: 'ellipse', role: 'ear', cx: 41, cy: 14, rx: 3, ry: 9, fill: sp.accent, opacity: 0.8, rotate: -11 },
-        { k: 'ellipse', role: 'ear', cx: 59, cy: 13, rx: 3, ry: 9, fill: sp.accent, opacity: 0.8, rotate: 14 },
+        { k: 'ellipse', limb: 'earL', role: 'ear', cx: 50 - R * 0.42, cy: crown - 3, rx: 6.4, ry: 13.5, fill: sp.fur, rotate: -14 },
+        { k: 'ellipse', limb: 'earL', role: 'ear', cx: 50 - R * 0.42, cy: crown - 2, rx: 3.1, ry: 9, fill: sp.accent, opacity: 0.85, rotate: -14 },
+        { k: 'ellipse', limb: 'earR', role: 'ear', cx: 50 + R * 0.78, cy: crown + 4.5, rx: 6.2, ry: 12.5, fill: sp.fur, rotate: 52 },
+        { k: 'ellipse', limb: 'earR', role: 'ear', cx: 50 + R * 0.76, cy: crown + 4.5, rx: 3, ry: 8, fill: sp.accent, opacity: 0.85, rotate: 52 },
       ];
     case 'leaf':
-      // A doe's ears: big, tall ovals swept OUT to the sides, well clear of the
-      // skull. The first attempt kept them small and close, which just read as
-      // cat ears in a different colour. Deliberately no nubs above the crown —
-      // that was the DT16 antenna.
+      // A doe's ears: big tall ovals swept OUT to the sides, well clear of the
+      // skull, and deliberately no nubs above the crown — that was the DT16
+      // antenna. Bigger and lower than before so they frame the face.
       return [
-        { k: 'ellipse', role: 'ear', cx: 25, cy: 27, rx: 8, ry: 14, fill: sp.fur, rotate: -52 },
-        { k: 'ellipse', role: 'ear', cx: 75, cy: 26, rx: 8, ry: 14, fill: sp.fur, rotate: 48 },
-        { k: 'ellipse', role: 'ear', cx: 26, cy: 27, rx: 4, ry: 8.5, fill: sp.accent, opacity: 0.7, rotate: -52 },
-        { k: 'ellipse', role: 'ear', cx: 74, cy: 26, rx: 4, ry: 8.5, fill: sp.accent, opacity: 0.7, rotate: 48 },
+        { k: 'ellipse', limb: 'earL', role: 'ear', cx: 50 - R * 1.04, cy: cy - R * 0.34, rx: 8.5, ry: 14.5, fill: sp.fur, rotate: -56 },
+        { k: 'ellipse', limb: 'earL', role: 'ear', cx: 50 - R * 1.0, cy: cy - R * 0.32, rx: 4.2, ry: 9, fill: sp.accent, opacity: 0.75, rotate: -56 },
+        { k: 'ellipse', limb: 'earR', role: 'ear', cx: 50 + R * 1.04, cy: cy - R * 0.4, rx: 8.5, ry: 14.5, fill: sp.fur, rotate: 52 },
+        { k: 'ellipse', limb: 'earR', role: 'ear', cx: 50 + R * 1.0, cy: cy - R * 0.38, rx: 4.2, ry: 9, fill: sp.accent, opacity: 0.75, rotate: 52 },
       ];
-    case 'tufted':
-      // Horned-owl tufts: broad, soft, and overlapping the skull so they merge
-      // into the head outline. Narrow spikes on a round head are antennae.
-      return [
-        { k: 'ellipse', role: 'ear', cx: 35, cy: 20, rx: 9, ry: 7, fill: sp.fur, rotate: -26 },
-        { k: 'ellipse', role: 'ear', cx: 65, cy: 20, rx: 9, ry: 7, fill: sp.fur, rotate: 26 },
-      ];
+    case 'tufted': {
+      // Horned-owl tufts. The first version used ROUND ellipses, which on a
+      // round head is a teddy bear — the owl was read as one immediately
+      // (device-test-26). These are broad angled wedges instead: rooted wide on
+      // the skull, swept outward, blunt at the tip so they still are not spikes.
+      const tuft = (limb: 'earL' | 'earR', dir: -1 | 1): Shape[] => {
+        const base = 50 + dir * R * 0.5;
+        const out = 50 + dir * R * 1.06;
+        return [
+          { k: 'path', limb, role: 'ear',
+            d: `M${base} ${crown + 8} Q${out} ${crown - 5} ${50 + dir * R * 0.88} ${crown + 10} Z`,
+            fill: sp.fur },
+          { k: 'path', limb, role: 'ear',
+            d: `M${base + dir * 2} ${crown + 8} Q${out - dir * 2.5} ${crown - 1} ${50 + dir * R * 0.82} ${crown + 9.5} Z`,
+            fill: sp.furDark, opacity: 0.35 },
+        ];
+      };
+      return [...tuft('earL', -1), ...tuft('earR', 1)];
+    }
     default:
       return [];
   }
 }
 
-function bodyShapes(sp: Species): Shape[] {
+function bodyShapes(sp: Species, b: Build): Shape[] {
   const out: Shape[] = [
-    { k: 'path', role: 'body', d: BODY_PATH, fill: sp.fur },
-    { k: 'ellipse', role: 'belly', cx: 50, cy: 71, rx: 12.5, ry: 12, fill: sp.belly, opacity: 0.92 },
+    { k: 'path', role: 'body', d: bodyPath(b), fill: sp.fur },
   ];
+  // The belly patch sits low and wide — it is the second-biggest shape on the
+  // character and it reads as a chest, which is a mammal cue nothing else gives.
+  out.push({
+    k: 'ellipse', role: 'belly',
+    cx: 50, cy: b.bodyBottom - (b.bodyBottom - b.bodyTop) * 0.34,
+    rx: b.halfWidth * 0.82, ry: (b.bodyBottom - b.bodyTop) * 0.42,
+    fill: sp.belly, opacity: 0.92,
+  });
 
   // Fawn spots — scattered, uneven, and only on one flank. Two jobs: it says
   // "deer" faster than any silhouette change can, and the lopsided placement
   // breaks the mirror symmetry that made every one of these read as a bug.
   if (sp.spots) {
-    for (const [cx, cy, r] of [[37, 60, 2.7], [35, 70, 2.2], [41, 78, 1.9], [64, 63, 2.4], [66, 73, 1.8]] as const) {
-      out.push({ k: 'circle', role: 'belly', cx, cy, r, fill: sp.belly, opacity: 0.8 });
+    for (const [dx, dy, r] of [[-0.62, 0.24, 2.5], [-0.78, 0.56, 2], [-0.3, 0.86, 1.7], [0.66, 0.36, 2.2], [0.8, 0.68, 1.6]] as const) {
+      out.push({
+        k: 'circle', role: 'belly',
+        cx: 50 + dx * b.halfWidth,
+        cy: b.bodyTop + dy * (b.bodyBottom - b.bodyTop),
+        r, fill: '#FFFFFF', opacity: 0.62,
+      });
     }
   }
 
   // Owl wings. Crescents that FOLLOW the body outline at low contrast, so the
-  // silhouette stays one shape. The old pair were hard 85%-opacity ellipses
-  // standing off the midline — two mirrored dark limbs, which is the read we
-  // are trying to kill.
+  // silhouette stays one shape — plus the chest speckles that say "owl" before
+  // the beak does.
   if (sp.wings) {
+    const t = b.bodyTop + 4;
+    const bt = b.bodyBottom - 3;
     out.push(
-      { k: 'path', role: 'wing', d: 'M35 55 C30 62 30 74 36 83', stroke: sp.furDark, sw: 6, fill: 'none', opacity: 0.32 },
-      { k: 'path', role: 'wing', d: 'M65 55 C70 62 70 74 64 83', stroke: sp.furDark, sw: 6, fill: 'none', opacity: 0.32 },
+      { k: 'path', role: 'wing', d: `M${50 - b.halfWidth * 0.82} ${t} C${50 - b.halfWidth * 1.02} ${t + 12} ${50 - b.halfWidth * 0.96} ${bt - 6} ${50 - b.halfWidth * 0.6} ${bt}`, stroke: sp.furDark, sw: 7, fill: 'none', opacity: 0.38 },
+      { k: 'path', role: 'wing', d: `M${50 + b.halfWidth * 0.82} ${t} C${50 + b.halfWidth * 1.02} ${t + 12} ${50 + b.halfWidth * 0.96} ${bt - 6} ${50 + b.halfWidth * 0.6} ${bt}`, stroke: sp.furDark, sw: 7, fill: 'none', opacity: 0.38 },
     );
+    for (const [dx, dy] of [[-0.3, 0.5], [0.3, 0.5], [0, 0.66], [-0.3, 0.8], [0.3, 0.8]] as const) {
+      out.push({
+        k: 'ellipse', role: 'belly',
+        cx: 50 + dx * b.halfWidth, cy: b.bodyTop + dy * (b.bodyBottom - b.bodyTop),
+        rx: 2.2, ry: 1.5, fill: sp.furDark, opacity: 0.3,
+      });
+    }
   }
   return out;
 }
 
-function headShapes(sp: Species): Shape[] {
+function headShapes(sp: Species, b: Build): Shape[] {
   const out: Shape[] = [
-    { k: 'circle', role: 'head', cx: HEAD.cx, cy: HEAD.cy, r: HEAD.r, fill: sp.fur },
+    { k: 'circle', role: 'head', cx: 50, cy: b.headCy, r: b.headR, fill: sp.fur },
   ];
+
+  // The fox's cheek ruffs — two soft tufts at the jawline. They widen the
+  // bottom of the head, which is the difference between a fox and a bear cub.
+  if (sp.ear === 'pointy' && sp.tail === 'bushy') {
+    // Soft fur tufts at the JAW, in the fur colour with a lighter tip. The
+    // first pass put cream triangles at eye level, which read as paper darts
+    // stuck to the face (device-test-26).
+    const ruff = (dir: -1 | 1): Shape[] => {
+      const x = 50 + dir * b.headR * 0.78;
+      const y = b.headCy + b.headR * 0.42;
+      return [
+        { k: 'path', role: 'tuft',
+          d: `M${x} ${y - 4} Q${x + dir * 9} ${y + 2} ${x + dir * 1.5} ${y + 7} Z`,
+          fill: sp.fur },
+        { k: 'path', role: 'tuft',
+          d: `M${x + dir * 1.5} ${y - 2} Q${x + dir * 7.5} ${y + 2} ${x + dir * 2} ${y + 5} Z`,
+          fill: sp.belly, opacity: 0.7 },
+      ];
+    };
+    out.push(...ruff(-1), ...ruff(1));
+  }
+
   // An off-centre curl. One asymmetric mark does more to make this read as a
   // character than any amount of face-tuning.
   if (sp.tuft) {
+    // A cowlick, off-centre. The first version closed on itself and read as a
+    // metal handle bolted to the skull (device-test-26); this one is a filled
+    // tapered flick that starts INSIDE the head outline and thins to a point.
+    const cx = 50 - b.headR * 0.24;
+    const top = b.headCy - b.headR;
     out.push({
       k: 'path', role: 'tuft',
-      d: 'M45 16 C43 9 50 6 53 11',
-      stroke: sp.furDark, sw: 3.4, fill: 'none', opacity: 0.85,
+      d: `M${cx - 4} ${top + 7} Q${cx - 3} ${top - 1} ${cx + 8} ${top - 3.5} Q${cx + 1} ${top + 1.5} ${cx + 4} ${top + 6.5} Z`,
+      fill: sp.furDark, opacity: 0.85,
+    });
+  }
+
+  // Blossom's sprig: one leaf tucked at the side of the crown. Asymmetric, and
+  // it is the thing you spot first in a picker row.
+  if (sp.petals) {
+    out.push({
+      k: 'path', role: 'tuft',
+      d: `M${50 + b.headR * 0.86} ${b.headCy + 2} Q${50 + b.headR * 1.44} ${b.headCy - 1} ${50 + b.headR * 1.3} ${b.headCy + 9} Q${50 + b.headR * 0.98} ${b.headCy + 6} ${50 + b.headR * 0.86} ${b.headCy + 2} Z`,
+      fill: '#6FE6A8', opacity: 0.9,
     });
   }
   return out;
 }
 
-function faceShapes(sp: Species, expr: Expression): Shape[] {
+function faceShapes(sp: Species, b: Build, expr: Expression): Shape[] {
   const out: Shape[] = [];
-  const ry = EYE.ry0 * expr.eyeOpen;
+  // The face rides the head, so a species with a smaller skull gets a smaller
+  // face in the right place rather than a stock face floating on it.
+  const R = b.headR;
+  const cy = b.headCy;
+  const eyeY = cy + R * 0.14;
+  const eyeDx = R * 0.72;
+  const lx = 50 - eyeDx;
+  const rx = 50 + eyeDx;
+  const eyeRx = R * 0.265;
+  const eyeRyMax = R * 0.32;
+  const noseY = cy + R * 0.48;
+  const my = cy + R * 0.7;
+
+  const ry = eyeRyMax * expr.eyeOpen;
   // Gaze. The eye is a solid dark dome, so a look is drawn by shifting the
-  // whole eye plus its highlights a little — enough to read as "looking over
-  // there" at 28px, not so far it detaches from the socket.
-  // These multipliers were half this to begin with and the look was invisible
-  // at any size: the eye is a solid dome that fills its socket, so shifting it
-  // a unit changes nothing you can see. The catchlight carries most of it —
-  // it travels further than the eye does, which is what a real highlight does
-  // when a head turns.
+  // whole eye plus its highlights — the catchlight travels further than the
+  // eye does, which is what a real highlight does when a head turns.
   const gx = expr.gazeX * 2.9;
   const gy = expr.gazeY * 2.2;
   const hx = expr.gazeX * 1.6;
   const hy = expr.gazeY * 1.2;
 
   // ─── The owl gets a facial disc, not a snout ───────────────────────
-  //
-  // The first pass gave every species the mammal muzzle, so the owl came out
-  // as a small bear with the right ears. An owl is read from two things: the
-  // flat disc around the eyes and the beak between them.
   const beak = sp.face === 'beak';
   if (beak) {
+    // A barn owl's face is ONE pale heart-shaped mask covering most of the
+    // skull, not two grey discs — the first version read as swimming goggles,
+    // and with round ear tufts above it the whole character read as a bear cub
+    // for three device rounds (device-test-26). The mask plus the beak now
+    // carry the entire identity, and the ear tufts are gone.
     out.push(
-      { k: 'circle', role: 'belly', cx: EYE.lx - 0.5, cy: EYE.cy - 0.5, r: 11.5, fill: sp.belly, opacity: 0.55 },
-      { k: 'circle', role: 'belly', cx: EYE.rx + 0.5, cy: EYE.cy - 0.5, r: 11.5, fill: sp.belly, opacity: 0.55 },
+      { k: 'path', role: 'belly',
+        d: `M50 ${cy - R * 0.86} `
+          + `C${50 - R * 0.5} ${cy - R * 1.02} ${50 - R * 0.96} ${cy - R * 0.6} ${50 - R * 0.92} ${cy - R * 0.05} `
+          + `C${50 - R * 0.88} ${cy + R * 0.6} ${50 - R * 0.4} ${cy + R * 0.96} 50 ${cy + R * 0.98} `
+          + `C${50 + R * 0.4} ${cy + R * 0.96} ${50 + R * 0.88} ${cy + R * 0.6} ${50 + R * 0.92} ${cy - R * 0.05} `
+          + `C${50 + R * 0.96} ${cy - R * 0.6} ${50 + R * 0.5} ${cy - R * 1.02} 50 ${cy - R * 0.86} Z`,
+        fill: sp.belly, opacity: 0.93 },
+      // The dividing crease down the middle of the mask — the one line that
+      // says "barn owl" rather than "pale-faced animal".
+      { k: 'path', role: 'belly',
+        d: `M50 ${cy - R * 0.8} L50 ${cy + R * 0.1}`,
+        stroke: sp.furDark, sw: 1.4, opacity: 0.22 },
     );
   } else {
-    out.push({ k: 'ellipse', role: 'belly', cx: 50, cy: 48.5, rx: 10, ry: 7.5, fill: sp.belly, opacity: 0.5 });
+    out.push({ k: 'ellipse', role: 'belly', cx: 50, cy: cy + R * 0.55, rx: R * 0.44, ry: R * 0.33, fill: sp.belly, opacity: 0.5 });
   }
 
-  if (expr.blush > 0.02) {
-    out.push(
-      { k: 'ellipse', role: 'cheek', cx: 34.5, cy: 47.5, rx: 5.2, ry: 3.2, fill: sp.accent, opacity: expr.blush },
-      { k: 'ellipse', role: 'cheek', cx: 65.5, cy: 47.5, rx: 5.2, ry: 3.2, fill: sp.accent, opacity: expr.blush },
-    );
-  }
+  // Blush is on by DEFAULT now, quietly. Cheeks are free warmth, and a face
+  // with none reads as a diagram of a face (device-test-26).
+  const blush = Math.max(expr.blush, 0.22);
+  out.push(
+    { k: 'ellipse', role: 'cheek', cx: 50 - R * 0.68, cy: cy + R * 0.42, rx: R * 0.24, ry: R * 0.15, fill: sp.accent, opacity: blush },
+    { k: 'ellipse', role: 'cheek', cx: 50 + R * 0.68, cy: cy + R * 0.42, rx: R * 0.24, ry: R * 0.15, fill: sp.accent, opacity: blush },
+  );
 
   // ─── Brows ─────────────────────────────────────────────────────────
-  //
-  // Short, close above the eye, low contrast. The old ones were long floating
-  // strokes high on the skull, which read as antenna roots. `browSkew` tilts
-  // the two independently — one up, one down is the whole of "confused", and
-  // it is the cheapest expression in the rig.
   if (!expr.eyeArc) {
     const l = expr.browTilt + expr.browSkew;
     const r = expr.browTilt - expr.browSkew;
+    // On a shut eye the brow sits right on the lid line, and brow + lid +
+    // mouth stacked up read as three scratches across the face rather than a
+    // sleeping animal (device-test-26). Shut eyes get their brows lifted and
+    // quietened.
+    const shut = expr.eyeOpen < 0.25;
+    const browY = eyeY - eyeRyMax - (shut ? 4.4 : 2.2);
     out.push(
-      {
-        k: 'path', role: 'brow',
-        d: `M37 ${31.5 - l * 3.6} Q41.5 ${29.5 - l * 5.2} 46 ${31 - l * 2.2}`,
-        stroke: sp.ink, sw: 1.9, fill: 'none', opacity: 0.6,
-      },
-      {
-        k: 'path', role: 'brow',
-        d: `M54 ${31 - r * 2.2} Q58.5 ${29.5 - r * 5.2} 63 ${31.5 - r * 3.6}`,
-        stroke: sp.ink, sw: 1.9, fill: 'none', opacity: 0.6,
-      },
+      { k: 'path', role: 'brow',
+        d: `M${lx - eyeRx} ${browY - l * 3.6} Q${lx} ${browY - 2 - l * 5.2} ${lx + eyeRx} ${browY - l * 2.2}`,
+        stroke: sp.ink, sw: 2.2, fill: 'none', opacity: shut ? 0.42 : 0.62 },
+      { k: 'path', role: 'brow',
+        d: `M${rx - eyeRx} ${browY - r * 2.2} Q${rx} ${browY - 2 - r * 5.2} ${rx + eyeRx} ${browY - r * 3.6}`,
+        stroke: sp.ink, sw: 2.2, fill: 'none', opacity: shut ? 0.42 : 0.62 },
     );
   }
 
   // ─── Eyes ──────────────────────────────────────────────────────────
-  const arcL = `M36 41 Q41.5 34.5 47 41`;
-  const arcR = `M53 41 Q58.5 34.5 64 41`;
-  const closedL = `M36.5 40 Q41.5 43.5 46.5 40`;
-  const closedR = `M53.5 40 Q58.5 43.5 63.5 40`;
+  const arc = (cx: number): string => `M${cx - eyeRx} ${eyeY + 1.5} Q${cx} ${eyeY - eyeRyMax} ${cx + eyeRx} ${eyeY + 1.5}`;
+  const closed = (cx: number): string => `M${cx - eyeRx} ${eyeY} Q${cx} ${eyeY + 3.5} ${cx + eyeRx} ${eyeY}`;
 
-  const drawArc = (d: string): Shape => ({
-    k: 'path', role: 'eye', d, stroke: sp.ink, sw: 3, fill: 'none',
-  });
+  const drawArc = (d: string): Shape => ({ k: 'path', role: 'eye', d, stroke: sp.ink, sw: 3.2, fill: 'none' });
   const drawEye = (cx: number): Shape[] => {
     const shapes: Shape[] = [
-      { k: 'ellipse', role: 'eye', cx: cx + gx, cy: EYE.cy + gy, rx: EYE.rx0, ry, fill: sp.ink },
+      { k: 'ellipse', role: 'eye', cx: cx + gx, cy: eyeY + gy, rx: eyeRx, ry, fill: sp.ink },
     ];
     if (expr.eyeOpen > 0.4) {
       // A big soft catchlight plus a small low one. This pair is most of what
-      // separates a mammal eye from a compound one — a flat black dome with a
-      // pinprick highlight is how a fly gets drawn.
-      const g = 2.0 * expr.pupilScale;
+      // separates a mammal eye from a compound one — and the big one is now
+      // genuinely big, because a pinprick on a wide eye reads as dead.
+      const g = 2.25 * expr.pupilScale;
       shapes.push(
-        { k: 'circle', role: 'eye-light', cx: cx + gx + hx + 1.7, cy: EYE.cy + gy + hy - 2.1, r: g, fill: '#FFFFFF', opacity: 0.96 },
-        { k: 'circle', role: 'eye-light', cx: cx + gx + hx - 1.9, cy: EYE.cy + gy + hy + 2.3, r: g * 0.5, fill: '#FFFFFF', opacity: 0.5 },
+        { k: 'circle', role: 'eye-light', cx: cx + gx + hx + 2.1, cy: eyeY + gy + hy - 2.6, r: g, fill: '#FFFFFF', opacity: 0.97 },
+        { k: 'circle', role: 'eye-light', cx: cx + gx + hx - 2.3, cy: eyeY + gy + hy + 2.8, r: g * 0.48, fill: '#FFFFFF', opacity: 0.55 },
       );
     }
     return shapes;
   };
 
   if (expr.eyeArc) {
-    out.push(drawArc(arcL), drawArc(arcR));
+    out.push(drawArc(arc(lx)), drawArc(arc(rx)));
+  } else if (expr.eyeOpen < 0.25) {
+    // Shut, not squashed (device-test-26).
+    out.push(drawArc(closed(lx)), drawArc(closed(rx)));
   } else if (expr.winkLeft) {
-    // One eye shut, the other wide. Asymmetry in the face, which is exactly
-    // what a symmetric round creature needs to stop reading as a specimen.
-    out.push(drawArc(closedL), ...drawEye(EYE.rx));
+    out.push(drawArc(closed(lx)), ...drawEye(rx));
   } else {
-    out.push(...drawEye(EYE.lx), ...drawEye(EYE.rx));
+    out.push(...drawEye(lx), ...drawEye(rx));
   }
 
   // ─── Nose or beak ──────────────────────────────────────────────────
   if (beak) {
-    // A short hooked beak in the accent colour, sitting between the discs.
-    out.push({ k: 'path', role: 'nose', d: 'M50 43.5 L45.6 46.2 L50 53.5 L54.4 46.2 Z', fill: sp.accent });
-    out.push({ k: 'path', role: 'nose', d: 'M50 43.5 L45.6 46.2 L50 47.4 Z', fill: sp.furDark, opacity: 0.35 });
-    // An open beak IS the owl's open mouth — no separate mouth shape.
+    out.push({ k: 'path', role: 'nose', d: `M50 ${noseY - 5} L${50 - R * 0.26} ${noseY - 1} L50 ${noseY + 9} L${50 + R * 0.26} ${noseY - 1} Z`, fill: sp.accent });
+    out.push({ k: 'path', role: 'nose', d: `M50 ${noseY - 5} L${50 - R * 0.26} ${noseY - 1} L50 ${noseY + 1.5} Z`, fill: sp.furDark, opacity: 0.32 });
     if (expr.mouthOpen > 0.45) {
-      out.push({ k: 'path', role: 'mouth', d: 'M46.4 48.6 L53.6 48.6 L50 56 Z', fill: sp.ink, opacity: 0.85 });
+      out.push({ k: 'path', role: 'mouth', d: `M${50 - R * 0.15} ${noseY + 2} L${50 + R * 0.15} ${noseY + 2} L50 ${noseY + 9} Z`, fill: sp.ink, opacity: 0.85 });
     }
     if (expr.angerMark) {
       out.push(
-        { k: 'path', role: 'anger', d: 'M68 24 L76 32', stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
-        { k: 'path', role: 'anger', d: 'M76 24 L68 32', stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
+        { k: 'path', role: 'anger', d: `M${50 + R * 0.7} ${cy - R * 0.62} L${50 + R * 1.02} ${cy - R * 0.3}`, stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
+        { k: 'path', role: 'anger', d: `M${50 + R * 1.02} ${cy - R * 0.62} L${50 + R * 0.7} ${cy - R * 0.3}`, stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
       );
     }
     return out;
   }
 
   // Nose — a soft rounded triangle, the mammal snout cue.
-  out.push({ k: 'path', role: 'nose', d: 'M46.6 46 Q50 44.6 53.4 46 Q50 50.4 46.6 46 Z', fill: sp.ink, opacity: 0.9 });
+  out.push({ k: 'path', role: 'nose', d: `M${50 - 3.8} ${noseY} Q50 ${noseY - 1.6} ${50 + 3.8} ${noseY} Q50 ${noseY + 5} ${50 - 3.8} ${noseY} Z`, fill: sp.ink, opacity: 0.92 });
+
+  // The cat gets whiskers. Three a side, thin, low contrast — the one detail
+  // that says "cat" when the ears are small.
+  if (sp.tail === 'thin' && sp.ear === 'pointy') {
+    for (const [i, dy] of [-3, 0, 3].entries()) {
+      out.push(
+        { k: 'path', role: 'tuft', d: `M${50 - R * 0.34} ${noseY + 1} L${50 - R * 1.06} ${noseY + dy - 1 + i * 0.4}`, stroke: sp.belly, sw: 1.3, opacity: 0.6 },
+        { k: 'path', role: 'tuft', d: `M${50 + R * 0.34} ${noseY + 1} L${50 + R * 1.06} ${noseY + dy - 1 + i * 0.4}`, stroke: sp.belly, sw: 1.3, opacity: 0.6 },
+      );
+    }
+  }
 
   // Mouth, hung off the nose so the whole face reads as one unit.
-  const my = 51.5;
-  const curve = expr.mouthCurve * 6;
+  const curve = expr.mouthCurve * 6.5;
+  const halfW = R * 0.24;
   if (expr.mouthOpen > 0.05) {
     out.push({
       k: 'ellipse', role: 'mouth', cx: 50, cy: my + 1.5,
-      rx: 3.4 + 2.6 * expr.mouthOpen, ry: 2.2 + 4.2 * expr.mouthOpen,
-      fill: sp.ink, opacity: 0.88,
+      rx: 3.6 + 3 * expr.mouthOpen, ry: 2.3 + 4.6 * expr.mouthOpen,
+      fill: sp.ink, opacity: 0.9,
     });
     if (expr.mouthOpen > 0.7) {
-      out.push({ k: 'ellipse', role: 'mouth', cx: 50, cy: my + 4, rx: 2.6, ry: 1.9, fill: sp.accent, opacity: 0.95 });
+      // The tongue. Free comedy, and it is what makes a big laugh read as a
+      // laugh rather than a shout.
+      out.push({ k: 'ellipse', role: 'mouth', cx: 50, cy: my + 4.4, rx: 2.9, ry: 2.1, fill: sp.accent, opacity: 0.95 });
     }
   } else if (expr.mouthShape === 'grit') {
-    // A clenched grimace. Not a frown — a frown is sad, and being fed up with
-    // a hard question is not the same as being sad about it.
     out.push(
-      { k: 'path', role: 'mouth', d: `M43.5 ${my - 2} L56.5 ${my - 2} L56.5 ${my + 2.6} L43.5 ${my + 2.6} Z`, fill: sp.ink, opacity: 0.9 },
-      { k: 'path', role: 'mouth', d: `M47.3 ${my - 2} L47.3 ${my + 2.6}`, stroke: '#FFFFFF', sw: 1.1, opacity: 0.55 },
-      { k: 'path', role: 'mouth', d: `M52.7 ${my - 2} L52.7 ${my + 2.6}`, stroke: '#FFFFFF', sw: 1.1, opacity: 0.55 },
+      { k: 'path', role: 'mouth', d: `M${50 - halfW} ${my - 2} L${50 + halfW} ${my - 2} L${50 + halfW} ${my + 2.6} L${50 - halfW} ${my + 2.6} Z`, fill: sp.ink, opacity: 0.9 },
+      { k: 'path', role: 'mouth', d: `M${50 - halfW * 0.36} ${my - 2} L${50 - halfW * 0.36} ${my + 2.6}`, stroke: '#FFFFFF', sw: 1.1, opacity: 0.55 },
+      { k: 'path', role: 'mouth', d: `M${50 + halfW * 0.36} ${my - 2} L${50 + halfW * 0.36} ${my + 2.6}`, stroke: '#FFFFFF', sw: 1.1, opacity: 0.55 },
     );
   } else if (expr.mouthShape === 'smirk') {
-    // Lopsided on purpose: one corner up, the other flat. Half of "annoyed"
-    // and all of "smug" is in this one asymmetric stroke.
     out.push({
       k: 'path', role: 'mouth',
-      d: `M44.5 ${my + 0.6} Q49.5 ${my + 1.2} 56 ${my - 2.4}`,
-      stroke: sp.ink, sw: 2.2, fill: 'none', opacity: 0.9,
+      d: `M${50 - halfW} ${my + 0.6} Q${50 - halfW * 0.1} ${my + 1.2} ${50 + halfW * 1.1} ${my - 2.4}`,
+      stroke: sp.ink, sw: 2.3, fill: 'none', opacity: 0.9,
     });
   } else if (expr.mouthShape === 'wavy') {
     out.push({
       k: 'path', role: 'mouth',
-      d: `M44 ${my} q2.9 -2.2 5.8 0 t5.8 0`,
-      stroke: sp.ink, sw: 2.1, fill: 'none', opacity: 0.9,
+      d: `M${50 - halfW * 1.1} ${my} q${halfW * 0.55} -2.2 ${halfW * 1.1} 0 t${halfW * 1.1} 0`,
+      stroke: sp.ink, sw: 2.2, fill: 'none', opacity: 0.9,
     });
   } else {
+    // A wide smile with a dimple at each end — the corners are what make a
+    // curve read as a mouth instead of a line.
     out.push({
       k: 'path', role: 'mouth',
-      d: `M44.5 ${my} Q50 ${my + curve} 55.5 ${my}`,
-      stroke: sp.ink, sw: 2.2, fill: 'none', opacity: 0.9,
+      d: `M${50 - halfW * 1.15} ${my} Q50 ${my + curve} ${50 + halfW * 1.15} ${my}`,
+      stroke: sp.ink, sw: 2.4, fill: 'none', opacity: 0.9,
     });
   }
 
-  // The cross-vein. Comic shorthand for "argh", and it reads at any size.
   if (expr.angerMark) {
     out.push(
-      { k: 'path', role: 'anger', d: 'M68 24 L76 32', stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
-      { k: 'path', role: 'anger', d: 'M76 24 L68 32', stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
+      { k: 'path', role: 'anger', d: `M${50 + R * 0.7} ${cy - R * 0.62} L${50 + R * 1.02} ${cy - R * 0.3}`, stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
+      { k: 'path', role: 'anger', d: `M${50 + R * 1.02} ${cy - R * 0.62} L${50 + R * 0.7} ${cy - R * 0.3}`, stroke: '#FF6B8A', sw: 2.4, opacity: 0.9 },
     );
   }
   return out;
@@ -607,8 +826,8 @@ export function sparkleShapes(count: number, color: string): Shape[] {
     const a = (-70 + t * 140) * (Math.PI / 180);
     out.push({
       k: 'circle', role: 'sparkle',
-      cx: 50 + Math.sin(a) * 30,
-      cy: 37 - Math.cos(a) * 30,
+      cx: 50 + Math.sin(a) * 32,
+      cy: 34 - Math.cos(a) * 32,
       r: 1.7 + (i % 3) * 0.8,
       fill: color, opacity: 0.9,
     });
