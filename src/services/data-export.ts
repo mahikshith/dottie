@@ -32,6 +32,7 @@ import {
   type ExportProfile,
   type ExportReminder,
 } from '../export/build-export';
+import { predictionFactors } from '../engine/prediction/what-we-use';
 import { Storage, medicationKinds, type ReminderTime } from '../database/storage';
 import { formatClockTime } from '../engine/reminders/dedupe';
 import { todayCivil } from '../utils/civil-date';
@@ -122,6 +123,30 @@ export async function gatherExportData(input: GatherInput): Promise<ExportInput>
   //  unreadable preferences blob must not cost the user their cycle history.
   const reminders = await safe('export.reminders', async () => gatherReminders());
 
+  // ─── AND WHAT THE FORECAST IS MADE OF (device-test-23) ──────────
+  //
+  //  Owner: "this transparency also needs to be added [to the Excel sheet]."
+  //  The spreadsheet is the copy that goes to a doctor, so it is the copy that
+  //  most needs to be straight about which of these numbers the model read —
+  //  including the ones it did not.
+  const factors = await safe('export.factors', async () =>
+    predictionFactors({
+      healthProfile: input.healthProfile,
+      cycleCount: cycles.length,
+      lastPeriodStart: cycles.length > 0 ? (cycles[cycles.length - 1]?.startDate ?? null) : null,
+      stressLevel: checkIns[checkIns.length - 1]?.stressLevel ?? null,
+      sleepQuality: checkIns[checkIns.length - 1]?.sleepQuality ?? null,
+      premenstrualSignal: false,
+      subject: 'you',
+    }).map((f) => ({
+      what: f.label,
+      status:
+        f.state === 'active' ? 'In use' : f.state === 'missing' ? 'Not yet given' : 'Not used',
+      effect: f.effect,
+      value: f.value ?? '',
+    }))
+  );
+
   // Sorted oldest-first: a spreadsheet reads down the page, and a line chart
   // drawn from newest-first rows runs backwards.
   const asc = <T extends { date: string }>(rows: T[]) =>
@@ -156,6 +181,7 @@ export async function gatherExportData(input: GatherInput): Promise<ExportInput>
     // actually happened, so the two are matched here rather than in the pure
     // builder, which must not know about repositories.
     reminders,
+    factors,
     predictions: latest.map((p) => ({
       predictedNextPeriod: p.predictedNextPeriod,
       windowDays: p.windowDays,

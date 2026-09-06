@@ -114,6 +114,22 @@ export interface ExportReminder {
   on: boolean;
 }
 
+/**
+ * One row of the "What shapes the forecast" sheet (device-test-23).
+ *
+ * Owner: "this transparency also needs to be added [to the Excel sheet]. All
+ * this information that we're collecting from the user." The spreadsheet is
+ * the copy someone takes to a doctor, so it is the copy that most needs to be
+ * straight about which of these numbers the forecast actually read.
+ */
+export interface ExportFactor {
+  what: string;
+  /** 'In use', 'Not yet given', 'Not used'. */
+  status: string;
+  effect: string;
+  value: string;
+}
+
 export interface ExportInput {
   /** ISO date the file was made — passed in, never read from a clock here. */
   generatedOn: string;
@@ -126,6 +142,8 @@ export interface ExportInput {
   predictions: readonly ExportPrediction[];
   /** Optional so older callers (and the harness fixtures) still type-check. */
   reminders?: readonly ExportReminder[];
+  /** What the forecast is made of — see ExportFactor. */
+  factors?: readonly ExportFactor[];
 }
 
 /** Row counts, so the export screen can say what's in the file before making it. */
@@ -485,8 +503,31 @@ export function buildExportWorkbook(input: ExportInput): WorkbookSpec {
   if (input.reminders && input.reminders.length > 0) {
     sheets.push(remindersSheet(input.reminders));
   }
+  if (input.factors && input.factors.length > 0) {
+    sheets.push(factorsSheet(input.factors));
+  }
 
   return { sheets };
+}
+
+/**
+ * Every input the forecast can read, what it does, and whether it is being
+ * read for this person (device-test-23).
+ *
+ * Including the rows that say "Not used". A disclosure that only lists the
+ * flattering half is an advertisement.
+ */
+function factorsSheet(factors: readonly ExportFactor[]): SheetSpec {
+  return {
+    name: 'What shapes the forecast',
+    columns: [
+      { header: 'Input', width: 34 },
+      { header: 'Status', width: 15 },
+      { header: 'Value we hold', width: 24 },
+      { header: 'What it does to the forecast', width: 72 },
+    ],
+    rows: factors.map((f) => [f.what, f.status, f.value, f.effect]),
+  };
 }
 
 /**

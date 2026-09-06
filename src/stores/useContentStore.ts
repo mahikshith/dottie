@@ -39,6 +39,7 @@ import {
   RenderedQuestion,
 } from '../engine/content';
 import { MoodCondition } from '../types/companion.types';
+import type { TrackedMetric } from '../types/content.types';
 import { useUserStore } from './useUserStore';
 import { useCycleStore } from './useCycleStore';
 import { useGamificationStore } from './useGamificationStore';
@@ -150,11 +151,13 @@ export const useContentStore = create<ContentStoreState>((set, get) => ({
       dailyDecodeEngine.getTodaysCard({ ...inputs, today }) ??
       dailyDecodeEngine.getFallbackCard({ ...inputs, today });
 
-    // Render today's questions (filters out already-answered)
+    // Render today's questions (filters out already-answered, and anything
+    // the app already knows — see knownMetricsToday).
     const questions = questionEngine.getTodaysQuestions({
       ...inputs,
       today,
       answeredToday: answeredQuestionIds,
+      knownMetricsToday: knownMetricsToday(),
     });
 
     set({ todaysCard: card, todaysQuestions: questions });
@@ -271,6 +274,26 @@ export const selectAnsweredQuestionIds = (s: ContentStoreState): string[] =>
  * Gather all the cross-store inputs the content engines need to render.
  * Returns null if a critical input is missing (e.g., no user yet).
  */
+/**
+ * What the app already has for today, from the check-in row.
+ *
+ * device-test-23: Home drew five mood keys and then a question card asking the
+ * same thing with the same five emoji. The deck had no idea the rest of the
+ * screen had already collected it. This is that missing connection — and it
+ * covers energy, sleep and stress too, which the full check-in collects and
+ * which the deck could equally have asked for twice.
+ */
+function knownMetricsToday(): TrackedMetric[] {
+  const checkIn = useCycleStore.getState().todayCheckIn;
+  if (!checkIn) return [];
+  const known: TrackedMetric[] = [];
+  if (checkIn.moodScore !== null && checkIn.moodScore !== undefined) known.push('mood');
+  if (checkIn.energyLevel !== null && checkIn.energyLevel !== undefined) known.push('energy');
+  if (checkIn.sleepQuality !== null && checkIn.sleepQuality !== undefined) known.push('sleep');
+  if (checkIn.stressLevel !== null && checkIn.stressLevel !== undefined) known.push('stress');
+  return known;
+}
+
 function gatherEngineInputs(
   today: string,
   forceMood?: MoodCondition

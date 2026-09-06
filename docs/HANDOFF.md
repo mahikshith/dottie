@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-05 · DT22 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-06 · DT23 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,54 +10,49 @@
 
 ## 1. OPEN
 
-**DT16 through DT22 are all done and pushed. Six device rounds are stacked in
-the next APK.**
+**DT16 through DT23 are done and pushed. The owner's DT23 verdict on the last
+build: "everything looks completely fine, I don't see any kind of major
+issues" — the four items below are what they raised.**
 
 ### Look at this FIRST, and it needs no APK
-`docs/companion-preview.html` — every companion in every expression, rendered
-from the same geometry the app draws (`npx tsx scripts/companion-preview.ts`
-regenerates it). Review art there, never blind into a 25-minute build.
+`docs/companion-preview.html` — every companion in every expression, from the
+same geometry the app draws (`npx tsx scripts/companion-preview.ts`). Review
+art there, never blind into a 25-minute build.
 
-### Verify on the next APK — DT22
-1. **A quiz opens.** The P0. Root cause was hydration: `populateStoresForUser`
-   fires thirteen repo reads through one `Promise.all`, one rejection killed
-   the lot, and the catch logged to a `__DEV__` console (invisible in the
-   owner's build) while the app carried on with NO content engines. Every
-   screen reading bundled content kept working; the quiz, which needs the
-   engine, sat on its spinner forever. Now: hydration retries once and reports,
-   the root layout shows its recovery screen with a working Try again, and the
-   quiz screen builds its own engine from bundled content after 2.5s rather
-   than waiting for one that is not coming. `test:quiz` walks all 74 quizzes.
-2. **Add to circle, and Today's check-in.** Both were `presentation: 'modal'`,
-   which on Android hands the screen ZERO safe-area insets — so the CTA sat
-   under the nav bar and the check-in title ran through the status bar, while
-   every padding expression was correct. Also killed the duplicate native
-   header on add-to-circle.
-3. **Phase colours.** Menstrual is rose-red, follicular cyan, ovulatory citron,
-   luteal violet. Three of the old four were byte-identical to a mood palette
-   colour. Check the legend against the mood map on Home.
-4. **Every toggle**, including the onboarding "Nudges from me?" screen, which
-   was still hand-rolled: its ON state filled the track with the accent and
-   drew the thumb in 6% white, i.e. invisible.
-5. **The companions are different people now.** Take the same quiz as Pip and
-   as Nyx: different openers, different reactions, different faces, different
-   idle motion, different streak thresholds. Same facts, verbatim.
-6. **Medications** takes more than one type per plan.
-7. **Cycle tab** has a reminders link directly under the legend.
-8. **The export** has a Reminders sheet — built-in, custom and medication.
+### Verify on the next APK — DT23
+1. **The calendar in bright light.** Every mark is now OPAQUE — composited over
+   the aurora ground in `src/theme/blend.ts` — so a day's colour no longer
+   depends on which bloom is behind it. The old fills were 14% alpha, i.e. 86%
+   background; that is why the phase and the aurora looked the same, and why
+   the DT22 colour audit could pass while the screen looked wrong. Marks are
+   ≥ ΔE 57 apart as drawn and every day number clears 4.5:1 on its fill.
+2. **Home asks the mood ONCE.** The question deck now takes what the check-in
+   already holds and drops anything duplicating it; the two mood questions in
+   the defaults were replaced with ones the app cannot answer for itself.
+3. **The conditions list.** Nineteen entries, each with its own icon, one
+   shared list behind onboarding and add-to-circle. Nine new options
+   (perimenopause, postpartum, breastfeeding, fertility treatment, menstrual
+   migraine, anaemia, chronic pelvic pain…), each marked for whether it
+   changes the forecast.
+4. **"What shapes this forecast"** at the bottom of the science, on your
+   calendar AND a sister's, collapsed by default. It lists every input, what
+   it does, whether it is filled in — and the ones the model does NOT read
+   (height, weight, activity, mood). Same disclosure as a sheet in the export.
 
 ### Open
 - `[P2]` App-store rollout groundwork.
 - `[P4]` Learn tab auto-advance report — re-verify.
-- Notification DELIVERY has still never been tested on a device.
-  `expo-notifications` needs the dev build to actually fire; the toggles and
-  persistence are verifiable by reading, delivery is not.
+- Notification DELIVERY has still never been tested on a device;
+  `expo-notifications` needs the dev build to actually fire.
 - Merging Practice and the quiz into one continuous run (owner's DT19
   suggestion). Deferred deliberately — structural, and not asked for again.
-- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines). Also
-  `PredictionInput.recentWeightChangeKg`, which nothing collects — deliberately
-  NOT wired to a new check-in question (weight is not a thing to ask a
-  cycle-tracking user for on a mood screen).
+- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines). Note that
+  `health-adjustments.ts` implements stress/sleep adjustments the predictor
+  does its own simpler version of — deleting it is safe, but read both first.
+- `PredictionInput.recentWeightChangeKg` is read by the model and collected by
+  nothing. The transparency panel says so out loud, which is the honest state;
+  wiring it would mean asking for weight, which is not a question this app
+  should put on a mood screen without a reason.
 - The ESLint config predates v9 and `npm run lint` cannot run.
 
 ---
@@ -80,7 +75,12 @@ Each was added after the same bug came back for the third or fourth time:
   the tree: `<Modal>` (rule 10) and `<Switch>` (rule 22). Comments are stripped
   before matching, so the prose explaining why not to use them still passes.
 - `audit:colour` — no phase colour may sit within ΔE 18 of any mood colour
-  (DT22 found three at ΔE 0.0), and phases stay ΔE 40 apart from each other.
+  (DT22 found three at ΔE 0.0), phases stay ΔE 40 apart, AND the opaque marks
+  the grid actually paints stay ≥ ΔE 22 apart with every day number ≥ 4.5:1 on
+  its fill. The second half exists because DT22's version passed while the
+  screen was still wrong: it measured tokens, the grid drew 14% alpha.
+- `test:transparency` — the prediction disclosure matches the predictor,
+  including the inputs it ignores.
 - `test:quiz` — opens EVERY lesson's quiz through the real engine, answers it
   and finishes it. Nothing had ever done that, which is why a quiz that only
   ever showed a spinner could ship.

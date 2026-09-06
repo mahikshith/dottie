@@ -24,6 +24,7 @@
 
 import { LESSONS } from '../src/content/learning-paths';
 import { QUIZZES } from '../src/content/quizzes';
+import { CONDITION_OPTIONS } from '../src/content/conditions';
 
 const CURRICULUM_IMPORT_PATH_PREFIXES = ['path_'];
 
@@ -84,6 +85,34 @@ for (const l of LESSONS) {
   }
 }
 
+// ─── RULE 5 — every condition is visually its own row (device-test-23) ──
+//
+//  The list was written by prediction FAMILY, so PCOS and PCOD shared 🌀, all
+//  three thyroids shared ⚙️ and endo/adeno/fibroids shared 💗. That is how the
+//  model groups them and exactly the wrong thing to show a person scanning for
+//  the one line that is about them. Owner: "we need to have different logos,
+//  not the same logos."
+
+const seenEmoji = new Map<string, string>();
+const seenLabel = new Map<string, string>();
+for (const c of CONDITION_OPTIONS) {
+  const clashEmoji = seenEmoji.get(c.emoji);
+  if (clashEmoji) {
+    violations.push({
+      rule: 'R5',
+      target: c.id,
+      detail: `shares the icon ${c.emoji} with "${clashEmoji}" — every condition needs its own`,
+    });
+  }
+  seenEmoji.set(c.emoji, c.label);
+
+  const clashLabel = seenLabel.get(c.label.toLowerCase());
+  if (clashLabel) {
+    violations.push({ rule: 'R5', target: c.id, detail: `duplicate label "${c.label}"` });
+  }
+  seenLabel.set(c.label.toLowerCase(), c.id);
+}
+
 // ─── REPORT ─────────────────────────────────────────────────────────
 
 const bold = (s: string) => `\x1b[1m${s}\x1b[22m`;
@@ -93,6 +122,7 @@ console.log(bold('Dottie content validator'));
 console.log(`  Lessons scanned : ${LESSONS.length}`);
 console.log(`  Quizzes scanned : ${QUIZZES.length}`);
 console.log(`  Questions       : ${QUIZZES.reduce((n, q) => n + q.questions.length, 0)}`);
+console.log(`  Conditions      : ${CONDITION_OPTIONS.length} (each with its own icon)`);
 console.log('');
 
 if (violations.length === 0) {

@@ -41,6 +41,7 @@ import { PrivacyLevelCard } from '../../src/components/sisterhood/PrivacyLevelCa
 import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
 import type { CompanionType } from '../../src/types/content.types';
+import { CONDITION_OPTIONS } from '../../src/content/conditions';
 
 /**
  * Add-Member Wizard
@@ -144,23 +145,16 @@ const SHADOW_MODE_OPTIONS: { value: UserMode; label: string; emoji: string; hint
 ];
 
 /**
- * Multi-select — tick as many as apply (device-test-16: "we need more options
- * ... PCOS, PCOD, thyroid, hypothyroidism ... multiple of these together").
+ * The sister's conditions, from the ONE list (device-test-23).
  *
- * Ordered by family so related ones sit together: ovulatory, then thyroid,
- * then the uterine ones. The predictor groups them the same way — see
- * src/engine/prediction/condition-families.ts.
+ * This screen used to carry its own copy — same eight rows, its own labels,
+ * no icons. Two lists mean two lists to drift. Only the engine-affecting
+ * conditions are offered for a shadow profile, because a shadow profile
+ * exists to produce a forecast for her.
  */
-const SHADOW_CONDITION_OPTIONS: { value: HealthCondition; label: string }[] = [
-  { value: 'pcos', label: 'PCOS' },
-  { value: 'pcod', label: 'PCOD' },
-  { value: 'thyroid', label: 'Thyroid' },
-  { value: 'hypothyroid', label: 'Hypothyroid' },
-  { value: 'hyperthyroid', label: 'Hyperthyroid' },
-  { value: 'endometriosis', label: 'Endometriosis' },
-  { value: 'adenomyosis', label: 'Adenomyosis' },
-  { value: 'fibroids', label: 'Fibroids' },
-];
+const SHADOW_CONDITION_OPTIONS = CONDITION_OPTIONS.filter(
+  (c) => c.affectsPrediction
+).map((c) => ({ value: c.id as HealthCondition, label: c.label, emoji: c.emoji }));
 
 export default function AddMemberScreen() {
   const router = useRouter();
@@ -798,6 +792,8 @@ function ShadowStep({
                 isActive && styles.conditionChipActive,
               ]}
             >
+              {/* One icon per condition — never shared with another row. */}
+              <Text style={styles.conditionChipEmoji}>{opt.emoji}</Text>
               <Text
                 style={[
                   styles.conditionChipLabel,
@@ -1122,7 +1118,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
+  conditionChipEmoji: { fontSize: 13, marginRight: 5 },
   conditionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: A.glass, borderColor: A.edge, borderWidth: 1,
     paddingHorizontal: Spacing.base,
     paddingVertical: Spacing.sm,

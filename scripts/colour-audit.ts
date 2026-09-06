@@ -37,14 +37,46 @@
  *  ceiling for the mood rule without resorting to neon; identity is never
  *  colour-alone anyway (the legend carries a shape per mark).
  *
+ * ─── AND WHAT THE SCREEN ACTUALLY DREW (device-test-23) ─────────────
+ *
+ *  The audit above passed while the calendar still looked wrong, because the
+ *  calendar never drew these colours: it drew them at 14% alpha over a moving
+ *  aurora bloom. A token can be measurably distinct and still arrive on the
+ *  screen as 86% background. Owner: "those colours were not bright enough…
+ *  they couldn't tell the difference between the aurora colour and the phase
+ *  colour."
+ *
+ *  So the second half of this audit measures the OPAQUE composites the grid
+ *  actually paints (`theme/blend.ts`) — against each other, and for whether
+ *  the number written on the day can be read at all.
+ *
  *      npm run audit:colour
  */
 
 import { PHASE_AURORA, AURORA_PALETTES } from '../src/theme/palettes';
+import {
+  PHASE_CELL,
+  FERTILE_CELL,
+  OVULATION_CELL,
+  PREDICTED_CELL,
+  contrastRatio,
+  inkOn,
+} from '../src/theme/blend';
 import { MOOD_SCALE } from '../src/engine/mood/mood-map';
 
 const MIN_MOOD_DISTANCE = 18;
 const MIN_PHASE_DISTANCE = 40;
+/**
+ * How far apart two marks must be AS DRAWN. Lower than the token floor
+ * because compositing over the ground pulls everything toward the ground —
+ * that is the point of measuring it separately.
+ */
+const MIN_RENDERED_DISTANCE = 22;
+/**
+ * A day cell has a number on it. 4.5:1 is WCAG AA for body text; these are
+ * bold 15pt, so 4.5 is comfortably conservative.
+ */
+const MIN_INK_CONTRAST = 4.5;
 
 // ─── CIELAB ──────────────────────────────────────────────────────────
 
@@ -135,8 +167,102 @@ console.log(
     `\n  minimum ΔE between phases:  ${worstPhase.toFixed(1)} (floor ${MIN_PHASE_DISTANCE})`
 );
 
+// ─── WHAT THE GRID ACTUALLY PAINTS ───────────────────────────────────
+
+const rendered: { name: string; hex: string }[] = [
+  { name: 'period', hex: PHASE_CELL.menstrual },
+  { name: 'follicular', hex: PHASE_CELL.follicular },
+  { name: 'ovulatory', hex: PHASE_CELL.ovulatory },
+  { name: 'luteal', hex: PHASE_CELL.luteal },
+  { name: 'fertile (est.)', hex: FERTILE_CELL },
+  { name: 'ovulation (est.)', hex: OVULATION_CELL },
+  { name: 'predicted', hex: PREDICTED_CELL },
+];
+
+console.log('\n  as the grid paints them (opaque, over the aurora ground):');
+let worstRendered = Infinity;
+for (const r of rendered) {
+  const ink = inkOn(r.hex);
+  const ratio = contrastRatio(r.hex, ink);
+  const readable = ratio >= MIN_INK_CONTRAST;
+  console.log(
+    `  ${readable ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m'} ${r.name.padEnd(17)} ${r.hex}` +
+      `  ink ${ink}  contrast ${ratio.toFixed(1)}:1`
+  );
+  if (!readable) {
+    problems.push(
+      `the number on a ${r.name} day is only ${ratio.toFixed(1)}:1 against its fill — unreadable.`
+    );
+  }
+}
+
+/**
+ * Pairs that SHARE a hue on purpose, because one is a peak inside the other:
+ * an ovulation day sits inside the ovulatory band, the fertile window sits
+ * around it, a predicted period is a period that hasn't happened. Each of
+ * these is additionally distinguished by a SHAPE in both the grid and the
+ * legend (a solid ring, a dashed ring), so hue distance is the wrong test.
+ *
+ * They are not exempt, they are tested differently: they must differ clearly
+ * in LIGHTNESS, so the pair still reads as "same family, different thing"
+ * rather than as one colour drawn twice.
+ */
+const FAMILY_PAIRS = new Set([
+  'ovulatory|ovulation (est.)',
+  'ovulatory|fertile (est.)',
+  'fertile (est.)|ovulation (est.)',
+  'period|predicted',
+]);
+const MIN_FAMILY_LIGHTNESS = 10;
+
+for (let i = 0; i < rendered.length; i++) {
+  for (let j = i + 1; j < rendered.length; j++) {
+    const a = rendered[i]!;
+    const b = rendered[j]!;
+    const d = deltaE(a.hex, b.hex);
+    const family = FAMILY_PAIRS.has(`${a.name}|${b.name}`) || FAMILY_PAIRS.has(`${b.name}|${a.name}`);
+
+    if (family) {
+      const dl = Math.abs(toLab(a.hex)[0] - toLab(b.hex)[0]);
+      if (dl < MIN_FAMILY_LIGHTNESS) {
+        problems.push(
+          `${a.name} and ${b.name} share a hue on purpose, but are only ${dl.toFixed(1)}` +
+            ` L* apart (${a.hex} vs ${b.hex}) — the shape is doing all the work.`
+        );
+      }
+      continue;
+    }
+
+    worstRendered = Math.min(worstRendered, d);
+    if (d < MIN_RENDERED_DISTANCE) {
+      problems.push(
+        `as drawn, ${a.name} and ${b.name} are only ΔE ${d.toFixed(1)} apart` +
+          ` (${a.hex} vs ${b.hex}) — the legend claims they are different.`
+      );
+    }
+  }
+}
+
+// A mark that is nearly the ground is a mark you cannot see AT ALL — the DT23
+// failure in its purest form.
+for (const r of rendered) {
+  const d = deltaE(r.hex, '#0C0A16');
+  if (d < 12) {
+    problems.push(
+      `${r.name} (${r.hex}) is only ΔE ${d.toFixed(1)} from the aurora ground — it will vanish.`
+    );
+  }
+}
+
+console.log(
+  `\n  minimum ΔE between drawn marks: ${worstRendered.toFixed(1)} (floor ${MIN_RENDERED_DISTANCE})`
+);
+
 if (problems.length === 0) {
-  console.log('\n\x1b[32m✓ no phase colour collides with a mood colour, or with another phase.\x1b[0m\n');
+  console.log(
+    '\n\x1b[32m✓ no phase colour collides with a mood colour, with another phase,' +
+      '\n  or with the ground — and every day number is readable on its fill.\x1b[0m\n'
+  );
   process.exit(0);
 }
 console.log(`\n\x1b[31m✗ ${problems.length} colour collision(s):\x1b[0m`);

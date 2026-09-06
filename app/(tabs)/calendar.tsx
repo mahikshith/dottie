@@ -93,6 +93,15 @@ import { WeekAheadStrip, type WeekAheadItem } from '../../src/components/calenda
 import { PredictionExplainerCard } from '../../src/components/calendar/PredictionExplainerCard';
 import { buildDaySuggestions } from '../../src/engine/calendar/day-suggestions';
 import { Storage } from '../../src/database/storage';
+import {
+  over,
+  inkOn,
+  PHASE_CELL,
+  PHASE_INK,
+  FERTILE_CELL,
+  OVULATION_CELL,
+  PREDICTED_CELL,
+} from '../../src/theme/blend';
 
 // Shared empty array so the conditions selector stays referentially stable
 // (returning a fresh `[]` from a selector thrashes re-renders / warns).
@@ -910,10 +919,11 @@ export default function CalendarScreen() {
             immediately under the month grid, in reading order: the grid, then
             what its colours mean, then the days coming up. */}
         <Animated.View entering={rise(118)} style={styles.legend}>
-          <LegendChip color={PHASE_AURORA.menstrual} label="Period" kind="fill" />
-          <LegendChip color={PHASE_AURORA.follicular} label="Follicular" kind="fill" />
-          <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulatory" kind="fill" />
-          <LegendChip color={PHASE_AURORA.luteal} label="Luteal" kind="fill" />
+          {/* The swatch is the GRID's colour, not the token's (DT23). */}
+          <LegendChip color={PHASE_CELL.menstrual} label="Period" kind="fill" />
+          <LegendChip color={PHASE_CELL.follicular} label="Follicular" kind="fill" />
+          <LegendChip color={PHASE_CELL.ovulatory} label="Ovulatory" kind="fill" />
+          <LegendChip color={PHASE_CELL.luteal} label="Luteal" kind="fill" />
           <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" kind="dashed" />
           {fertileWindow.ovulation ? (
             <>
@@ -1385,31 +1395,50 @@ function DayCell({
   let borderColor: string | undefined;
   let ovulationRing: string | undefined;
 
+  //
+  // ─── OPAQUE, ALWAYS (device-test-23) ─────────────────────────────
+  //
+  //  Every fill below used to be an 8-hex ALPHA over whatever the aurora
+  //  blooms were doing behind the grid — a phase day was `…24`, i.e. 14% of
+  //  the phase colour and 86% background. So the colour of a follicular day
+  //  drifted with the blooms, and on a bright screen (when the blooms are
+  //  strongest) it stopped being distinguishable from them at all. That is
+  //  DT23's "couldn't tell the difference between the aurora colour and the
+  //  phase colour" — and it is why the DT22 colour audit could pass while the
+  //  screen still looked wrong: the audit measured the token, the eye saw the
+  //  composite.
+  //
+  //  These are composited against the ground in `theme/blend.ts` and drawn
+  //  opaque, so a day's colour is the same colour on any background, at any
+  //  brightness, whatever the blooms are doing. Ink is chosen by contrast
+  //  rather than assumed.
   if (!cell.inMonth) {
     textColor = palette.ink3;
   } else if (isPeriod) {
-    bgColor = PHASE_AURORA.menstrual;
-    textColor = palette.ground; // dark ink on the bright fill
+    bgColor = PHASE_CELL.menstrual;
+    textColor = PHASE_INK.menstrual;
   } else if (isPredicted) {
-    bgColor = `${PHASE_AURORA.menstrual}1F`;
-    textColor = PHASE_AURORA.menstrual;
+    bgColor = PREDICTED_CELL;
+    textColor = inkOn(PREDICTED_CELL);
     borderStyle = 'dashed';
     borderColor = PHASE_AURORA.menstrual;
   } else if (cell.fertile === 'ovulation') {
-    // The single most likely ovulation day. Given a solid ring rather than a
-    // fill so it reads as a MARK on the day, not a state of the day — the day
-    // still shows its phase tint underneath.
-    bgColor = `${PHASE_AURORA.ovulatory}2E`;
-    textColor = palette.ink;
+    // The single most likely ovulation day. A ring rather than a full-strength
+    // fill so it reads as a MARK on the day, not a state of the day.
+    bgColor = OVULATION_CELL;
+    // Ink by CONTRAST, not by habit: this fill is nearly pure citron, and
+    // `palette.ink` (near-white) on it is 1.7:1 — the exact class of mistake
+    // this whole change is about, auditing one colour and drawing another.
+    textColor = inkOn(OVULATION_CELL);
     ovulationRing = PHASE_AURORA.ovulatory;
   } else if (cell.fertile === 'fertile') {
-    // Deliberately fainter than any phase tint. This is the least certain
-    // thing on the grid and it must not look like the most confident.
-    bgColor = `${PHASE_AURORA.ovulatory}16`;
-    textColor = palette.ink;
+    // Deliberately quieter than any phase. This is the least certain thing on
+    // the grid and it must not look like the most confident. Still opaque.
+    bgColor = FERTILE_CELL;
+    textColor = inkOn(FERTILE_CELL);
   } else if (cell.phase) {
-    bgColor = `${PHASE_AURORA[cell.phase]}24`;
-    textColor = palette.ink;
+    bgColor = PHASE_CELL[cell.phase];
+    textColor = PHASE_INK[cell.phase];
   }
 
   return (
@@ -1572,12 +1601,14 @@ function LegendChip({
           style={[
             styles.legendSwatch,
             kind === 'fill' ? { backgroundColor: color } : null,
-            kind === 'tint' ? { backgroundColor: `${color}3D` } : null,
+            // Opaque, like the grid (DT23) — a key drawn in a translucent
+            // wash over a drifting bloom is not showing you the grid's colour.
+            kind === 'tint' ? { backgroundColor: over(color, A.ground, 0.34) } : null,
             kind === 'dashed'
               ? { borderWidth: 1.5, borderStyle: 'dashed', borderColor: color }
               : null,
             kind === 'ring'
-              ? { borderWidth: 1.5, borderColor: color, backgroundColor: `${color}2E` }
+              ? { borderWidth: 1.5, borderColor: color, backgroundColor: over(color, A.ground, 0.54) }
               : null,
             kind === 'glow'
               ? {
@@ -1590,7 +1621,7 @@ function LegendChip({
                   elevation: 5,
                 }
               : null,
-            kind === 'arc' ? { backgroundColor: `${color}1A` } : null,
+            kind === 'arc' ? { backgroundColor: over(color, A.ground, 0.16) } : null,
           ]}
         />
         {/* The sister mark is an arc UNDER the day, not a fill — so the key

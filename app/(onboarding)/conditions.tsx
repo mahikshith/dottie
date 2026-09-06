@@ -11,6 +11,11 @@ import { AuroraBackground, GradientButton, PressableScale } from '../../src/comp
 import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { HealthCondition } from '../../src/types/cycle.types';
+import {
+  CONDITION_OPTIONS as OPTIONS,
+  ENGINE_CONDITIONS,
+  type ConditionKey,
+} from '../../src/content/conditions';
 
 /**
  * Onboarding — Health Conditions (design-v2 onboarding audit fix)
@@ -36,44 +41,9 @@ import { HealthCondition } from '../../src/types/cycle.types';
  */
 
 // The values that map to real HealthCondition entries the engines act on.
-type ConditionKey = HealthCondition | 'pmdd' | 'birth_control' | 'nothing' | 'prefer_not_say';
-
-interface ConditionOption {
-  id: ConditionKey;
-  emoji: string;
-  label: string;
-  hint: string;
-  /**
-   * True if selecting this clears every OTHER selection. Both "Nothing"
-   * and "Prefer not to say" are exclusive — they can't co-exist with
-   * a specific condition.
-   */
-  exclusive?: boolean;
-}
-
-const OPTIONS: ConditionOption[] = [
-  { id: 'pcos',            emoji: '🌀', label: 'PCOS',            hint: 'Polycystic ovary syndrome' },
-  { id: 'pcod',            emoji: '🌀', label: 'PCOD',            hint: 'Polycystic ovarian disease' },
-  { id: 'thyroid',         emoji: '⚙️', label: 'Thyroid',          hint: 'Not sure which — that is fine' },
-  { id: 'hypothyroid',     emoji: '⚙️', label: 'Hypothyroid',      hint: 'Underactive thyroid' },
-  { id: 'hyperthyroid',    emoji: '⚙️', label: 'Hyperthyroid',     hint: 'Overactive thyroid' },
-  { id: 'endometriosis',   emoji: '💗', label: 'Endometriosis',   hint: 'Painful periods, endo tissue' },
-  { id: 'adenomyosis',     emoji: '💗', label: 'Adenomyosis',     hint: 'Tissue in the uterine wall' },
-  { id: 'fibroids',        emoji: '💗', label: 'Fibroids',        hint: 'Heavy or long periods' },
-  { id: 'pmdd',            emoji: '🌙', label: 'PMDD',            hint: 'Severe premenstrual mood changes' },
-  { id: 'birth_control',   emoji: '💊', label: 'On the pill or BC', hint: 'Hormonal birth control' },
-  { id: 'nothing',         emoji: '🌱', label: 'Nothing diagnosed yet', hint: "That's totally fine — I'll still learn your patterns", exclusive: true },
-  { id: 'prefer_not_say',  emoji: '🤫', label: 'Prefer not to say', hint: "You don't have to share this", exclusive: true },
-];
-
-// Only the keys that map to real engine-side HealthCondition values.
-// Everything else (pmdd, birth_control, nothing, prefer_not_say) is captured
-// as a soft flag in the draft but doesn't persist to healthConditions until
-// the engine paths for it exist (birth-control mode is on the TODO roadmap).
-const ENGINE_CONDITIONS: readonly ConditionKey[] = [
-  'pcos', 'pcod', 'thyroid', 'hypothyroid', 'hyperthyroid',
-  'endometriosis', 'adenomyosis', 'fibroids',
-];
+// The list, the icons and the "does this change the forecast?" flag all live
+// in src/content/conditions.ts now — one source, shared with add-to-circle and
+// read by the transparency panel and the export (device-test-23).
 
 export default function ConditionsScreen() {
   const router = useRouter();

@@ -49,6 +49,13 @@ import type {
 } from '../../engine/prediction/explain-prediction';
 import type { CycleRecord, HealthProfile } from '../../types/cycle.types';
 import { logSilentFailure } from '../../diagnostics/silent-failure';
+import {
+  predictionFactors,
+  transparencySummary,
+  type PredictionFactor,
+} from '../../engine/prediction/what-we-use';
+import { detectPremenstrualSignal } from '../../engine/symptoms/symptom-recall';
+import { todayCivil } from '../../utils/civil-date';
 
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
@@ -89,6 +96,7 @@ export function PredictionExplainerCard({
   const cycleHistory = subject ? subject.cycleHistory : userCycleHistory;
   const predictionErrors = useCycleStore((s) => s.predictionErrors);
   const todayCheckIn = useCycleStore((s) => s.todayCheckIn);
+  const recentSymptoms = useCycleStore((s) => s.recentSymptoms);
   const user = useUserStore((s) => s.user);
   const companionType = useUserStore(selectCompanionType);
   const [showScience, setShowScience] = useState(false);
@@ -129,6 +137,35 @@ export function PredictionExplainerCard({
       return null;
     }
   }, [storeExplanation, user, lastPeriodStart, cycleHistory, predictionErrors, todayCheckIn, subject]);
+
+  // ─── WHAT THE FORECAST IS MADE OF (device-test-23) ────────────────
+  //
+  //  Owner: "the user needs complete transparency… what are all the variables,
+  //  what are all the features that we are trying to add to predict?" The list
+  //  is generated from `what-we-use.ts`, which is written against the same
+  //  mechanisms the predictor implements — including the ones it does NOT use.
+  const factors = useMemo(
+    () =>
+      predictionFactors({
+        healthProfile: subject ? subject.healthProfile : (user?.healthProfile ?? null),
+        cycleCount: cycleHistory.length,
+        lastPeriodStart: lastPeriodStart ?? null,
+        stressLevel: subject ? null : (todayCheckIn?.stressLevel ?? null),
+        sleepQuality: subject ? null : (todayCheckIn?.sleepQuality ?? null),
+        premenstrualSignal: subject
+          ? false
+          : detectPremenstrualSignal(
+              recentSymptoms.map((sy) => ({
+                date: sy.date,
+                symptomType: sy.symptomType,
+                severity: sy.severity,
+              })),
+              todayCivil()
+            ),
+        subject: subject ? 'sister' : 'you',
+      }),
+    [subject, user, cycleHistory.length, lastPeriodStart, todayCheckIn, recentSymptoms]
+  );
 
   // The two figures that don't need a prediction to be meaningful. They are
   // built for BOTH states, so the empty card carries graphs too — the owner
@@ -198,6 +235,10 @@ export function PredictionExplainerCard({
           WHICH DAYS TEND TO BE HEAVIEST
         </Text>
         <FlowShapeChart series={flowSeries} />
+
+        {/* The disclosure belongs here MORE than anywhere: this is the state
+            where someone is deciding whether to trust the thing at all. */}
+        <WhatWeUsePanel factors={factors} subjectName={subject?.name ?? null} palette={palette} />
       </Animated.View>
     );
   }
@@ -333,11 +374,109 @@ export function PredictionExplainerCard({
           </View>
         </Animated.View>
       )}
+
+      <WhatWeUsePanel factors={factors} subjectName={subject?.name ?? null} palette={palette} />
     </Animated.View>
   );
 }
 
 // ─── SUBCOMPONENTS ───────────────────────────────────────────────────
+
+/**
+ * "What shapes this forecast" — the full input list, including the inputs the
+ * model does not read (device-test-23).
+ *
+ *  Owner: "the user needs complete transparency… we are collecting a lot of
+ *  information from the user like PCOS, their height, weight and all the other
+ *  stuff. So what are all the variables?"
+ *
+ *  Two design decisions worth defending:
+ *
+ *   · It is COLLAPSED by default. Nobody opens a cycle app to read a feature
+ *     list, and putting it inline would bury the graphs the owner asked for in
+ *     DT7. But it is always THERE, at the bottom of the science, one tap away
+ *     — availability is what transparency means; a wall of text is not.
+ *
+ *   · It lists what is NOT used, in the same list, in the same type. That is
+ *     the half that makes the rest believable — and the half a marketing page
+ *     would drop. Height and weight are collected and the forecast ignores
+ *     them; saying so costs nothing and buys the user a reason to trust the
+ *     lines above it.
+ */
+function WhatWeUsePanel({
+  factors,
+  subjectName,
+  palette,
+}: {
+  factors: readonly PredictionFactor[];
+  subjectName: string | null;
+  palette: Palette;
+}): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const toggle = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setOpen((v) => !v);
+  };
+
+  const dot = (state: PredictionFactor['state']): string => {
+    if (state === 'active') return palette.accent;
+    if (state === 'missing') return palette.ink3;
+    return palette.glass.edge;
+  };
+  const stateWord = (state: PredictionFactor['state']): string => {
+    if (state === 'active') return 'IN USE';
+    if (state === 'missing') return 'NOT YET GIVEN';
+    return 'NOT USED';
+  };
+
+  return (
+    <View style={[styles.usePanel, { borderTopColor: palette.glass.edge }]}>
+      <PressableScale
+        onPress={toggle}
+        haptic="none"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={
+          open ? 'Hide what shapes this forecast' : 'Show everything that shapes this forecast'
+        }
+        style={styles.useHeader}
+      >
+        <View style={styles.useHeaderText}>
+          <Text style={[styles.useTitle, { color: palette.ink }]}>
+            What shapes {subjectName ? `${subjectName}'s` : 'this'} forecast
+          </Text>
+          <Text style={[styles.useSummary, { color: palette.ink3 }]}>
+            {transparencySummary(factors)}
+          </Text>
+        </View>
+        <Text style={[styles.useChevron, { color: palette.accent }]}>{open ? '−' : '+'}</Text>
+      </PressableScale>
+
+      {open ? (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.useList}>
+          {factors.map((f) => (
+            <View key={f.label} style={styles.useRow}>
+              <View style={[styles.useDot, { backgroundColor: dot(f.state) }]} />
+              <View style={styles.useRowText}>
+                <Text style={[styles.useLabel, { color: palette.ink }]}>
+                  {f.label}
+                  {f.value ? <Text style={{ color: palette.ink3 }}>{`  ${f.value}`}</Text> : null}
+                </Text>
+                <Text style={[styles.useState, { color: dot(f.state) }]}>{stateWord(f.state)}</Text>
+                <Text style={[styles.useEffect, { color: palette.ink2 }]}>{f.effect}</Text>
+              </View>
+            </View>
+          ))}
+          <Text style={[styles.useFootnote, { color: palette.ink3 }]}>
+            All of it is computed on this phone. Nothing is sent anywhere, and there is no
+            comparison against other people — every number above is about {subjectName ?? 'you'}.
+          </Text>
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
 
 type Palette = ReturnType<typeof useAurora>['palette'];
 
@@ -578,6 +717,26 @@ const styles = StyleSheet.create({
   science: {
     ...Typography.preset.body,
     lineHeight: 22,
+    marginTop: Spacing.xs,
+  },
+  usePanel: { marginTop: Spacing.lg, borderTopWidth: 1, paddingTop: Spacing.md },
+  useHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, minHeight: 48 },
+  useHeaderText: { flex: 1 },
+  useTitle: { ...Typography.preset.bodySemibold },
+  useSummary: { ...Typography.preset.caption, fontSize: 11, marginTop: 2 },
+  useChevron: { ...Typography.preset.h3 },
+  useList: { gap: Spacing.md, marginTop: Spacing.sm },
+  useRow: { flexDirection: 'row', gap: Spacing.sm },
+  useDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
+  useRowText: { flex: 1 },
+  useLabel: { ...Typography.preset.captionBold },
+  useState: { ...Typography.preset.overline, fontSize: 9, letterSpacing: 0.8, marginTop: 1 },
+  useEffect: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16, marginTop: 2 },
+  useFootnote: {
+    ...Typography.preset.caption,
+    fontSize: 11,
+    lineHeight: 16,
+    fontStyle: 'italic',
     marginTop: Spacing.xs,
   },
   statsRow: {

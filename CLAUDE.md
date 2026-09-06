@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 28 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 30 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -120,11 +120,32 @@ EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
    padding expression and passed. Use `SHEET_PRESENTATION`
    (`src/constants/navigation.ts`): modal on iOS, card on Android, same
    slide-from-bottom. Enforced by `audit:safearea`.
-25. **Phase colours must clear the mood set.** Every colour in every mood
-   palette is compared against every phase colour in CIELAB by `audit:colour`:
-   ≥ ΔE 18 from any mood colour, ≥ ΔE 40 between phases. DT22 found THREE
-   phase colours that were byte-identical to a palette accent.
-26. **A companion is a voice, a face and a body — not a colour.**
+25. **Phase colours must clear the mood set, AND be drawn opaque.** Every
+   colour in every mood palette is compared against every phase colour in
+   CIELAB by `audit:colour`: ≥ ΔE 18 from any mood colour, ≥ ΔE 40 between
+   phases. DT22 found THREE phase colours byte-identical to a palette accent.
+   Then DT23 found the deeper bug: the grid drew them at 14% alpha over a
+   drifting aurora bloom, so the audit measured the token and the eye saw the
+   composite. Calendar marks are composited over the ground in
+   `src/theme/blend.ts` and drawn OPAQUE; ink comes from `inkOn(fill)`, never
+   assumed. Never put a data mark on an 8-hex alpha over the aurora.
+26. **Never ask for something the app already has today.** The question deck
+   takes `knownMetricsToday` and drops any question tracking a metric the
+   check-in already holds — Home showed five mood keys and then asked the same
+   question again underneath (DT23).
+27. **One condition, one icon.** `src/content/conditions.ts` is the single
+   list, shared by onboarding and add-to-circle, and `validate:content` R5
+   fails on a shared icon or label. It was grouped by prediction FAMILY, which
+   is how the model thinks and the opposite of how a person scans a list.
+   Its `affectsPrediction` flag is what the transparency panel and the export
+   read — a condition the engine ignores must say so.
+28. **The prediction disclosure must match the model.**
+   `src/engine/prediction/what-we-use.ts` is the ONE description of the
+   forecast's inputs, rendered under the calendar (yours and a sister's) and
+   as a sheet in the export. It lists what is NOT used too — height, weight,
+   activity, mood — because a disclosure that only lists the flattering half
+   is an advertisement. `test:transparency` pins it to the code.
+29. **A companion is a voice, a face and a body — not a colour.**
    `src/engine/learn/companion-voice.ts` gives each of the six its own quiz
    lines, its own expression per beat, its own idle motion and its own streak
    threshold. Pass `companion` to `leadFor`/`reactTo`. The FACTS never vary —

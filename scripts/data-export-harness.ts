@@ -206,6 +206,12 @@ function fixture(): ExportInput {
     // device-test-22: the export carried what was logged and nothing about
     // what the user had ASKED the app to do. Built-in, custom and medication
     // reminders now travel with it.
+    // device-test-23: the disclosure travels with the file.
+    factors: [
+      { what: 'The days you logged as a period', status: 'In use', effect: 'Every complete cycle updates the estimate.', value: '6 cycles' },
+      { what: 'Height, weight and activity level', status: 'Not used', effect: 'Collected for your own records. The forecast does not use them today.', value: '165 cm · 60 kg' },
+      { what: 'Conditions that change the maths', status: 'In use', effect: 'PCOS and PCOD widen the expected range the most.', value: 'PCOS' },
+    ],
     reminders: [
       { what: 'Daily check-in', kind: 'Built-in', when: 'Every day at 8:00 pm', on: true },
       { what: 'Period heads-up', kind: 'Built-in', when: '3 day(s) before the predicted period', on: true },
@@ -480,6 +486,28 @@ scenario('E6b · the file carries the reminders the user set', () => {
   const xml = byPath.get(sheetPathFor('Reminders'))!.text;
   ok('the sheet is in the workbook', xml.length > 0);
   ok('Magnesium reached the XML', xml.includes('Magnesium'));
+});
+
+// ─── E6c — the transparency sheet (device-test-23) ───────────────────
+
+scenario('E6c · the file says what the forecast is made of, honestly', () => {
+  const names = SPEC.sheets.map((sh) => sh.name);
+  ok('there is a "What shapes the forecast" sheet', names.includes('What shapes the forecast'),
+    names.join(', '));
+
+  const sheet = SPEC.sheets.find((sh) => sh.name === 'What shapes the forecast')!;
+  ok('one row per input', sheet.rows.length === INPUT.factors!.length);
+
+  // The half that makes the rest believable: inputs the model ignores are in
+  // the same list, marked. A disclosure that only lists the flattering half is
+  // an advertisement.
+  ok('inputs the model does NOT read are listed too',
+    sheet.rows.some((r) => r[1] === 'Not used'), JSON.stringify(sheet.rows));
+  ok('and they say what they are instead',
+    sheet.rows.some((r) => String(r[3]).includes('does not use them')));
+
+  const xml = byPath.get(sheetPathFor('What shapes the forecast'))!.text;
+  ok('the sheet reached the workbook', xml.includes('Not used'));
 });
 
 // ─── E7 — the brand-new user ─────────────────────────────────────────

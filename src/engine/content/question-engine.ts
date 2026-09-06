@@ -104,6 +104,27 @@ export interface QuestionEngineInput {
   questionsPerDay?: number;
   /** Question IDs the user has already answered today */
   answeredToday?: string[];
+  /**
+   * Metrics the app ALREADY has a value for today, from somewhere else
+   * (device-test-23).
+   *
+   *  Home shows five mood keys and then, directly underneath, a question card
+   *  asking "How are you feeling emotionally today?" with the same five emoji.
+   *  Two controls, the same question, one screen. The owner: "why are we
+   *  asking the same mood again and again? It's not a good experience to log
+   *  it again and again."
+   *
+   *  It is not a content bug — `def_luteal_mood` is a reasonable question in
+   *  isolation. It is a COORDINATION bug: the question deck had no idea what
+   *  the rest of the screen had already collected. So the caller now says
+   *  what it already knows, and a question tracking one of those metrics is
+   *  dropped before it is ever rendered.
+   *
+   *  Nothing external depends on the duplicate: a question response is stored
+   *  locally exactly like the mood score is, and the predictor reads the
+   *  check-in row, not the question log.
+   */
+  knownMetricsToday?: TrackedMetric[];
   /** Today's date (ISO YYYY-MM-DD). Defaults to system date. */
   today?: string;
   /** Optional time-of-day override (for testing) */
@@ -156,10 +177,11 @@ export class QuestionEngine {
 
     // Get answered set (merge cached + caller-provided)
     const answered = this.getAnsweredSet(today, input.answeredToday);
+    const known = new Set(input.knownMetricsToday ?? []);
 
     // If we have a cached pool, filter and return
     if (cached) {
-      return filterUnanswered(cached, answered).slice(0, questionsPerDay);
+      return dropKnown(filterUnanswered(cached, answered), known).slice(0, questionsPerDay);
     }
 
     // Cold path: resolve pool from cohort, render, cache
@@ -193,8 +215,9 @@ export class QuestionEngine {
     // Cache the full rendered set for the day
     this.dailyCache.set(cacheKey, renderedAll);
 
-    // Return only unanswered ones, up to the daily limit
-    return filterUnanswered(renderedAll, answered).slice(0, questionsPerDay);
+    // Return only unanswered ones the app doesn't already know, up to the
+    // daily limit.
+    return dropKnown(filterUnanswered(renderedAll, answered), known).slice(0, questionsPerDay);
   }
 
   /**
@@ -376,7 +399,11 @@ export class QuestionEngine {
     );
 
     const answered = this.getAnsweredSet(today, input.answeredToday);
-    return filterUnanswered(rendered, answered).slice(0, limit);
+    // The defaults path is the one the MVP actually runs (no cohort content is
+    // registered yet), so it is the path that was showing the duplicate mood
+    // question under Home's mood keys. It filters too.
+    const known = new Set(input.knownMetricsToday ?? []);
+    return dropKnown(filterUnanswered(rendered, answered), known).slice(0, limit);
   }
 }
 
@@ -420,6 +447,21 @@ function filterUnanswered(
   return questions.filter(q => !answered.has(q.id));
 }
 
+/**
+ * Drop questions asking for something the app already has today.
+ *
+ * Never ask a person for a number you are already holding — that is the whole
+ * rule, and it applies to every metric, not just the mood that made it
+ * obvious (device-test-23).
+ */
+function dropKnown(
+  questions: RenderedQuestion[],
+  known: Set<TrackedMetric>
+): RenderedQuestion[] {
+  if (known.size === 0) return questions;
+  return questions.filter(q => !known.has(q.tracksMetric));
+}
+
 function bandForDay(dayInPhase: number): string {
   if (dayInPhase <= 3) return '1-3';
   if (dayInPhase <= 7) return '4-7';
@@ -456,13 +498,18 @@ const DEFAULT_QUESTIONS_BY_PHASE: Record<Phase, PhaseQuestion[]> = {
       options: ['Drained', 'Low', 'Okay', 'Good', 'Great'],
       tracksMetric: 'energy',
     }),
+    // NOT a mood question (device-test-23). Home's five keys already collect
+    // the mood, so a second emoji scale here was the same question twice on
+    // one screen. `knownMetricsToday` now drops any duplicate at render time;
+    // these two were also replaced outright, because the deck should be
+    // spending its slot on something the app cannot get anywhere else.
     makeDefault({
-      id: 'def_menstrual_mood',
+      id: 'def_menstrual_pain_relief',
       phase: 'menstrual',
-      text: 'How are you feeling emotionally?',
-      type: 'emoji',
-      options: ['😢', '😕', '😐', '🙂', '😊'],
-      tracksMetric: 'mood',
+      text: 'Has anything helped today?',
+      type: 'choice',
+      options: ['Nothing yet', 'Heat', 'Painkillers', 'Rest', 'Movement'],
+      tracksMetric: 'pain_tolerance',
     }),
   ],
   follicular: [
@@ -534,13 +581,16 @@ const DEFAULT_QUESTIONS_BY_PHASE: Record<Phase, PhaseQuestion[]> = {
       options: ['None', 'Sweet', 'Salty', 'Carbs', 'Chocolate'],
       tracksMetric: 'cravings',
     }),
+    // Replaced the second mood scale (device-test-23) — see the menstrual
+    // note above. PMS signals are what the predictor actually reads from this
+    // stretch of the cycle, and nothing else on Home asks for them.
     makeDefault({
-      id: 'def_luteal_mood',
+      id: 'def_luteal_pms',
       phase: 'luteal',
-      text: 'How are you feeling emotionally today?',
-      type: 'emoji',
-      options: ['😢', '😕', '😐', '🙂', '😊'],
-      tracksMetric: 'mood',
+      text: 'Noticing anything that usually means it is close?',
+      type: 'choice',
+      options: ['Nothing', 'Tender chest', 'Bloating', 'Breakouts', 'A few of these'],
+      tracksMetric: 'pms',
     }),
   ],
 };
