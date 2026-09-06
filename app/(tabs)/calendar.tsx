@@ -85,7 +85,10 @@ import {
   type FertileKind,
 } from '../../src/engine/calendar/fertile-window';
 import { log, timed } from '../../src/diagnostics/logger';
-import { calculateCurrentPhase } from '../../src/engine/prediction/phase-calculator';
+import {
+  calculateCurrentPhase,
+  PHASE_DISPLAY_GRACE_DAYS,
+} from '../../src/engine/prediction/phase-calculator';
 import { predictNextPeriod } from '../../src/engine/prediction/predictor';
 import { Phase, type HealthCondition } from '../../src/types/cycle.types';
 import { DayDetailSheet, type DayDetailResult } from '../../src/components/calendar/DayDetailSheet';
@@ -98,8 +101,10 @@ import {
   inkOn,
   PHASE_CELL,
   PHASE_INK,
+  LOGGED_PERIOD_CELL,
   FERTILE_CELL,
   OVULATION_CELL,
+  OVULATION_MARK,
   PREDICTED_CELL,
 } from '../../src/theme/blend';
 
@@ -118,6 +123,13 @@ interface SelectedDay {
   daysUntilPredictedPeriod: number | null;
   origin: { x: number; y: number };
 }
+
+/**
+ * The flow level a one-tap log writes. Mid-range: the user did not say, and
+ * assuming "heavy" or "spotting" from a tap would be inventing data. The sheet
+ * is where a specific flow gets chosen (device-test-24).
+ */
+const DEFAULT_QUICK_FLOW = 3;
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
@@ -318,6 +330,13 @@ export default function CalendarScreen() {
   // (the point of a planner); period-logging inside the sheet stays past/today.
   const onDayTap = (iso: string, cell: MonthCell, e: GestureResponderEvent) => {
     if (!cell.inMonth) return;
+    // Quick-log mode: a past day toggles in place. A FUTURE day still opens
+    // the sheet — you cannot have bled tomorrow, and silently doing nothing
+    // would read as a broken tap.
+    if (quickLog && !cell.isFuture) {
+      void onQuickToggleDay(iso, cell);
+      return;
+    }
     Haptics.selectionAsync().catch(() => {});
     setSelected(buildSelected(iso, cell.isFuture, e));
   };
@@ -326,9 +345,13 @@ export default function CalendarScreen() {
     setSelected(buildSelected(iso, iso > todayIso, e));
   };
 
-  // Log the currently-selected day as a period day (from inside the sheet).
-  const onLogSelectedPeriod = async (flowLevel: number) => {
-    if (!selected) return;
+  /**
+   * Log ONE day as a period day, for whoever the calendar is currently
+   * showing. Takes the date explicitly so both the sheet and the one-tap
+   * quick-log path (device-test-24) use exactly the same write.
+   */
+  const logPeriodFor = async (iso: string, flowLevel: number) => {
+    const selected = { iso };
     try {
       // Diagnostics: this is the exact path that used to wedge, so it's
       // bracketed. If a stall follows, the log shows whether it happened during
@@ -355,10 +378,9 @@ export default function CalendarScreen() {
     }
   };
 
-  // Un-mark the selected day. The undo half of onLogSelectedPeriod — routed to
-  // whoever is currently selected, exactly like logging.
-  const onUnlogSelectedPeriod = async () => {
-    if (!selected) return;
+  /** The undo half. Same shape, same routing, same single write. */
+  const unlogPeriodFor = async (iso: string) => {
+    const selected = { iso };
     try {
       log.action('unlogPeriodDay:start', { forSister: logTargetId !== null, date: selected.iso });
       if (logTargetId) {
@@ -377,6 +399,51 @@ export default function CalendarScreen() {
       log.error('unlogPeriodDay failed', { message: String(err) });
       logSilentFailure('calendar.unlogPeriodDay', err);
     }
+  };
+
+  // The sheet's two handlers, now thin wrappers over the shared writes.
+  const onLogSelectedPeriod = async (flowLevel: number) => {
+    if (!selected) return;
+    await logPeriodFor(selected.iso, flowLevel);
+  };
+  const onUnlogSelectedPeriod = async () => {
+    if (!selected) return;
+    await unlogPeriodFor(selected.iso);
+  };
+
+  // ─── ONE TAP, NO SHEET (device-test-24) ─────────────────────────
+  //
+  //  Owner: "we should provide an option where they can log the period with a
+  //  single click from the calendar itself. They don't have to click on it
+  //  and enter the pane and click done."
+  //
+  //  Right: marking five consecutive days cost five taps, five sheets, five
+  //  buttons and five Dones — the owner's own diagnostic log shows exactly
+  //  that sequence, over and over. But the sheet is not useless either; it
+  //  carries flow, notes, plans and the phase explanation. So this is a MODE,
+  //  not a replacement: Details is the default and unchanged, Quick log turns
+  //  every past day into a toggle. The mode is remembered, because someone
+  //  back-filling three months should not have to re-choose it each visit.
+  const [quickLog, setQuickLog] = useState<boolean>(() => Storage.quickLogMode.get());
+  const toggleQuickLog = () => {
+    const next = !quickLog;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setQuickLog(next);
+    Storage.quickLogMode.set(next);
+    log.action('calendar.quickLogMode', { on: next });
+  };
+
+  /** One tap marks or unmarks — no sheet, no confirmation, instantly undoable. */
+  const onQuickToggleDay = async (iso: string, cell: MonthCell) => {
+    if (!cell.inMonth || cell.isFuture) return;
+    const wasLogged = periodDays.has(iso);
+    // Haptics differ per direction so the hand knows which way it went
+    // without looking — you are usually tapping a run of days in sequence.
+    Haptics.impactAsync(
+      wasLogged ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium
+    ).catch(() => {});
+    if (wasLogged) await unlogPeriodFor(iso);
+    else await logPeriodFor(iso, DEFAULT_QUICK_FLOW);
   };
 
   // Close the sheet — persist the note/planned flag, refresh dots + periods.
@@ -721,6 +788,17 @@ export default function CalendarScreen() {
   );
 
   // ─── Week-ahead model: next 7 days from today ───────────────────
+
+  /**
+   * How many days in the visible month we deliberately left uncoloured
+   * because they are more than a week past the expected cycle
+   * (device-test-24). Drives the honest note under the grid — a blank with no
+   * explanation reads as a broken calendar.
+   */
+  const beyondCycleDays = useMemo(
+    () => monthGrid.filter((c) => c.inMonth && c.beyondCycle).length,
+    [monthGrid]
+  );
   const weekAhead = useMemo<WeekAheadItem[]>(() => {
     // Same subject as the grid above it. A strip that still described YOUR
     // week under HER calendar would be the exact confusion this change exists
@@ -886,6 +964,47 @@ export default function CalendarScreen() {
           </View>
         )}
 
+        {/* ─── HOW A TAP BEHAVES (device-test-24) ──────────────────
+            Owner: "we should provide an option where they can log the period
+            with a single click from the calendar itself. They don't have to
+            click on it and enter the pane and click done."
+
+            A MODE rather than a replacement: the sheet still carries flow,
+            notes, plans and the phase explanation, and losing it to save one
+            tap would be a bad trade. In its own row above the grid, so it can
+            never overlap the cells or the legend — it is part of the normal
+            column flow with its own bottom margin. */}
+        <Animated.View entering={rise(90)} style={styles.modeRow}>
+          <PressableScale
+            onPress={toggleQuickLog}
+            haptic="none"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={[
+              styles.modeChip,
+              {
+                backgroundColor: quickLog ? palette.accent : palette.glass.bg,
+                borderColor: quickLog ? palette.accent : palette.glass.edge,
+              },
+            ]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: quickLog }}
+            accessibilityLabel="Quick log"
+            accessibilityHint="One tap marks or unmarks a day, without opening the day sheet"
+          >
+            <Text style={styles.modeChipEmoji}>⚡</Text>
+            <Text
+              style={[styles.modeChipText, { color: quickLog ? palette.ground : palette.ink2 }]}
+            >
+              Quick log
+            </Text>
+          </PressableScale>
+          <Text style={[styles.modeHint, { color: palette.ink3 }]} numberOfLines={2}>
+            {quickLog
+              ? 'One tap marks a day. Tap it again to remove it.'
+              : 'Tap a day for flow, notes and what the phase means.'}
+          </Text>
+        </Animated.View>
+
         {/* Weekday header + calendar grid — a horizontal swipe here pages the
             month (monthSwipe PanResponder); day taps still open the sheet. */}
         <Animated.View entering={rise(115)} {...monthSwipe.panHandlers}>
@@ -911,6 +1030,28 @@ export default function CalendarScreen() {
           </View>
         </Animated.View>
 
+        {/* ─── WHERE THE ESTIMATE RUNS OUT (device-test-24) ─────────
+            The phase calculator extends the last phase forever past the
+            expected cycle length, so one old period start used to paint every
+            following month solid luteal. The grid now stops colouring past a
+            week overdue — and says so here rather than leaving an unexplained
+            blank, which would read as a broken calendar. Its own block in the
+            column with a full sectionGap below, so it cannot crowd the
+            legend. */}
+        {beyondCycleDays > 0 && (
+          <Animated.View entering={rise(120)} style={styles.unknownNote}>
+            <Text style={[styles.unknownTitle, { color: palette.ink }]}>
+              Past what we can estimate
+            </Text>
+            <Text style={[styles.unknownBody, { color: palette.ink2 }]}>
+              {beyondCycleDays} day{beyondCycleDays === 1 ? '' : 's'} here {beyondCycleDays === 1 ? 'is' : 'are'} more
+              than a week past the cycle we expected, so {beyondCycleDays === 1 ? 'it is' : 'they are'} left
+              uncoloured. Guessing a phase that far out would be making something up. Log the day
+              your period started and the colours pick straight back up.
+            </Text>
+          </Animated.View>
+        )}
+
         {/* ─── WHAT THE COLOURS MEAN, RIGHT UNDER THE GRID ──────────
             Device-test-16. The legend and the week-ahead strip used to sit
             near the BOTTOM of this screen, so to find out what "Luteal" or the
@@ -919,8 +1060,12 @@ export default function CalendarScreen() {
             immediately under the month grid, in reading order: the grid, then
             what its colours mean, then the days coming up. */}
         <Animated.View entering={rise(118)} style={styles.legend}>
-          {/* The swatch is the GRID's colour, not the token's (DT23). */}
-          <LegendChip color={PHASE_CELL.menstrual} label="Period" kind="fill" />
+          {/* The swatch is the GRID's colour, not the token's (DT23) — and
+              the key now separates what you LOGGED from what we ESTIMATED
+              (DT24). They used to share a fill, so one tap looked like it had
+              claimed five days. */}
+          <LegendChip color={LOGGED_PERIOD_CELL} label="Period · you logged" kind="fill" />
+          <LegendChip color={PHASE_CELL.menstrual} label="Menstrual (est.)" kind="fill" />
           <LegendChip color={PHASE_CELL.follicular} label="Follicular" kind="fill" />
           <LegendChip color={PHASE_CELL.ovulatory} label="Ovulatory" kind="fill" />
           <LegendChip color={PHASE_CELL.luteal} label="Luteal" kind="fill" />
@@ -928,7 +1073,7 @@ export default function CalendarScreen() {
           {fertileWindow.ovulation ? (
             <>
               <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" kind="tint" />
-              <LegendChip color={PHASE_AURORA.ovulatory} label="Ovulation (est.)" kind="ring" />
+              <LegendChip color={OVULATION_MARK} label="Ovulation (est.)" kind="ring" />
             </>
           ) : null}
           {/* "Sister" and "Same days" are gone with the overlay they described.
@@ -1415,22 +1560,29 @@ function DayCell({
   if (!cell.inMonth) {
     textColor = palette.ink3;
   } else if (isPeriod) {
-    bgColor = PHASE_CELL.menstrual;
-    textColor = PHASE_INK.menstrual;
+    // The ONLY solid fill on the grid. A logged day is the one thing here
+    // that is a fact rather than an estimate (device-test-24).
+    bgColor = LOGGED_PERIOD_CELL;
+    textColor = inkOn(LOGGED_PERIOD_CELL);
   } else if (isPredicted) {
     bgColor = PREDICTED_CELL;
     textColor = inkOn(PREDICTED_CELL);
     borderStyle = 'dashed';
     borderColor = PHASE_AURORA.menstrual;
   } else if (cell.fertile === 'ovulation') {
-    // The single most likely ovulation day. A ring rather than a full-strength
-    // fill so it reads as a MARK on the day, not a state of the day.
+    // ─── A DAY THAT IS TWO THINGS SHOWS BOTH (device-test-24) ─────
+    //
+    //  Owner: "since ovulatory is much more opaque it is overshadowing the
+    //  fertile window option." Right — ovulation used to REPLACE the fertile
+    //  fill with a brighter one of the same hue, so the most informative day
+    //  on the grid quietly deleted the span it belongs to.
+    //
+    //  It keeps the fertile fill now (an ovulation day IS a fertile day) and
+    //  earns its identity from SHAPE: a bright ring plus a mark in the
+    //  corner. Colour for the span, shape for the single day.
     bgColor = OVULATION_CELL;
-    // Ink by CONTRAST, not by habit: this fill is nearly pure citron, and
-    // `palette.ink` (near-white) on it is 1.7:1 — the exact class of mistake
-    // this whole change is about, auditing one colour and drawing another.
     textColor = inkOn(OVULATION_CELL);
-    ovulationRing = PHASE_AURORA.ovulatory;
+    ovulationRing = OVULATION_MARK;
   } else if (cell.fertile === 'fertile') {
     // Deliberately quieter than any phase. This is the least certain thing on
     // the grid and it must not look like the most confident. Still opaque.
@@ -1474,6 +1626,18 @@ function DayCell({
       <Text style={[styles.dayCellText, { color: textColor }, !cell.inMonth && { opacity: 0.5 }]}>
         {cell.dayOfMonth}
       </Text>
+      {/* The ovulation mark: a filled pip in the corner, in the bright hue.
+          The ring says "this day is special", the pip says WHICH special —
+          and both survive the fertile fill staying underneath, which is the
+          point (device-test-24). Identity is never colour alone (rule: the
+          legend carries a shape per mark), and here the shape is the whole
+          identity. */}
+      {cell.inMonth && cell.fertile === 'ovulation' ? (
+        <View
+          style={[styles.dayOvulationPip, { backgroundColor: OVULATION_MARK }]}
+          pointerEvents="none"
+        />
+      ) : null}
       {/* Sister marker — a slim gold bar, deliberately NOT one of the phase
           hues so "someone I care for" never reads as one of my own phases.
           Solid = she logged it, faded = it's her predicted window. */}
@@ -1684,7 +1848,17 @@ interface MonthCell {
   isFuture: boolean;
   isPeriodDay: boolean;
   isPredictedPeriod: boolean;
+  /**
+   * The computed phase, or null when we genuinely do not know — before the
+   * anchor, in the future, or more than PHASE_DISPLAY_GRACE_DAYS past the
+   * expected end of the cycle (device-test-24).
+   */
   phase: Phase | null;
+  /**
+   * True when this day is past the expected cycle with no new period logged.
+   * The grid draws nothing rather than extending luteal into next year.
+   */
+  beyondCycle: boolean;
   /** Estimated fertile day / ovulation day, or null. Never overrides a period. */
   fertile: FertileKind | null;
   /** Set by the renderer, not the grid builder — see DayCell. */
@@ -1728,8 +1902,18 @@ function buildMonthGrid(input: BuildGridInput): MonthCell[] {
     const isFuture = iso > todayIso;
     const isPeriodDay = input.periodDays.has(iso);
 
-    // Compute phase for this day (only if user has cycle data)
+    // Compute phase for this day (only if user has cycle data).
+    //
+    // ─── AND STOP WHEN WE STOP KNOWING (device-test-24) ────────────
+    //
+    //  The phase calculator extends the last phase forever past the expected
+    //  cycle length, which is right for the predictor and wrong for a grid:
+    //  one period logged in early August painted every following month solid
+    //  luteal. A few days late is ordinary and still coloured; beyond the
+    //  grace period the honest mark is NO mark, and the panel under the grid
+    //  says why.
     let phase: Phase | null = null;
+    let beyondCycle = false;
     if (lastPeriodDate && cellDate >= lastPeriodDate && !isFuture) {
       const result = calculateCurrentPhase(
         lastPeriodDate,
@@ -1737,7 +1921,11 @@ function buildMonthGrid(input: BuildGridInput): MonthCell[] {
         input.avgCycleLength,
         input.avgPeriodLength
       );
-      phase = result.phase;
+      if (result.daysPastExpected > PHASE_DISPLAY_GRACE_DAYS) {
+        beyondCycle = true;
+      } else {
+        phase = result.phase;
+      }
     }
 
     // Is this in the predicted-period window?
@@ -1771,6 +1959,7 @@ function buildMonthGrid(input: BuildGridInput): MonthCell[] {
       isPeriodDay,
       isPredictedPeriod,
       phase,
+      beyondCycle,
       fertile,
     });
   }
@@ -1820,12 +2009,18 @@ function phaseForDate(
   if (!lastPeriodStart) return null;
   const last = new Date(lastPeriodStart + 'T00:00:00');
   const target = new Date(iso + 'T00:00:00');
-  return calculateCurrentPhase(
+  const result = calculateCurrentPhase(
     last,
     target,
     health?.averageCycleLength ?? 28,
     health?.averagePeriodLength ?? 5
-  ).phase;
+  );
+  // Same bound as the grid (device-test-24): past the expected cycle the
+  // sheet must not announce "Luteal phase" for a day nobody can place. The
+  // owner's log shows exactly that — "Monday, 3 August, Luteal phase" on a
+  // day forty-odd days past the anchor.
+  if (result.daysPastExpected > PHASE_DISPLAY_GRACE_DAYS) return null;
+  return result.phase;
 }
 
 /**
@@ -2065,6 +2260,14 @@ const styles = StyleSheet.create({
   },
   sisterHeadsUpText: { ...Typography.preset.caption, lineHeight: 18 },
 
+  dayOvulationPip: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
   dayCellText: {
     ...Typography.preset.bodySemibold,
     fontSize: 15,
@@ -2127,6 +2330,36 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     flex: 1,
   },
+  // Its own row above the grid. Never absolutely positioned — it takes part
+  // in the column so the cells below can't be crowded (device-test-24).
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.base,
+  },
+  modeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 36,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radius.full,
+    borderWidth: 1.5,
+  },
+  modeChipEmoji: { fontSize: 13 },
+  modeChipText: { ...Typography.preset.caption, fontWeight: '800' },
+  modeHint: { flex: 1, ...Typography.preset.caption, fontSize: 11, lineHeight: 15 },
+  unknownNote: {
+    borderWidth: 1,
+    borderColor: A.edge,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.base,
+    marginBottom: Spacing.sectionGap,
+    gap: 4,
+  },
+  unknownTitle: { ...Typography.preset.bodySemibold },
+  unknownBody: { ...Typography.preset.caption, fontSize: 12, lineHeight: 17 },
   remindersCta: { marginBottom: Spacing.sectionGap },
   remindersRow: {
     flexDirection: 'row',

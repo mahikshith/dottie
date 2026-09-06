@@ -523,6 +523,33 @@ export default function HomeScreen() {
               Energy, stress, sleep, symptoms — in one warm sheet.
             </Text>
           </PressableScale>
+
+          {/* ─── THE WAY INTO THE REST OF THE REMINDERS (DT24) ──────
+              Owner: "we have a reminders page in the You tab — why don't we
+              show the same thing on the home page as well?" A LINK, not a
+              second set of switches: one place owns reminders, and a copy
+              here would be a second place for the same setting to disagree
+              with itself (the same reasoning as one calendar, rule 17).
+              Inside the check-in section's own column, with its own top
+              margin — it cannot crowd the card above or the questions
+              below. */}
+          <PressableScale
+            onPress={() => {
+              Haptics.selectionAsync().catch(() => {});
+              router.push('/(profile)/reminders');
+            }}
+            haptic="none"
+            style={[styles.remindersLink, { borderColor: palette.glass.edge }]}
+            accessibilityRole="button"
+            accessibilityLabel="Set up reminders"
+            accessibilityHint="Period heads-up, phase changes, custom nudges — all on your phone"
+          >
+            <Text style={styles.remindersLinkEmoji}>🔔</Text>
+            <Text style={[styles.remindersLinkText, { color: palette.ink2 }]} numberOfLines={2}>
+              Reminders — period heads-up, phase changes, your own
+            </Text>
+            <Text style={[styles.remindersLinkChevron, { color: palette.accent }]}>›</Text>
+          </PressableScale>
         </Animated.View>
 
         {/* Phase-Responsive Questions (only once we know the phase) */}
@@ -817,6 +844,22 @@ const styles = StyleSheet.create({
   moodEmoji: {
     fontSize: 26,
   },
+  remindersLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    minHeight: 52,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.xl,
+    // Its own gap from the check-in card above it — the section's `gap` would
+    // otherwise be the only separation and these two read as one control.
+    marginTop: Spacing.md,
+  },
+  remindersLinkEmoji: { fontSize: 18 },
+  remindersLinkText: { flex: 1, ...Typography.preset.caption, fontSize: 12, lineHeight: 16 },
+  remindersLinkChevron: { ...Typography.preset.h3 },
   fullCheckInButton: {
     borderRadius: Spacing.radius['2xl'],
     padding: Spacing.cardPadding,

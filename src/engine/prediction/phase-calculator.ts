@@ -34,6 +34,27 @@ export interface PhaseResult {
   totalCycleDays: number;
   predictedOvulationDay: number; // day in cycle
   phaseDaysRemaining: number;
+  /**
+   * How far past the expected end of the cycle this day is. 0 while inside it.
+   *
+   * ─── WHY THIS EXISTS (device-test-24) ─────────────────────────────
+   *
+   *  `dayInCycle` grows without bound, and the last branch below is `else`.
+   *  So every day past the ovulatory window is LUTEAL — forever. One period
+   *  logged in early August and the whole of August, September and every
+   *  month after renders solid purple, which is exactly what the owner
+   *  photographed: "it is showing luteal phase for the entire month".
+   *
+   *  For the PREDICTOR that behaviour is right: a period that is nine days
+   *  late is late, not unknowable, and the model should keep counting. For a
+   *  CALENDAR it is a lie told in colour — day 60 of a 28-day cycle is not a
+   *  luteal day, it is a day we know nothing about.
+   *
+   *  So the calculation is unchanged and this number is added: callers that
+   *  are DISPLAYING a phase stop drawing one once it goes past a grace
+   *  period; callers that are PREDICTING carry on as before.
+   */
+  daysPastExpected: number;
 }
 
 /**
@@ -54,11 +75,12 @@ export function calculateCurrentPhase(
   const msPerDay = 24 * 60 * 60 * 1000;
   const dayInCycle = Math.floor((today.getTime() - lastPeriodStart.getTime()) / msPerDay) + 1;
 
-  // Handle case where we're past the expected cycle length
-  // (period might be late — don't panic, just extend luteal)
-  const effectiveCycleDay = dayInCycle > avgCycleLength
-    ? dayInCycle // Allow going past expected — no alarming messages
-    : dayInCycle;
+  // Past the expected cycle length the phase is EXTENDED, not wrapped — a
+  // late period is late, and re-starting the count at day 1 would invent a
+  // period that has not happened. What the caller does with that is its own
+  // decision; `daysPastExpected` is how it makes it (device-test-24).
+  const effectiveCycleDay = dayInCycle;
+  const daysPastExpected = Math.max(0, dayInCycle - avgCycleLength);
 
   // Calculate phase boundaries
   const ovulationDay = avgCycleLength - DEFAULTS.LUTEAL_PHASE_LENGTH;
@@ -99,8 +121,17 @@ export function calculateCurrentPhase(
     totalCycleDays: avgCycleLength,
     predictedOvulationDay: ovulationDay,
     phaseDaysRemaining,
+    daysPastExpected,
   };
 }
+
+/**
+ * How many days past the expected cycle a DISPLAY may keep colouring days.
+ *
+ * Cycles vary; a few days late is ordinary and coloured normally. Beyond this
+ * the grid stops asserting a phase and says so instead (device-test-24).
+ */
+export const PHASE_DISPLAY_GRACE_DAYS = 7;
 
 /**
  * Get human-friendly phase name

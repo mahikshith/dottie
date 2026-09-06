@@ -40,11 +40,35 @@ export default function OnboardingRemindersScreen() {
   const [checkInTime, setCheckInTime] = useState<ReminderTime>(DEFAULT_REMINDER_PREFS.checkInTime);
   const [periodHeadsUp, setPeriodHeadsUp] = useState<boolean>(DEFAULT_REMINDER_PREFS.periodHeadsUp);
   const [hydration, setHydration] = useState<boolean>(DEFAULT_REMINDER_PREFS.hydration);
+  // ─── THE CYCLE ONES (device-test-24) ────────────────────────────
+  //
+  //  Owner: "only three reminders are showing at the home page when the user
+  //  is trying to log in. We have a reminders page in the You tab — why don't
+  //  we show the same thing here as well?"
+  //
+  //  Fair: first run offered three of the nine the app now has, and the three
+  //  it skipped are the cycle-linked ones — the whole reason someone wants
+  //  notifications from a cycle tracker. They are off by default like
+  //  everything else; the point is that they are VISIBLE at the moment the
+  //  question is being asked, not buried in settings.
+  const [periodArrivedCheck, setPeriodArrivedCheck] = useState<boolean>(
+    DEFAULT_REMINDER_PREFS.periodArrivedCheck
+  );
+  const [phaseChange, setPhaseChange] = useState<boolean>(DEFAULT_REMINDER_PREFS.phaseChange);
+  const [weeklyRecap, setWeeklyRecap] = useState<boolean>(DEFAULT_REMINDER_PREFS.weeklyRecap);
 
   const persistAndAdvance = (opts: { anyOn: boolean }) => {
     if (opts.anyOn) {
       Storage.onboardingDraft.merge({
-        reminderPrefs: { checkIn, checkInTime, periodHeadsUp, hydration },
+        reminderPrefs: {
+          checkIn,
+          checkInTime,
+          periodHeadsUp,
+          hydration,
+          periodArrivedCheck,
+          phaseChange,
+          weeklyRecap,
+        },
       });
     } else {
       Storage.onboardingDraft.merge({ reminderPrefs: undefined });
@@ -54,7 +78,10 @@ export default function OnboardingRemindersScreen() {
 
   const handleContinue = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    persistAndAdvance({ anyOn: checkIn || periodHeadsUp || hydration });
+    persistAndAdvance({
+      anyOn:
+        checkIn || periodHeadsUp || hydration || periodArrivedCheck || phaseChange || weeklyRecap,
+    });
   };
 
   const handleSkip = () => {
@@ -148,6 +175,54 @@ export default function OnboardingRemindersScreen() {
             />
           </Animated.View>
 
+          {/* Grouped, so the list stays scannable as it grows. The heading has
+              its own top margin and every row carries the same gap as the ones
+              above — nothing here overlaps or crowds (device-test-24). */}
+          <Animated.View entering={FadeInDown.duration(420).delay(360).springify().damping(16)}>
+            <Text style={styles.groupLabel}>AROUND YOUR CYCLE</Text>
+            <ToggleRow
+              emoji="📓"
+              label="Did it start?"
+              hint="A quiet ask on the day we predicted — it keeps your next estimate honest"
+              value={periodArrivedCheck}
+              onToggle={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setPeriodArrivedCheck((v) => !v);
+              }}
+            />
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.duration(420).delay(400).springify().damping(16)}>
+            <ToggleRow
+              emoji="🌗"
+              label="Phase changes"
+              hint="A note when your cycle moves into a new phase"
+              value={phaseChange}
+              onToggle={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setPhaseChange((v) => !v);
+              }}
+            />
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.duration(420).delay(440).springify().damping(16)}>
+            <ToggleRow
+              emoji="📅"
+              label="Weekly recap"
+              hint="Sunday evening — how the week went, in one line"
+              value={weeklyRecap}
+              onToggle={() => {
+                Haptics.selectionAsync().catch(() => {});
+                setWeeklyRecap((v) => !v);
+              }}
+            />
+          </Animated.View>
+
+          <Text style={styles.moreNote}>
+            There are more — custom reminders at any time you like — under You › Reminders. You
+            can change every one of these later.
+          </Text>
+
           <Pressable onPress={handleSkip} style={styles.skipRow} accessibilityRole="button">
             <Text style={styles.skipText}>Skip — I'll turn these on later ✨</Text>
           </Pressable>
@@ -219,7 +294,15 @@ const styles = StyleSheet.create({
   subtitle: { ...Typography.preset.body, color: A.ink2, lineHeight: 22 },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingTop: Spacing.sm, paddingBottom: Spacing.lg, gap: Spacing.sm },
+  // The list grew from three rows to six plus a heading and a footnote
+  // (device-test-24), so the scroller needs real clearance at the bottom —
+  // the Continue button is pinned OUTSIDE it, and the last row must not end
+  // flush against that edge.
+  scrollContent: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.sm,
+  },
 
   row: {
     flexDirection: 'row',
@@ -240,6 +323,21 @@ const styles = StyleSheet.create({
   rowLabel: { ...Typography.preset.bodySemibold, color: A.ink },
   rowHint: { ...Typography.preset.caption, color: A.ink3, marginTop: 2, lineHeight: 16 },
 
+  groupLabel: {
+    ...Typography.preset.overline,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: A.ink3,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  moreNote: {
+    ...Typography.preset.caption,
+    fontSize: 11,
+    lineHeight: 16,
+    color: A.ink3,
+    marginTop: Spacing.base,
+  },
   subLabel: { ...Typography.preset.overline, color: A.ink3, marginTop: Spacing.sm, marginBottom: Spacing.xs },
   timeRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.xs },
   timeChip: {

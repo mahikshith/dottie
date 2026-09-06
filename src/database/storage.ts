@@ -203,6 +203,7 @@ const Keys = {
   // around again" row clears it to replay.
   WALKTHROUGH_SEEN: 'ux.walkthrough_seen',
   MOOD_MAP_OPEN: 'ux.mood_map_open',
+  QUICK_LOG_MODE: 'ux.quick_log_mode',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -604,6 +605,19 @@ export const Storage = {
     set: (open: boolean): void => db().set(Keys.MOOD_MAP_OPEN, open),
   },
 
+  /**
+   * Calendar quick-log mode — one tap marks a day, no sheet (device-test-24).
+   *
+   * Remembered because back-filling three months is a session, not a tap, and
+   * re-choosing the mode on every visit is the sort of small friction the
+   * feature exists to remove. Defaults OFF: the sheet is still the richer
+   * path, and a calendar where a stray tap writes data has to be opted into.
+   */
+  quickLogMode: {
+    get: (): boolean => db().getBoolean(Keys.QUICK_LOG_MODE) === true,
+    set: (on: boolean): void => db().set(Keys.QUICK_LOG_MODE, on),
+  },
+
   // ─── Bulk operations ────────────────────────────────────────────
 
   /**
@@ -809,11 +823,13 @@ export interface OnboardingDraft {
    * When absent, reminders stay off (the default) — the user can always
    * enable them later from Profile → Reminders.
    */
-  reminderPrefs?: {
-    checkIn: boolean;
-    checkInTime: 'morning' | 'midday' | 'evening';
-    periodHeadsUp: boolean;
-    hydration: boolean;
-  };
+  /**
+   * Widened in device-test-24. First run offered three of the nine reminders
+   * the app now has, so the cycle-linked ones — the reason most people want
+   * notifications from a cycle tracker at all — were invisible until someone
+   * went hunting under You. A Partial of the real prefs: whatever the screen
+   * captures is merged over DEFAULT_REMINDER_PREFS at completion.
+   */
+  reminderPrefs?: Partial<ReminderPrefs>;
   startedAt?: string; // ISO timestamp
 }

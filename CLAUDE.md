@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 30 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 31 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -129,23 +129,39 @@ EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
    composite. Calendar marks are composited over the ground in
    `src/theme/blend.ts` and drawn OPAQUE; ink comes from `inkOn(fill)`, never
    assumed. Never put a data mark on an 8-hex alpha over the aurora.
-26. **Never ask for something the app already has today.** The question deck
+26. **A logged day and an estimate must never look the same.** `PHASE_CELL`
+   and `LOGGED_PERIOD_CELL` are held ≥ ΔE 20 apart by `audit:colour`. They
+   were the same rose, so marking one day painted the whole estimated bleed
+   in identical solid discs and the owner reported one tap "locking the entire
+   week" (DT24). Facts are solid; every estimate is a composite.
+27. **A DISPLAY stops at `PHASE_DISPLAY_GRACE_DAYS`.** `calculateCurrentPhase`
+   extends the last phase forever past the expected cycle — right for the
+   predictor (a late period is late), a lie for a grid (one old anchor painted
+   every month solid luteal, DT24). Anything drawing a phase checks
+   `daysPastExpected` and draws NOTHING past the grace, with a line saying
+   why. `test:phase` pins both halves.
+28. **When two marks land on one day, both stay visible.** The ovulation day
+   keeps the fertile fill it sits inside and is identified by a ring and a pip
+   — shape for the single day, colour for the span (DT24). Where a shape
+   carries the identity, `audit:colour` checks the shape is legible on its
+   fill instead of checking two fills apart.
+29. **Never ask for something the app already has today.** The question deck
    takes `knownMetricsToday` and drops any question tracking a metric the
    check-in already holds — Home showed five mood keys and then asked the same
    question again underneath (DT23).
-27. **One condition, one icon.** `src/content/conditions.ts` is the single
+30. **One condition, one icon.** `src/content/conditions.ts` is the single
    list, shared by onboarding and add-to-circle, and `validate:content` R5
    fails on a shared icon or label. It was grouped by prediction FAMILY, which
    is how the model thinks and the opposite of how a person scans a list.
    Its `affectsPrediction` flag is what the transparency panel and the export
    read — a condition the engine ignores must say so.
-28. **The prediction disclosure must match the model.**
+31. **The prediction disclosure must match the model.**
    `src/engine/prediction/what-we-use.ts` is the ONE description of the
    forecast's inputs, rendered under the calendar (yours and a sister's) and
    as a sheet in the export. It lists what is NOT used too — height, weight,
    activity, mood — because a disclosure that only lists the flattering half
    is an advertisement. `test:transparency` pins it to the code.
-29. **A companion is a voice, a face and a body — not a colour.**
+32. **A companion is a voice, a face and a body — not a colour.**
    `src/engine/learn/companion-voice.ts` gives each of the six its own quiz
    lines, its own expression per beat, its own idle motion and its own streak
    threshold. Pass `companion` to `leadFor`/`reactTo`. The FACTS never vary —

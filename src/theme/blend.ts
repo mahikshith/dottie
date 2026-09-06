@@ -114,6 +114,16 @@ export function inkOn(fill: string): string {
  * cyan, not a hint of one.
  */
 const STRONG = 0.8;
+/**
+ * The ESTIMATED menstrual band — deliberately weaker than the other phases.
+ *
+ * Every phase band is an estimate, but this is the only one with a logged
+ * counterpart sitting next to it in the same hue, and confusing the two is
+ * what made a single tap look like it had claimed the whole week. It has to
+ * read as a wash where a logged day reads as a disc — `audit:colour` holds
+ * the two at least ΔE 20 apart.
+ */
+const MENSTRUAL_ESTIMATE = 0.45;
 /** The fertile window — present, but visibly less certain than a phase. */
 const SOFT = 0.42;
 /**
@@ -122,19 +132,59 @@ const SOFT = 0.42;
  * as another day of it.
  */
 const OVULATION = 0.95;
-/** The predicted-period wash under its dashed ring. */
-const PREDICTED = 0.3;
+/**
+ * The predicted-period wash under its dashed ring.
+ *
+ * Deliberately the FAINTEST rose on the grid. It is the least certain thing
+ * the calendar draws — a date that has not happened — and it has a dashed
+ * ring in the full hue doing the identifying, so the fill only has to say
+ * "something is expected around here" without competing with the estimated
+ * menstrual band behind it (device-test-24).
+ */
+const PREDICTED = 0.16;
 
 export const PHASE_CELL = {
-  menstrual: PHASE_AURORA.menstrual,
+  /**
+   * The ESTIMATED menstrual phase — days the arithmetic says you are probably
+   * bleeding on, which you have not logged.
+   *
+   *  device-test-24: this used to be the FULL-strength rose, byte-identical
+   *  to a logged day, so marking one day painted five identical solid discs
+   *  and the owner reported that a single tap "locks the entire week". It did
+   *  not — but a calendar that draws an estimate in the same ink as a fact is
+   *  making a claim it has no right to, and there is no way for the user to
+   *  tell what they actually recorded. Logged data is SOLID; every estimate
+   *  is composited (below full strength) and carries a paler ink.
+   */
+  menstrual: over(PHASE_AURORA.menstrual, A.ground, MENSTRUAL_ESTIMATE),
   follicular: over(PHASE_AURORA.follicular, A.ground, STRONG),
   ovulatory: over(PHASE_AURORA.ovulatory, A.ground, STRONG),
   luteal: over(PHASE_AURORA.luteal, A.ground, STRONG),
 } as const;
 
-/** The fertile-window wash, and the ovulation day's fill under its ring. */
+/**
+ * A day you LOGGED. The only mark drawn at full strength, because it is the
+ * only mark that is a fact rather than an estimate (device-test-24).
+ */
+export const LOGGED_PERIOD_CELL = PHASE_AURORA.menstrual;
+
+/**
+ * The fertile window, and the ovulation day INSIDE it.
+ *
+ *  device-test-24, owner: "if ovulation and the fertile period coincide on a
+ *  single day, since ovulatory is much more opaque it is overshadowing the
+ *  fertile window."
+ *
+ *  Exactly right, and the cause is that ovulation REPLACED the fertile fill
+ *  with a brighter one of the same hue — so a day that is two things looked
+ *  like one. The ovulation day now keeps the FERTILE fill (it is a fertile
+ *  day; that is the whole point of it) and is identified by a ring and a mark
+ *  instead. Shape for the thing that is one day, colour for the span.
+ */
 export const FERTILE_CELL = over(PHASE_AURORA.ovulatory, A.ground, SOFT);
-export const OVULATION_CELL = over(PHASE_AURORA.ovulatory, A.ground, OVULATION);
+export const OVULATION_CELL = FERTILE_CELL;
+/** The ring and glyph that say "peak" without taking the fill away. */
+export const OVULATION_MARK = over(PHASE_AURORA.ovulatory, A.ground, OVULATION);
 /** The predicted-period wash, under the dashed ring. */
 export const PREDICTED_CELL = over(PHASE_AURORA.menstrual, A.ground, PREDICTED);
 

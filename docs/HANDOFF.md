@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-06 · DT23 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-06 · DT24 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,49 +10,45 @@
 
 ## 1. OPEN
 
-**DT16 through DT23 are done and pushed. The owner's DT23 verdict on the last
-build: "everything looks completely fine, I don't see any kind of major
-issues" — the four items below are what they raised.**
+**DT16 through DT24 are done and pushed.**
 
 ### Look at this FIRST, and it needs no APK
 `docs/companion-preview.html` — every companion in every expression, from the
 same geometry the app draws (`npx tsx scripts/companion-preview.ts`). Review
 art there, never blind into a 25-minute build.
 
-### Verify on the next APK — DT23
-1. **The calendar in bright light.** Every mark is now OPAQUE — composited over
-   the aurora ground in `src/theme/blend.ts` — so a day's colour no longer
-   depends on which bloom is behind it. The old fills were 14% alpha, i.e. 86%
-   background; that is why the phase and the aurora looked the same, and why
-   the DT22 colour audit could pass while the screen looked wrong. Marks are
-   ≥ ΔE 57 apart as drawn and every day number clears 4.5:1 on its fill.
-2. **Home asks the mood ONCE.** The question deck now takes what the check-in
-   already holds and drops anything duplicating it; the two mood questions in
-   the defaults were replaced with ones the app cannot answer for itself.
-3. **The conditions list.** Nineteen entries, each with its own icon, one
-   shared list behind onboarding and add-to-circle. Nine new options
-   (perimenopause, postpartum, breastfeeding, fertility treatment, menstrual
-   migraine, anaemia, chronic pelvic pain…), each marked for whether it
-   changes the forecast.
-4. **"What shapes this forecast"** at the bottom of the science, on your
-   calendar AND a sister's, collapsed by default. It lists every input, what
-   it does, whether it is filled in — and the ones the model does NOT read
-   (height, weight, activity, mood). Same disclosure as a sheet in the export.
+### Verify on the next APK — DT24
+1. **Mark ONE day.** Only that day goes solid. The estimated bleed around it
+   is a paler wash, and the legend now separates "Period · you logged" from
+   "Menstrual (est.)". They were the same rose, which is why one tap looked
+   like it had claimed the week.
+2. **Quick log.** The ⚡ chip above the grid turns every past day into a
+   one-tap toggle — no sheet, no Done. The mode is remembered. Tap it off and
+   the day sheet behaves exactly as before.
+3. **A stale calendar goes quiet.** More than a week past the expected cycle
+   the grid stops colouring and says why, instead of painting every month
+   luteal from one old anchor.
+4. **Ovulation and fertile together.** The ovulation day keeps the fertile
+   fill and adds a bright ring plus a corner pip, so a day that is both reads
+   as both.
+5. **Onboarding.** Picking "a week or two" now names the exact date it will
+   record, and says the shaded days around it are an estimate. Six reminder
+   options instead of three, and Home links to the full page.
 
 ### Open
 - `[P2]` App-store rollout groundwork.
 - `[P4]` Learn tab auto-advance report — re-verify.
-- Notification DELIVERY has still never been tested on a device;
-  `expo-notifications` needs the dev build to actually fire.
-- Merging Practice and the quiz into one continuous run (owner's DT19
-  suggestion). Deferred deliberately — structural, and not asked for again.
-- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines). Note that
-  `health-adjustments.ts` implements stress/sleep adjustments the predictor
-  does its own simpler version of — deleting it is safe, but read both first.
+- Notification DELIVERY still untested on a device — `expo-notifications`
+  needs the dev build to actually fire.
+- The owner's DT24 log shows a 30-second JS stall on app foreground
+  (`js-thread-stalled ms=30937`) right after a background→foreground
+  transition. It happened once and did not recur in the same session; if it
+  shows up again, that is the next P0 and the diagnostics screen has the trail.
+- Merging Practice and the quiz into one run (owner's DT19 suggestion).
+  Deferred deliberately — structural, and not asked for again.
+- Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines).
 - `PredictionInput.recentWeightChangeKg` is read by the model and collected by
-  nothing. The transparency panel says so out loud, which is the honest state;
-  wiring it would mean asking for weight, which is not a question this app
-  should put on a mood screen without a reason.
+  nothing; the transparency panel says so.
 - The ESLint config predates v9 and `npm run lint` cannot run.
 
 ---
@@ -81,6 +77,9 @@ Each was added after the same bug came back for the third or fourth time:
   screen was still wrong: it measured tokens, the grid drew 14% alpha.
 - `test:transparency` — the prediction disclosure matches the predictor,
   including the inputs it ignores.
+- `test:phase` — the predictor keeps counting past a late period, and anything
+  DRAWING a phase stops at the grace period. The regression is a month of days
+  60+ past a stale anchor: it must colour nothing.
 - `test:quiz` — opens EVERY lesson's quiz through the real engine, answers it
   and finishes it. Nothing had ever done that, which is why a quiz that only
   ever showed a spinner could ship.

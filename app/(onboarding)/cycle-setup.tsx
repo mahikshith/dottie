@@ -11,6 +11,7 @@ import { AuroraBackground, GradientButton, PressableScale } from '../../src/comp
 import { A } from '../../src/theme';
 import { Storage } from '../../src/database/storage';
 import { CycleLengthCategory } from '../../src/types/cycle.types';
+import { addDays, todayCivil } from '../../src/utils/civil-date';
 
 /**
  * Cycle Setup Screen — design-v2 onboarding audit rewrite.
@@ -66,6 +67,12 @@ const lastPeriodBuckets: LastPeriodOption[] = [
   { id: 'unknown',     emoji: '✨', label: "Not sure at all",  hint: "That's okay — I'll learn", midpointDays: null },
 ];
 
+/** "Mon 15 Sep" — short, unambiguous, and never a bare ISO string. */
+function prettyDay(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 export default function CycleSetupScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -91,19 +98,12 @@ export default function CycleSetupScreen() {
 
     // Last period: precise input wins if the user typed one; else the bucket
     // midpoint; else nothing (a full valid "not sure" answer).
-    const preciseNum = parseInt(preciseDaysAgo, 10);
-    if (showPreciseInput && !isNaN(preciseNum) && preciseNum > 0 && preciseNum < 365) {
-      const date = new Date();
-      date.setDate(date.getDate() - preciseNum);
-      patch.lastPeriodStart = date.toISOString().split('T')[0]!;
-    } else if (selectedBucket) {
-      const opt = lastPeriodBuckets.find((o) => o.id === selectedBucket);
-      if (opt?.midpointDays) {
-        const date = new Date();
-        date.setDate(date.getDate() - opt.midpointDays);
-        patch.lastPeriodStart = date.toISOString().split('T')[0]!;
-      }
-    }
+    //
+    // Through civil-date, NOT `new Date().toISOString()` — that builds a local
+    // date and then serialises it as UTC, which lands on the wrong day either
+    // side of Greenwich. It is the exact helper mistake that froze the app for
+    // four rounds (CLAUDE.md rule 3), and it was still sitting here.
+    if (seededStart) patch.lastPeriodStart = seededStart;
 
     Storage.onboardingDraft.merge(patch);
 
@@ -112,6 +112,29 @@ export default function CycleSetupScreen() {
   };
 
   const canContinue = selectedLength !== null; // last period is fully optional
+
+  // ─── WHAT THIS ANSWER WILL ACTUALLY WRITE (device-test-24) ────────
+  //
+  //  Owner: "if they click on a week before or a month before, we should
+  //  actually show them the dates upon which we are going to lock the period
+  //  for them… since you clicked on a week before, here are the dates we are
+  //  considering for your period input."
+  //
+  //  Right, and it is the honest half of the DT24 confusion. Picking "a week
+  //  or two" writes ONE day — the start — and the calendar then shades the
+  //  days around it as an ESTIMATE. Nothing said so, so five shaded days read
+  //  as five days the app had decided for you. This says the date out loud
+  //  before the tap, and names the estimate as an estimate.
+  const preciseNum = parseInt(preciseDaysAgo, 10);
+  const daysAgo =
+    showPreciseInput && !isNaN(preciseNum) && preciseNum > 0 && preciseNum < 365
+      ? preciseNum
+      : selectedBucket
+        ? (lastPeriodBuckets.find((o) => o.id === selectedBucket)?.midpointDays ?? null)
+        : null;
+  const seededStart = daysAgo === null ? null : addDays(todayCivil(), -daysAgo);
+  const periodLength = 5;
+  const seededEnd = seededStart ? addDays(seededStart, periodLength - 1) : null;
 
   return (
     <AuroraBackground>
@@ -194,6 +217,22 @@ export default function CycleSetupScreen() {
             </View>
           )}
 
+          {/* ─── WHAT WE'LL WRITE DOWN (device-test-24) ─────────────
+              Its own block in the scroll column with a full section gap below,
+              so it can never crowd the cycle-length question underneath. */}
+          {seededStart && seededEnd && (
+            <Animated.View entering={FadeInDown.duration(320)} style={styles.seedNote}>
+              <Text style={styles.seedTitle}>
+                We&apos;ll record {prettyDay(seededStart)} as your period start
+              </Text>
+              <Text style={styles.seedBody}>
+                That is the ONE day we log. On the calendar, {prettyDay(seededStart)}–
+                {prettyDay(seededEnd)} will be shaded paler as an estimate of the bleed — an
+                estimate, not something we recorded for you. Change any of it with a tap.
+              </Text>
+            </Animated.View>
+          )}
+
           {/* Cycle length — buckets */}
           <Text style={[styles.sectionTitle, styles.sectionSpaced]}>
             How long is your typical cycle?
@@ -252,6 +291,20 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
+  // Its own card in the column, with a section-sized gap below so the next
+  // question is never crowded (device-test-24).
+  seedNote: {
+    borderWidth: 1,
+    borderColor: `${A.accent}55`,
+    backgroundColor: `${A.accent}12`,
+    borderRadius: Spacing.radius.xl,
+    padding: Spacing.base,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    gap: 4,
+  },
+  seedTitle: { ...Typography.preset.bodySemibold, color: A.ink },
+  seedBody: { ...Typography.preset.caption, color: A.ink2, fontSize: 12, lineHeight: 17 },
   sectionSpaced: { marginTop: Spacing.xl },
 
   chip: {

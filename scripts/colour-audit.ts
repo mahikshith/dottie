@@ -58,6 +58,8 @@ import {
   PHASE_CELL,
   FERTILE_CELL,
   OVULATION_CELL,
+  OVULATION_MARK,
+  LOGGED_PERIOD_CELL,
   PREDICTED_CELL,
   contrastRatio,
   inkOn,
@@ -170,7 +172,8 @@ console.log(
 // ─── WHAT THE GRID ACTUALLY PAINTS ───────────────────────────────────
 
 const rendered: { name: string; hex: string }[] = [
-  { name: 'period', hex: PHASE_CELL.menstrual },
+  { name: 'period (logged)', hex: LOGGED_PERIOD_CELL },
+  { name: 'menstrual (est.)', hex: PHASE_CELL.menstrual },
   { name: 'follicular', hex: PHASE_CELL.follicular },
   { name: 'ovulatory', hex: PHASE_CELL.ovulatory },
   { name: 'luteal', hex: PHASE_CELL.luteal },
@@ -210,10 +213,17 @@ for (const r of rendered) {
 const FAMILY_PAIRS = new Set([
   'ovulatory|ovulation (est.)',
   'ovulatory|fertile (est.)',
+  'period (logged)|predicted',
+  'menstrual (est.)|predicted',
+  // device-test-24: an ovulation day IS a fertile day, so it now KEEPS the
+  // fertile fill and is identified by its ring and glyph instead of by a
+  // brighter fill of the same hue that hid the window underneath. This pair
+  // is checked as a shape below rather than as two fills.
   'fertile (est.)|ovulation (est.)',
-  'period|predicted',
 ]);
 const MIN_FAMILY_LIGHTNESS = 10;
+/** Pairs where the shape is the identity, so a fill match is intended. */
+const SHAPE_IS_THE_IDENTITY = new Set(['fertile (est.)|ovulation (est.)']);
 
 for (let i = 0; i < rendered.length; i++) {
   for (let j = i + 1; j < rendered.length; j++) {
@@ -221,6 +231,13 @@ for (let i = 0; i < rendered.length; i++) {
     const b = rendered[j]!;
     const d = deltaE(a.hex, b.hex);
     const family = FAMILY_PAIRS.has(`${a.name}|${b.name}`) || FAMILY_PAIRS.has(`${b.name}|${a.name}`);
+
+    if (
+      SHAPE_IS_THE_IDENTITY.has(`${a.name}|${b.name}`) ||
+      SHAPE_IS_THE_IDENTITY.has(`${b.name}|${a.name}`)
+    ) {
+      continue;
+    }
 
     if (family) {
       const dl = Math.abs(toLab(a.hex)[0] - toLab(b.hex)[0]);
@@ -240,6 +257,46 @@ for (let i = 0; i < rendered.length; i++) {
           ` (${a.hex} vs ${b.hex}) — the legend claims they are different.`
       );
     }
+  }
+}
+
+// ─── THE TWO RULES DT24 ADDED ────────────────────────────────────────
+
+// 1. A LOGGED day and an ESTIMATED one must never look the same. They did:
+//    both drew the full-strength rose, so marking one day painted five
+//    identical solid discs and the owner reported that one tap "locks the
+//    entire week". A calendar that draws an estimate in the same ink as a
+//    fact is claiming something it cannot back up.
+{
+  const d = deltaE(LOGGED_PERIOD_CELL, PHASE_CELL.menstrual);
+  if (d < 20) {
+    problems.push(
+      `a logged period day (${LOGGED_PERIOD_CELL}) and an ESTIMATED menstrual day` +
+        ` (${PHASE_CELL.menstrual}) are only ΔE ${d.toFixed(1)} apart — the grid would be` +
+        ` drawing a guess in the same ink as a fact.`
+    );
+  }
+  console.log(
+    `\n  logged vs estimated period day: ΔE ${d.toFixed(1)} (floor 20)` +
+      `  ${LOGGED_PERIOD_CELL} vs ${PHASE_CELL.menstrual}`
+  );
+}
+
+// 2. When a mark's identity IS its shape, the shape has to be visible against
+//    the fill it is drawn on — otherwise "distinguished by a ring" is a claim
+//    with nothing behind it.
+{
+  const d = deltaE(OVULATION_MARK, OVULATION_CELL);
+  const ratio = contrastRatio(OVULATION_MARK, OVULATION_CELL);
+  console.log(
+    `  ovulation ring on its fill:     ΔE ${d.toFixed(1)} (floor 25)` +
+      `, contrast ${ratio.toFixed(1)}:1`
+  );
+  if (d < 25) {
+    problems.push(
+      `the ovulation ring (${OVULATION_MARK}) is only ΔE ${d.toFixed(1)} from the fertile fill` +
+        ` it is drawn on (${OVULATION_CELL}) — the shape cannot carry the identity.`
+    );
   }
 }
 
