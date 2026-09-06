@@ -1,6 +1,6 @@
 # Dottie — Claude Code project guide
 
-**Read `docs/HANDOFF.md` FIRST (77 lines) — the open work.** This file is the
+**Read `docs/HANDOFF.md` FIRST (135 lines) — the open work.** This file is the
 stable how-we-work reference. Between the two you have everything; do NOT
 re-explore the codebase.
 
@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 31 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 32 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -30,7 +30,9 @@ test for the period-log freeze) · `test:app:tz` (simulated user, 5 timezones)
 verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` · `audit:silent` (rule 18)
 · `test:creature` (the C8 block is the anti-insect audit) · `test:quiz` (opens
 EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
-`audit:colour` (no phase colour may collide with a mood colour)
+`audit:colour` (no phase colour may collide with a mood colour) ·
+`test:ranges` (the dated calendar list against the grid it describes, cell for
+cell, over 200 random months)
 
 ## Rules baked into the code (do not undo)
 
@@ -167,6 +169,17 @@ EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
    threshold. Pass `companion` to `leadFor`/`reactTo`. The FACTS never vary —
    the explanation is verbatim curriculum whoever is speaking (rule 9), and
    `test:dialogue` D9 asserts both halves.
+33. **The calendar decides what a day IS exactly once.**
+   `src/engine/calendar/day-marks.ts` — `dayMark()` resolves the precedence
+   (logged > predicted > ovulation > fertile > phase > unknown) and the THREE
+   renderers consume it: the grid cell paints by it, the dated list under the
+   toggle groups by it, the accessibility label speaks it. The owner's
+   condition for the dated list was "never, ever add contradictory information
+   from the visual calendar and what we are showing below" — a second
+   precedence chain anywhere is that contradiction waiting to happen, and
+   `test:ranges` fails on one. The list's swatches are the grid's own colours,
+   its labels are the legend chips verbatim, and every non-logged row is
+   badged ESTIMATED.
 
 ## Design system (never hardcode ad-hoc values)
 

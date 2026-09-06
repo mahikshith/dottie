@@ -204,6 +204,7 @@ const Keys = {
   WALKTHROUGH_SEEN: 'ux.walkthrough_seen',
   MOOD_MAP_OPEN: 'ux.mood_map_open',
   QUICK_LOG_MODE: 'ux.quick_log_mode',
+  CALENDAR_DATES_VIEW: 'ux.calendar_dates_view',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -616,6 +617,20 @@ export const Storage = {
   quickLogMode: {
     get: (): boolean => db().getBoolean(Keys.QUICK_LOG_MODE) === true,
     set: (on: boolean): void => db().set(Keys.QUICK_LOG_MODE, on),
+  },
+
+  /**
+   * Calendar legend: colours (default) or the same thing written out with
+   * dates (device-test-25).
+   *
+   * Remembered, because someone who prefers reading it prefers reading it
+   * every time — and because the toggle is a preference about how to READ,
+   * not an action, so re-choosing it each visit would be pure friction.
+   * Defaults OFF: the grid is the primary reading, the words are the option.
+   */
+  calendarDatesView: {
+    get: (): boolean => db().getBoolean(Keys.CALENDAR_DATES_VIEW) === true,
+    set: (on: boolean): void => db().set(Keys.CALENDAR_DATES_VIEW, on),
   },
 
   // ─── Bulk operations ────────────────────────────────────────────

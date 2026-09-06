@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-06 · DT24 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-06 · DT24 + DT25 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,7 +10,7 @@
 
 ## 1. OPEN
 
-**DT16 through DT24 are done and pushed.**
+**DT16 through DT25 are done and pushed.**
 
 ### Look at this FIRST, and it needs no APK
 `docs/companion-preview.html` — every companion in every expression, from the
@@ -34,6 +34,19 @@ art there, never blind into a 25-minute build.
 5. **Onboarding.** Picking "a week or two" now names the exact date it will
    record, and says the shaded days around it are an estimate. Six reminder
    options instead of three, and Home links to the full page.
+
+### Verify on the next APK — DT25
+6. **The calendar in words.** Under the grid, a chip toggles the colour key
+   for a dated list of the month: "29–31 Aug · 3 days · Luteal", with what
+   the phase means under it. The grid stays the default; the choice is
+   remembered. Logged runs are badged RECORDED BY YOU, everything else
+   ESTIMATED, and a stretch past the grace says nothing is estimated there.
+   The list REPLACES the key rather than stacking under it, so the
+   week-ahead strip below does not move (the owner's overlap note).
+   It cannot disagree with the grid: `dayMark()` in
+   `src/engine/calendar/day-marks.ts` is the only thing that decides what a
+   day is, and `test:ranges` checks the list against the grid cell for cell
+   over 200 random months.
 
 ### Open
 - `[P2]` App-store rollout groundwork.

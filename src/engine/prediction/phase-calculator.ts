@@ -161,13 +161,25 @@ export function getPhaseEmoji(phase: Phase): string {
 
 /**
  * Get phase description (friendly, not clinical)
+ *
+ * ─── THE VOICE (rule 1) ─────────────────────────────────────────────
+ *
+ *  These are the ONE description of each phase in the app — the dated list
+ *  under the calendar reads them (`markDetail`), so whatever is said here is
+ *  said everywhere a phase is explained.
+ *
+ *  Which is why "your body is renewing itself" and "your body is gearing up"
+ *  are gone. Both told the reader what her body was DOING, from a date and an
+ *  average — the exact claim rule 1 exists to prevent, and it read as more
+ *  authoritative next to a date range than it ever did as a caption. What is
+ *  left says what many people report and leaves her body to her.
  */
 export function getPhaseDescription(phase: Phase): string {
   const descriptions: Record<Phase, string> = {
-    menstrual: 'Rest & restore. Your body is renewing itself.',
-    follicular: 'Energy rising! Your body is gearing up.',
-    ovulatory: 'Peak energy! You might feel extra social & confident.',
-    luteal: 'Winding down. Be gentle with yourself.',
+    menstrual: 'Rest & restore. Many people report lower energy on these days.',
+    follicular: 'Many people report energy climbing through this stretch.',
+    ovulatory: 'Many people report feeling their most social and confident here.',
+    luteal: 'Winding down. Many people report wanting more rest towards the end.',
   };
   return descriptions[phase];
 }

@@ -107,6 +107,16 @@ import {
   OVULATION_MARK,
   PREDICTED_CELL,
 } from '../../src/theme/blend';
+import {
+  dayMark,
+  groupDayRanges,
+  markDetail,
+  isRecorded,
+  MARK_LABEL,
+  MARK_SPOKEN,
+  type DayMark,
+  type DayRange,
+} from '../../src/engine/calendar/day-marks';
 
 // Shared empty array so the conditions selector stays referentially stable
 // (returning a fresh `[]` from a selector thrashes re-renders / warns).
@@ -790,6 +800,28 @@ export default function CalendarScreen() {
   // ─── Week-ahead model: next 7 days from today ───────────────────
 
   /**
+   * Colours or dates (device-test-25). The key is the default; the dated list
+   * is the same information written out. Remembered, because someone who
+   * prefers reading it prefers reading it every time.
+   */
+  const [datesView, setDatesView] = useState<boolean>(() => Storage.calendarDatesView.get());
+  const toggleLegendMode = () => {
+    const next = !datesView;
+    Haptics.selectionAsync().catch(() => {});
+    setDatesView(next);
+    Storage.calendarDatesView.set(next);
+  };
+
+  /**
+   * The month's days, grouped into runs of the same mark.
+   *
+   * Built from `monthGrid` — the very array the cells above were rendered
+   * from — so the list cannot describe a month the grid did not draw. That is
+   * the owner's one hard condition on this feature.
+   */
+  const dayRanges = useMemo(() => groupDayRanges(monthGrid), [monthGrid]);
+
+  /**
    * How many days in the visible month we deliberately left uncoloured
    * because they are more than a week past the expected cycle
    * (device-test-24). Drives the honest note under the grid — a blank with no
@@ -1059,6 +1091,62 @@ export default function CalendarScreen() {
             you were trying to read. A key belongs beside the map. Both now sit
             immediately under the month grid, in reading order: the grid, then
             what its colours mean, then the days coming up. */}
+        {/* ─── COLOURS OR DATES (device-test-25) ────────────────────
+            Owner: "if the user wants to see it in a descriptive way they can
+            do that, or else they can stick to the visual information.
+            Obviously the visual information is the first thing."
+
+            So: one block, two readings, a toggle between them. The key stays
+            the default; the dated list is one tap away and REPLACES it rather
+            than stacking under it — the column keeps exactly one block here,
+            which is what stops this from crowding the week-ahead strip below.
+
+            Both readings come from `dayMark()` on the same cells the grid
+            drew, so they cannot say different things. */}
+        <Animated.View entering={rise(116)} style={styles.legendModeRow}>
+          <PressableScale
+            onPress={toggleLegendMode}
+            haptic="none"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={[
+              styles.legendModeChip,
+              {
+                backgroundColor: datesView ? palette.accent : palette.glass.bg,
+                borderColor: datesView ? palette.accent : palette.glass.edge,
+              },
+            ]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: datesView }}
+            accessibilityLabel="Show the dates in words"
+            accessibilityHint="Lists each phase with the days it covers this month"
+          >
+            <Text style={styles.legendModeEmoji}>{datesView ? '📅' : '🎨'}</Text>
+            <Text
+              style={[styles.legendModeText, { color: datesView ? palette.ground : palette.ink2 }]}
+            >
+              {datesView ? 'Dates' : 'Colours'}
+            </Text>
+          </PressableScale>
+          <Text style={[styles.legendModeHint, { color: palette.ink3 }]} numberOfLines={2}>
+            {datesView
+              ? `Every run of days in ${monthLabel}, from the grid above.`
+              : 'Tap for the same thing written out, with dates.'}
+          </Text>
+        </Animated.View>
+
+        {datesView ? (
+          <Animated.View entering={FadeIn.duration(200)} style={styles.rangeList}>
+            {dayRanges.length === 0 ? (
+              <Text style={[styles.rangeEmpty, { color: palette.ink3 }]}>
+                Nothing to describe yet — log a period day and this fills in.
+              </Text>
+            ) : (
+              dayRanges.map((r) => (
+                <RangeRow key={`${r.mark}_${r.start}`} range={r} palette={palette} />
+              ))
+            )}
+          </Animated.View>
+        ) : (
         <Animated.View entering={rise(118)} style={styles.legend}>
           {/* The swatch is the GRID's colour, not the token's (DT23) — and
               the key now separates what you LOGGED from what we ESTIMATED
@@ -1069,7 +1157,7 @@ export default function CalendarScreen() {
           <LegendChip color={PHASE_CELL.follicular} label="Follicular" kind="fill" />
           <LegendChip color={PHASE_CELL.ovulatory} label="Ovulatory" kind="fill" />
           <LegendChip color={PHASE_CELL.luteal} label="Luteal" kind="fill" />
-          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted" kind="dashed" />
+          <LegendChip color={PHASE_AURORA.menstrual} label="Predicted period" kind="dashed" />
           {fertileWindow.ovulation ? (
             <>
               <LegendChip color={PHASE_AURORA.ovulatory} label="Fertile (est.)" kind="tint" />
@@ -1079,6 +1167,7 @@ export default function CalendarScreen() {
           {/* "Sister" and "Same days" are gone with the overlay they described.
               A key may only name marks the grid actually draws. */}
         </Animated.View>
+        )}
 
         {/* ─── REMINDERS, FROM WHERE YOU NOTICE YOU WANT ONE ─────────
             device-test-22, owner: "put a toggle in the cycle screen section
@@ -1557,19 +1646,32 @@ function DayCell({
   //  opaque, so a day's colour is the same colour on any background, at any
   //  brightness, whatever the blooms are doing. Ink is chosen by contrast
   //  rather than assumed.
+  //
+  // ─── ONE FUNCTION DECIDES (device-test-25) ───────────────────────
+  //
+  //  The precedence used to live in this chain of `else if`s, which meant the
+  //  dated list under the grid would have had to re-derive it — and the owner
+  //  was explicit: "never, ever add contradictory information from the visual
+  //  calendar and what we are showing in the information below." Two
+  //  independent derivations is exactly how a key starts lying about its map.
+  //
+  //  `dayMark()` now answers "what is this day" for BOTH renderers. This
+  //  switch only chooses paint.
+  const mark = dayMark(cell);
+
   if (!cell.inMonth) {
     textColor = palette.ink3;
-  } else if (isPeriod) {
+  } else if (mark === 'logged') {
     // The ONLY solid fill on the grid. A logged day is the one thing here
     // that is a fact rather than an estimate (device-test-24).
     bgColor = LOGGED_PERIOD_CELL;
     textColor = inkOn(LOGGED_PERIOD_CELL);
-  } else if (isPredicted) {
+  } else if (mark === 'predicted') {
     bgColor = PREDICTED_CELL;
     textColor = inkOn(PREDICTED_CELL);
     borderStyle = 'dashed';
     borderColor = PHASE_AURORA.menstrual;
-  } else if (cell.fertile === 'ovulation') {
+  } else if (mark === 'ovulation') {
     // ─── A DAY THAT IS TWO THINGS SHOWS BOTH (device-test-24) ─────
     //
     //  Owner: "since ovulatory is much more opaque it is overshadowing the
@@ -1583,14 +1685,14 @@ function DayCell({
     bgColor = OVULATION_CELL;
     textColor = inkOn(OVULATION_CELL);
     ovulationRing = OVULATION_MARK;
-  } else if (cell.fertile === 'fertile') {
+  } else if (mark === 'fertile') {
     // Deliberately quieter than any phase. This is the least certain thing on
     // the grid and it must not look like the most confident. Still opaque.
     bgColor = FERTILE_CELL;
     textColor = inkOn(FERTILE_CELL);
-  } else if (cell.phase) {
-    bgColor = PHASE_CELL[cell.phase];
-    textColor = PHASE_INK[cell.phase];
+  } else if (mark === 'menstrual' || mark === 'follicular' || mark === 'ovulatory' || mark === 'luteal') {
+    bgColor = PHASE_CELL[mark];
+    textColor = PHASE_INK[mark];
   }
 
   return (
@@ -1679,15 +1781,17 @@ function DayCell({
  * What a screen reader hears when it lands on a day. Without this every cell
  * announces a bare number and the whole grid is meaningless — the period days,
  * the prediction, the fertile estimate all vanish for anyone not looking at the
- * colours. Order matches the visual precedence resolved in buildMonthGrid.
+ * colours.
+ *
+ * It used to carry its own copy of the precedence chain, which made it a THIRD
+ * renderer free to disagree with the other two: a sighted user could see a
+ * fertile day where a blind user was told a luteal one. It asks `dayMark()`
+ * now, like the cell and the dated list, and only the wording is its own.
  */
 function dayCellLabel(cell: MonthCell): string {
   const parts: string[] = [formatFriendlyDate(cell.iso)];
-  if (cell.isPeriodDay) parts.push('period logged');
-  else if (cell.isPredictedPeriod) parts.push('predicted period');
-  else if (cell.fertile === 'ovulation') parts.push('estimated ovulation day');
-  else if (cell.fertile === 'fertile') parts.push('estimated fertile day');
-  else if (cell.phase) parts.push(`${phaseLabel(cell.phase)} phase`);
+  const mark = dayMark(cell);
+  if (mark !== 'unknown') parts.push(MARK_SPOKEN[mark]);
   if (cell.coincides) parts.push('also a predicted day for your sister');
   return parts.join(', ');
 }
@@ -1742,6 +1846,124 @@ const SISTER_ARC_PATH = `M1,1 Q${SISTER_ARC_W / 2},${SISTER_ARC_H} ${SISTER_ARC_
  *    glow    ring plus a warm halo      — Same days
  */
 type LegendKind = 'fill' | 'tint' | 'dashed' | 'ring' | 'arc' | 'glow';
+
+/**
+ * One run of days, in words (device-test-25).
+ *
+ *  Owner: "along with the date, we may want to add the phase information."
+ *  Right — a date and a label answer WHEN and WHAT, and the reason anyone
+ *  opens a cycle app is SO WHAT. Every row carries all three:
+ *
+ *      ● Luteal          29–31 Aug · 3 days
+ *        Winding down. Be gentle with yourself.
+ *
+ *  The swatch is the exact colour the grid painted, the label is the same
+ *  string the legend chip uses, and the detail line is vetted copy the app
+ *  already shows elsewhere (`getPhaseDescription`, `NOT_CONTRACEPTION`) — so
+ *  a phase is never described two ways in one app.
+ *
+ *  A logged run is badged RECORDED. It is the only row here that is a fact,
+ *  and in a list where everything reads with equal confidence, the difference
+ *  has to be said rather than shaded (device-test-24).
+ */
+function RangeRow({
+  range,
+  palette,
+}: {
+  range: DayRange;
+  palette: ReturnType<typeof useAurora>['palette'];
+}): JSX.Element {
+  const recorded = isRecorded(range.mark);
+  const swatch = MARK_SWATCH[range.mark];
+  const ring = MARK_RING[range.mark];
+  return (
+    <View
+      style={[
+        styles.rangeRow,
+        {
+          borderColor: palette.glass.edge,
+          backgroundColor: palette.glass.bg,
+        },
+      ]}
+      accessibilityRole="text"
+      accessibilityLabel={`${MARK_LABEL[range.mark]}, ${rangeDatesLabel(range)}, ${range.days} day${
+        range.days === 1 ? '' : 's'
+      }. ${markDetail(range.mark)}`}
+    >
+      <View
+        style={[
+          styles.rangeSwatch,
+          {
+            backgroundColor: swatch,
+            borderColor: ring ?? (range.mark === 'unknown' ? palette.glass.edge : swatch),
+            borderWidth: ring ? 2 : 1,
+          },
+        ]}
+      />
+      <View style={styles.rangeBody}>
+        <View style={styles.rangeHead}>
+          <Text style={[styles.rangeLabel, { color: palette.ink }]}>
+            {MARK_LABEL[range.mark]}
+          </Text>
+          <Text style={[styles.rangeDates, { color: palette.ink2 }]}>
+            {rangeDatesLabel(range)} · {range.days} day{range.days === 1 ? '' : 's'}
+          </Text>
+        </View>
+        {/* Every row here reads with the same confidence, so the difference
+            between a fact and an estimate has to be SAID (device-test-24).
+            An 'unknown' run gets neither badge — it is the absence of both. */}
+        {recorded ? (
+          <Text style={[styles.rangeRecorded, { color: palette.accent }]}>RECORDED BY YOU</Text>
+        ) : range.mark === 'unknown' ? null : (
+          <Text style={[styles.rangeRecorded, { color: palette.ink3 }]}>ESTIMATED</Text>
+        )}
+        <Text style={[styles.rangeDetail, { color: palette.ink3 }]}>
+          {markDetail(range.mark)}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/** "29–31 Aug", or "31 Aug" for a single day. */
+function rangeDatesLabel(range: DayRange): string {
+  const from = new Date(`${range.start}T00:00:00`);
+  const to = new Date(`${range.end}T00:00:00`);
+  const day = (d: Date) => d.getDate();
+  const month = (d: Date) => d.toLocaleDateString(undefined, { month: 'short' });
+  if (range.start === range.end) return `${day(from)} ${month(from)}`;
+  // `groupDayRanges` only groups days IN the month, so a run never crosses a
+  // month edge today. The two-month spelling stays as the honest fallback if
+  // that ever changes — a range labelled "29–3 Aug" would be nonsense.
+  if (month(from) === month(to)) return `${day(from)}–${day(to)} ${month(to)}`;
+  return `${day(from)} ${month(from)} – ${day(to)} ${month(to)}`;
+}
+
+/**
+ * The swatch each mark gets — the SAME opaque colours the grid paints, from
+ * theme/blend.ts. Not a parallel palette: a key drawn in different paint from
+ * its map is the contradiction this whole feature was conditioned on avoiding.
+ */
+const MARK_SWATCH: Record<DayMark, string> = {
+  logged: LOGGED_PERIOD_CELL,
+  predicted: PREDICTED_CELL,
+  // The ovulation day keeps the fertile FILL on the grid and is identified by
+  // its ring (device-test-24). The swatch does the same thing rather than
+  // showing the ring colour as a fill — a key that paints a mark in a colour
+  // the map never uses is the contradiction, in miniature.
+  ovulation: OVULATION_CELL,
+  fertile: FERTILE_CELL,
+  menstrual: PHASE_CELL.menstrual,
+  follicular: PHASE_CELL.follicular,
+  ovulatory: PHASE_CELL.ovulatory,
+  luteal: PHASE_CELL.luteal,
+  unknown: 'transparent',
+};
+
+/** The marks whose identity is a SHAPE. Same ring, same colour, as the cell. */
+const MARK_RING: Partial<Record<DayMark, string>> = {
+  ovulation: OVULATION_MARK,
+};
 
 function LegendChip({
   color,
@@ -2360,6 +2582,50 @@ const styles = StyleSheet.create({
   },
   unknownTitle: { ...Typography.preset.bodySemibold },
   unknownBody: { ...Typography.preset.caption, fontSize: 12, lineHeight: 17 },
+  // The toggle sits in its own row above whichever reading is showing, and
+  // the two readings SWAP — the column never holds both, so this cannot push
+  // the week-ahead strip down (device-test-25).
+  legendModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.base,
+    marginBottom: Spacing.sm,
+  },
+  legendModeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    minHeight: 36,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radius.full,
+    borderWidth: 1.5,
+  },
+  legendModeEmoji: { fontSize: 13 },
+  legendModeText: { ...Typography.preset.caption, fontWeight: '800' },
+  legendModeHint: { flex: 1, ...Typography.preset.caption, fontSize: 11, lineHeight: 15 },
+  rangeList: { gap: Spacing.sm, marginBottom: Spacing.sectionGap },
+  rangeEmpty: { ...Typography.preset.caption, fontSize: 12, lineHeight: 17 },
+  rangeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderRadius: Spacing.radius.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+  },
+  rangeSwatch: { width: 14, height: 14, borderRadius: 7, marginTop: 2, borderWidth: 1 },
+  rangeBody: { flex: 1, gap: 2 },
+  rangeHead: { flexDirection: 'row', alignItems: 'baseline', gap: Spacing.sm },
+  rangeLabel: { ...Typography.preset.captionBold, flexShrink: 1 },
+  rangeDates: { ...Typography.preset.caption, fontSize: 11 },
+  rangeDetail: { ...Typography.preset.caption, fontSize: 11, lineHeight: 16 },
+  rangeRecorded: {
+    ...Typography.preset.overline,
+    fontSize: 9,
+    letterSpacing: 0.8,
+  },
   remindersCta: { marginBottom: Spacing.sectionGap },
   remindersRow: {
     flexDirection: 'row',
