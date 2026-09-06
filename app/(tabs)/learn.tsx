@@ -81,6 +81,8 @@ import {
 } from '../../src/content/learning-paths';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
 import { getCompanion } from '../../src/content/companions';
+import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
+import type { CreatureState } from '../../src/components/ui/creature/expressions';
 import { LearningPath, Lesson, CompanionType } from '../../src/types/content.types';
 import type { HealthCondition } from '../../src/types/cycle.types';
 import { Storage, type LearnLevel } from '../../src/database/storage';
@@ -532,18 +534,43 @@ function PaceChooser({
 // ─── PATH TRAIL ──────────────────────────────────────────────────────
 
 // Trail geometry (px).
-const NODE = 62;
+// ─── SIZES (device-test-27) ──────────────────────────────────────────
+//
+//  Owner, holding Duolingo next to ours: "look at the node sizes, they are
+//  bigger, and we are not utilising the complete UI space."
+//
+//  Both true. A 62px node on a 400px-wide column is a bead on a string; the
+//  thing you are meant to tap was smaller than the label beside it. 88px is
+//  close to Duolingo's own, gives the emoji room to be an illustration rather
+//  than a glyph, and lifts the whole trail from a list to a board.
+const NODE = 88;
 /** How far the completion halo extends beyond the node on each side. */
-const HALO = 22;
-// Device-test #5: bumped 104 → 140 so a node's 2-line label doesn't run into
-// the next node's icon (the owner's "lesson head overwrites the icon" ask).
-const ROW_H = 140;
+const HALO = 30;
+// Row height follows the node: bigger nodes need more vertical air or the
+// two-line labels collide (the device-test-5 overlap).
+const ROW_H = 158;
 const TOP = 52;
 const BOTTOM = 72;
 
+/**
+ * Who you walk past on the way up a path.
+ *
+ * Fixed order rather than random, so the same lesson always has the same
+ * neighbour — a path that reshuffles its cast on every render reads as noise,
+ * and it would also re-mount the rigs on every scroll.
+ */
+const TRAIL_CAST: readonly { type: CompanionType; state: CreatureState }[] = [
+  { type: 'bunny', state: 'excited' },
+  { type: 'owl', state: 'thinking' },
+  { type: 'cat', state: 'smug' },
+  { type: 'blossom', state: 'caring' },
+  { type: 'butterfly', state: 'curious' },
+  { type: 'fox', state: 'happy' },
+];
+
 interface TrailNode {
   key: string;
-  kind: 'lesson' | 'reward';
+  kind: 'lesson' | 'reward' | 'checkpoint';
   lesson: Lesson | null;
   glyph: string;
   title: string;
@@ -584,7 +611,7 @@ function PathTrail({
   const allComplete = stats.total > 0 && stats.completed === stats.total;
 
   // Build the ordered node model (lessons + a final reward node).
-  const nodes: TrailNode[] = lessons.map((lesson) => {
+  const nodes: TrailNode[] = lessons.map((lesson): TrailNode => {
     const isComplete = progressMap.get(lesson.id)?.status === 'complete';
     // Only the ONE active path (the one the user is actually progressing) gets a
     // "current" node. `currentId` is per-path (each path's first-incomplete
@@ -619,6 +646,39 @@ function PathTrail({
       state,
     };
   });
+  // ─── CHECKPOINTS (device-test-27) ─────────────────────────────
+  //
+  //  "They put the treasure boxes in between the lessons." They do, and it
+  //  works: a long path with nothing but identical stops reads as a chore,
+  //  while a chest four stops ahead is a reason to do a fourth lesson today.
+  //
+  //  Ours is deliberately NOT a loot box. It says what it is — a checkpoint,
+  //  and how many lessons it took — and it opens when those lessons are
+  //  actually done. Rule 2's spirit: never promise the user something the app
+  //  does not hand over. The chest is a milestone marker in a game's visual
+  //  language, not an IOU.
+  const CHECKPOINT_EVERY = 4;
+  const withCheckpoints: TrailNode[] = [];
+  nodes.forEach((n, i) => {
+    withCheckpoints.push(n);
+    const nth = i + 1;
+    const isLast = nth === nodes.length;
+    if (nth % CHECKPOINT_EVERY === 0 && !isLast) {
+      const reached = nodes.slice(0, nth).every((x) => x.state === 'done');
+      withCheckpoints.push({
+        key: `${path.id}_cp_${nth}`,
+        kind: 'checkpoint',
+        lesson: null,
+        glyph: reached ? '🎉' : '🎁',
+        title: reached ? 'Checkpoint cleared' : 'Checkpoint',
+        meta: `${nth} lessons`,
+        state: reached ? 'reward-on' : 'reward-off',
+      });
+    }
+  });
+  nodes.length = 0;
+  nodes.push(...withCheckpoints);
+
   nodes.push({
     key: `${path.id}_reward`,
     kind: 'reward',
@@ -719,6 +779,41 @@ function PathTrail({
                 </>
               )}
             </Svg>
+
+            {/* ─── THE CAST LIVES ON THE TRAIL (device-test-27) ─────
+                Owner: "how they add mascots on the left-hand side, on the
+                right-hand side… we are not utilising the complete UI space."
+
+                The meander leaves a wide empty gutter on the outside of every
+                turn. A companion sits in it at intervals, on the side the
+                trail is NOT using, so it fills dead space instead of fighting
+                the labels (which always go INWARD, toward centre).
+
+                They are decoration with a job: six different species in six
+                different moods, so scrolling the path feels like walking past
+                people rather than past stops. Non-interactive, and skipped
+                near the current node so nothing competes with "YOU'RE HERE". */}
+            {nodes.map((n, i) => {
+              if (i % 3 !== 1 || i === currentIndex || i === currentIndex - 1) return null;
+              const p = points[i];
+              if (!p) return null;
+              const outward = p.x <= cx ? 1 : -1; // away from centre, into the gap
+              const size = 56;
+              const x = outward > 0 ? width - size - 6 : 6;
+              // Only draw when the gutter is genuinely wide enough, so a narrow
+              // phone never gets a companion overlapping the trail.
+              if (Math.abs(x + size / 2 - p.x) < NODE / 2 + 34) return null;
+              const cast = TRAIL_CAST[i % TRAIL_CAST.length]!;
+              return (
+                <View
+                  key={`cast_${n.key}`}
+                  pointerEvents="none"
+                  style={{ position: 'absolute', left: x, top: p.y - size / 2 + 8, opacity: 0.9 }}
+                >
+                  <CompanionCreature type={cast.type} state={cast.state} size={size} />
+                </View>
+              );
+            })}
 
             {/* nodes + titles on top */}
             {nodes.map((n, i) => {
@@ -954,15 +1049,15 @@ const styles = StyleSheet.create({
   },
   node: {
     position: 'absolute',
-    width: 62,
-    height: 62,
-    borderRadius: 22,
-    borderWidth: 2,
+    width: NODE,
+    height: NODE,
+    borderRadius: 30,
+    borderWidth: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
-  nodeGlyph: { fontSize: 27 },
+  nodeGlyph: { fontSize: 38 },
   nodeGlyphLocked: { opacity: 0.55 },
   lockBadge: {
     position: 'absolute',

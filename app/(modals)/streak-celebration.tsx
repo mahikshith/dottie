@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
@@ -6,7 +6,12 @@ import {
   StreakFlame,
   MilestoneBanner,
   RewardChip,
+  StreakWeekStrip,
 } from '../../src/components/celebration';
+import { buildStreakWeek } from '../../src/engine/gamification/streak-week';
+import { checkinRepository } from '../../src/database/repositories/checkin.repo';
+import { addDays, todayCivil } from '../../src/utils/civil-date';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 import {
   useUserStore,
   useCycleStore,
@@ -56,6 +61,39 @@ import { showCelebration, celebrationTierForMood } from '../../src/components/ui
 
 export default function StreakCelebrationScreen() {
   const router = useRouter();
+  /**
+   * The last seven days of real check-ins.
+   *
+   * Loaded here rather than passed in params: the params carry the snapshot of
+   * the MOMENT (streak, xp, gems), while the strip is a statement about
+   * history, and history is the database's job to answer.
+   */
+  const [logged, setLogged] = useState<string[] | null>(null);
+  useEffect(() => {
+    const uid = useUserStore.getState().userId;
+    if (!uid) return;
+    let cancelled = false;
+    const today = todayCivil();
+    checkinRepository
+      .getCheckInsInRange(uid, addDays(today, -7), today)
+      .then((rows) => {
+        if (!cancelled) setLogged(rows.map((r) => r.date));
+      })
+      .catch((err) => {
+        // Non-fatal: the celebration still shows the flame and the count.
+        // A missing strip is better than a strip full of invented ticks.
+        logSilentFailure('streak.weekLoad', err);
+        if (!cancelled) setLogged([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const week = useMemo(
+    () => (logged === null ? null : buildStreakWeek(logged, todayCivil())),
+    [logged]
+  );
+
   const params = useLocalSearchParams<{
     streak?: string | string[];
     xp?: string | string[];
@@ -142,6 +180,13 @@ export default function StreakCelebrationScreen() {
         accentColor={companion.accentColor}
         size={milestone > 0 ? 'large' : 'standard'}
       />
+
+      {/* ─── THE WEEK (device-test-27) ────────────────────────────
+          The number says how far you have come; this says what you are
+          holding and what is still open. Built from the days the app
+          actually has check-ins for — never from the streak count, which
+          would draw ticks we cannot back up. */}
+      {week && <StreakWeekStrip week={week} accentColor={companion.accentColor} />}
     </CelebrationSheet>
   );
 }

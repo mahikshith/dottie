@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-06 · DT24 + DT25 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-06 · DT24–DT27 complete, awaiting device round · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -10,7 +10,7 @@
 
 ## 1. OPEN
 
-**DT16 through DT25 are done and pushed.**
+**DT16 through DT27 are done and pushed.**
 
 ### Look at this FIRST, and it needs no APK
 `docs/companion-preview.html` — every companion in every expression, from the
@@ -47,6 +47,27 @@ art there, never blind into a 25-minute build.
    `src/engine/calendar/day-marks.ts` is the only thing that decides what a
    day is, and `test:ranges` checks the list against the grid cell for cell
    over 200 random months.
+
+### Verify on the next APK — DT26 / DT27
+7. **The companions were redrawn.** Each species has its own build now — a
+   leggy fawn, a squat barn owl (no more teddy ears), a slim cat. Bigger heads,
+   bigger eyes. And the motion has weight: they crouch before a jump, land
+   heavy, and their ears and tails lag a beat behind the body.
+   `docs/companion-preview.html` shows every one without a build.
+8. **Welcome screen.** The first screen now carries the three claims —
+   on device, no account, works in airplane mode — above "Let's Get Started",
+   and the 🩷 emoji that stood in for a companion is the drawn rig.
+9. **Learn path.** Nodes 62 → 88px, checkpoints every four lessons, and the
+   cast scattered down the side gutters where there was dead space.
+10. **Streak week.** The celebration now shows the seven-day strip with the
+   live run in a capsule — built only from days the app actually holds.
+
+### Still owed from DT27
+- The streak strip is only on the celebration modal. Duolingo's real trick is
+  that the streak is visible EVERY day, not just on the day it fires — a
+  compact strip on Home is the obvious next move.
+- Section headers on the Learn path (Duolingo's coloured "SECTION 2, UNIT 4"
+  banner) are not built.
 
 ### Open
 - `[P2]` App-store rollout groundwork.

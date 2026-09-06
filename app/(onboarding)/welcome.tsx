@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { Storage } from '../../src/database/storage';
-import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
+import { GradientButton, BreathingView, AuroraBackground, CompanionLottie } from '../../src/components/ui';
 import { A } from '../../src/theme';
 
 /**
@@ -36,6 +36,16 @@ import { A } from '../../src/theme';
  *  the layout also does this) and pushes to mode-select. No store
  *  mutation here — this screen just sets the tone and hands off.
  */
+
+/**
+ * The three claims. Short title, one plain line under it — no marketing verbs,
+ * because the point is that a sceptical person can verify each one.
+ */
+const CLAIMS: readonly { glyph: string; title: string; line: string }[] = [
+  { glyph: '📱', title: '100% on device', line: 'Your logs live in this phone\u2019s own storage. There is no server.' },
+  { glyph: '🙅', title: 'No account, ever', line: 'No email, no sign-up, nothing to leak.' },
+  { glyph: '✈️', title: 'Works in airplane mode', line: 'Every screen works with the internet switched off.' },
+];
 
 // Small helper to keep the stagger rhythm readable + consistent.
 const RISE = (delayMs: number) =>
@@ -73,9 +83,12 @@ export default function WelcomeScreen() {
       >
       <View style={styles.content}>
         <BreathingView>
-          <Animated.Text entering={RISE(100)} style={styles.companionEmoji}>
-            🩷
-          </Animated.Text>
+          <Animated.View entering={RISE(100)} style={styles.companion}>
+            {/* The drawn rig, not an emoji (rule 8). This screen had a 🩷
+                glyph — the very first thing anyone saw of Dottie was a
+                character we don't draw. */}
+            <CompanionLottie type="fox" state="happy" size={128} />
+          </Animated.View>
         </BreathingView>
 
         <Animated.Text entering={RISE(240)} style={styles.title}>
@@ -83,17 +96,39 @@ export default function WelcomeScreen() {
         </Animated.Text>
 
         <Animated.Text entering={RISE(360)} style={styles.subtitle}>
-          Your cheerful cycle companion.{'\n'}
-          I'll help you understand your body,{'\n'}
-          track your health, and celebrate every day.
+          Your cycle companion — and everything you log{'\n'}
+          stays on this phone.
         </Animated.Text>
 
-        <Animated.Text entering={RISE(480)} style={styles.tagline}>
-          No judgment. No anxiety. Just you & me. ✨
-        </Animated.Text>
+        {/* ─── THE THREE CLAIMS (device-test-27) ───────────────────
+            Owner: "why can't we add it to the first screen — hey, this is
+            Dottie, fast, secure, 100% on device — right above Let's get
+            started?" Better than my first idea, which was to put it on the
+            cold-start splash: that flashes past in a second or two and
+            nobody reads it. Here it has room, and it is the question every
+            person downloading a period tracker in 2026 is actually asking.
+
+            Every line is TRUE and checkable:
+              · on-device   SQLite + MMKV on the handset, no backend exists
+              · no account  there is no sign-up anywhere in the app
+              · offline     nothing on the critical path makes a network call
+            If any of that stops being true, this block changes first. */}
+        <Animated.View entering={RISE(470)} style={styles.trust}>
+          {CLAIMS.map((c) => (
+            <View key={c.title} style={styles.claim}>
+              <View style={styles.claimIcon}>
+                <Text style={styles.claimGlyph}>{c.glyph}</Text>
+              </View>
+              <View style={styles.claimBody}>
+                <Text style={styles.claimTitle}>{c.title}</Text>
+                <Text style={styles.claimLine}>{c.line}</Text>
+              </View>
+            </View>
+          ))}
+        </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInDown.duration(600).delay(640).springify().damping(16)} style={styles.footer}>
+      <Animated.View entering={FadeInDown.duration(600).delay(700).springify().damping(16)} style={styles.footer}>
         <GradientButton
           label="Let's Get Started!"
           onPress={handleStart}
@@ -101,8 +136,8 @@ export default function WelcomeScreen() {
           accessibilityHint="Begins setting up your Dottie companion"
         />
 
-        <Animated.Text entering={FadeIn.duration(500).delay(900)} style={styles.privacy}>
-          100% private. Your data stays on your device. 🔒
+        <Animated.Text entering={FadeIn.duration(500).delay(940)} style={styles.privacy}>
+          No judgment, no anxiety, no cloud. Just you & me. ✨
         </Animated.Text>
       </Animated.View>
       </View>
@@ -119,12 +154,12 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    paddingTop: Spacing['4xl'],
+    paddingTop: Spacing.xl,
+    width: '100%',
   },
-  companionEmoji: {
-    fontSize: 80,
-    marginBottom: Spacing['2xl'],
-    textAlign: 'center',
+  companion: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
   title: {
     ...Typography.preset.h1,
@@ -136,14 +171,36 @@ const styles = StyleSheet.create({
     ...Typography.preset.bodyLarge,
     color: A.ink2,
     textAlign: 'center',
-    lineHeight: 28,
+    lineHeight: 26,
     marginBottom: Spacing.xl,
   },
-  tagline: {
-    ...Typography.preset.bodySemibold,
-    color: A.accent,
-    textAlign: 'center',
+  // The claims are a LIST, not three cards: one glass panel, three rows,
+  // aligned glyphs. Three separate cards on a first screen reads as an advert;
+  // one quiet panel reads as a fact sheet.
+  trust: {
+    width: '100%',
+    gap: Spacing.base,
+    padding: Spacing.base,
+    borderRadius: Spacing.radius.xl,
+    borderWidth: 1,
+    borderColor: A.glass2,
+    backgroundColor: A.glass,
   },
+  claim: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  claimIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${A.accent}1A`,
+    borderWidth: 1,
+    borderColor: `${A.accent}33`,
+  },
+  claimGlyph: { fontSize: 16 },
+  claimBody: { flex: 1, gap: 1 },
+  claimTitle: { ...Typography.preset.bodySemibold, color: A.ink },
+  claimLine: { ...Typography.preset.caption, color: A.ink3, lineHeight: 17 },
   footer: {
     alignItems: 'center',
   },

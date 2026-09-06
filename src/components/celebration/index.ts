@@ -21,6 +21,8 @@ export { CelebrationSheet } from './CelebrationSheet';
 export type { CelebrationSheetProps } from './CelebrationSheet';
 
 export { StreakFlame } from './StreakFlame';
+export { StreakWeekStrip } from './StreakWeek';
+export type { StreakWeekProps } from './StreakWeek';
 export type { StreakFlameProps } from './StreakFlame';
 
 export { MilestoneBanner } from './MilestoneBanner';

@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 32 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 33 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -32,7 +32,8 @@ verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` �
 EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
 `audit:colour` (no phase colour may collide with a mood colour) ·
 `test:ranges` (the dated calendar list against the grid it describes, cell for
-cell, over 200 random months)
+cell, over 200 random months) · `test:streakweek` (the streak strip only ever
+ticks days the app actually holds)
 
 ## Rules baked into the code (do not undo)
 
