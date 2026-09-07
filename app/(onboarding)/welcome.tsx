@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { Storage } from '../../src/database/storage';
-import { GradientButton, BreathingView, AuroraBackground, CompanionLottie } from '../../src/components/ui';
+import { GradientButton, BreathingView, AuroraBackground } from '../../src/components/ui';
 import { A } from '../../src/theme';
 
 /**
@@ -45,6 +45,8 @@ const CLAIMS: readonly { glyph: string; title: string; line: string }[] = [
   { glyph: '📱', title: '100% on device', line: 'Your logs live in this phone\u2019s own storage. There is no server.' },
   { glyph: '🙅', title: 'No account, ever', line: 'No email, no sign-up, nothing to leak.' },
   { glyph: '✈️', title: 'Works in airplane mode', line: 'Every screen works with the internet switched off.' },
+  { glyph: '📤', title: 'Your data, exportable', line: 'Take the whole lot as a spreadsheet whenever you like.' },
+  { glyph: '🔍', title: 'Nothing hidden', line: 'The app shows you every input behind its predictions.' },
 ];
 
 // Small helper to keep the stagger rhythm readable + consistent.
@@ -72,22 +74,44 @@ export default function WelcomeScreen() {
   return (
     <AuroraBackground>
       <StatusBar style="light" />
-      <View
-        style={[
+      {/* ─── IT SCROLLS NOW (device-test-28) ──────────────────────
+          The claim block grew from three rows to five. On a 640dp phone the
+          fixed column would have pushed "Let's Get Started" under the nav bar
+          — a first screen whose only button is off-screen. Scrolling with
+          padding at BOTH ends (rule 4) costs nothing when it fits and saves
+          the screen when it doesn't. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
           styles.container,
           {
-            paddingTop: insets.top + Spacing['3xl'],
+            paddingTop: insets.top + Spacing.xl,
             paddingBottom: insets.bottom + Spacing.xl,
           },
         ]}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
       <View style={styles.content}>
         <BreathingView>
           <Animated.View entering={RISE(100)} style={styles.companion}>
-            {/* The drawn rig, not an emoji (rule 8). This screen had a 🩷
-                glyph — the very first thing anyone saw of Dottie was a
-                character we don't draw. */}
-            <CompanionLottie type="fox" state="happy" size={128} />
+            {/* ─── THE APP MARK, NOT A COMPANION (device-test-28) ────
+                DT27 put the fox here. Wrong on its own terms: the companion
+                is CHOSEN, three screens later, and showing one before the
+                choice tells the user their pick has already been made for
+                them. (It also read as a squirrel, which nobody asked for.)
+
+                The mark is the honest thing to lead with — it is the icon
+                they just tapped on their home screen, so the app confirms
+                itself rather than introducing a character. */}
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={styles.mark}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              accessible
+              accessibilityLabel="Dottie"
+            />
           </Animated.View>
         </BreathingView>
 
@@ -96,8 +120,7 @@ export default function WelcomeScreen() {
         </Animated.Text>
 
         <Animated.Text entering={RISE(360)} style={styles.subtitle}>
-          Your cycle companion — and everything you log{'\n'}
-          stays on this phone.
+          Everything you log stays on this phone.
         </Animated.Text>
 
         {/* ─── THE THREE CLAIMS (device-test-27) ───────────────────
@@ -140,17 +163,19 @@ export default function WelcomeScreen() {
           No judgment, no anxiety, no cloud. Just you & me. ✨
         </Animated.Text>
       </Animated.View>
-      </View>
+      </ScrollView>
     </AuroraBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: 'transparent',
     paddingHorizontal: Spacing.screenPadding,
     justifyContent: 'space-between',
+    gap: Spacing.xl,
   },
   content: {
     alignItems: 'center',
@@ -161,6 +186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
+  mark: { width: 104, height: 104, borderRadius: 26 },
   title: {
     ...Typography.preset.h1,
     color: A.ink,
@@ -179,7 +205,7 @@ const styles = StyleSheet.create({
   // one quiet panel reads as a fact sheet.
   trust: {
     width: '100%',
-    gap: Spacing.base,
+    gap: Spacing.md,
     padding: Spacing.base,
     borderRadius: Spacing.radius.xl,
     borderWidth: 1,
@@ -188,8 +214,8 @@ const styles = StyleSheet.create({
   },
   claim: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
   claimIcon: {
-    width: 34,
-    height: 34,
+    width: 32,
+    height: 32,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

@@ -25,7 +25,7 @@
  *  ⚠️ design-v2 / UNVERIFIED (no device).
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -81,8 +81,6 @@ import {
 } from '../../src/content/learning-paths';
 import { contentRepository, LessonProgress } from '../../src/database/repositories/content.repo';
 import { getCompanion } from '../../src/content/companions';
-import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
-import type { CreatureState } from '../../src/components/ui/creature/expressions';
 import { LearningPath, Lesson, CompanionType } from '../../src/types/content.types';
 import type { HealthCondition } from '../../src/types/cycle.types';
 import { Storage, type LearnLevel } from '../../src/database/storage';
@@ -316,10 +314,16 @@ export default function LearnScreen() {
   //
   // The conversational experience is not gone — it moved to where it belongs,
   // the QUIZ, where turn-taking and reactions are the whole point.
-  const openLesson = (lessonId: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    router.push(`/lesson/${lessonId}`);
-  };
+  // useCallback so it is stable across renders — without it the memo on
+  // PathTrail below can never hold, because every render hands each trail a
+  // brand-new function (device-test-28).
+  const openLesson = useCallback(
+    (lessonId: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      router.push(`/lesson/${lessonId}`);
+    },
+    [router]
+  );
 
   // ─── Today's spotlight — phase-aware lesson picks (Gemini §1.2/§2.1) ─
   const subphase = useMemo(
@@ -552,22 +556,6 @@ const ROW_H = 158;
 const TOP = 52;
 const BOTTOM = 72;
 
-/**
- * Who you walk past on the way up a path.
- *
- * Fixed order rather than random, so the same lesson always has the same
- * neighbour — a path that reshuffles its cast on every render reads as noise,
- * and it would also re-mount the rigs on every scroll.
- */
-const TRAIL_CAST: readonly { type: CompanionType; state: CreatureState }[] = [
-  { type: 'bunny', state: 'excited' },
-  { type: 'owl', state: 'thinking' },
-  { type: 'cat', state: 'smug' },
-  { type: 'blossom', state: 'caring' },
-  { type: 'butterfly', state: 'curious' },
-  { type: 'fox', state: 'happy' },
-];
-
 interface TrailNode {
   key: string;
   kind: 'lesson' | 'reward' | 'checkpoint';
@@ -578,7 +566,16 @@ interface TrailNode {
   state: 'done' | 'current' | 'locked' | 'available' | 'reward-on' | 'reward-off';
 }
 
-function PathTrail({
+/**
+ * One path's trail.
+ *
+ * Wrapped in `memo` (device-test-28): the Learn screen re-renders on scroll,
+ * on progress ticks and on layout, and without this EVERY path re-rendered its
+ * whole trail each time — ninety-odd nodes of absolutely-positioned views, for
+ * a scroll event that changed nothing about them. The props are all stable or
+ * memoised at the call site, so this actually holds.
+ */
+const PathTrail = memo(function PathTrail({
   path,
   lessons,
   stats,
@@ -610,8 +607,14 @@ function PathTrail({
   );
   const allComplete = stats.total > 0 && stats.completed === stats.total;
 
-  // Build the ordered node model (lessons + a final reward node).
-  const nodes: TrailNode[] = lessons.map((lesson): TrailNode => {
+  // ─── THE MODEL IS BUILT ONCE PER CHANGE (device-test-28) ───────
+  //
+  //  This whole block ran on EVERY render of the Learn screen — and the
+  //  screen re-renders on scroll, on store ticks, on layout. Rebuilding
+  //  every node of every path each time is invisible on a laptop and is
+  //  exactly the sort of thing that shows up as scroll jank on a phone.
+  const nodes: TrailNode[] = useMemo(() => {
+    const built: TrailNode[] = lessons.map((lesson): TrailNode => {
     const isComplete = progressMap.get(lesson.id)?.status === 'complete';
     // Only the ONE active path (the one the user is actually progressing) gets a
     // "current" node. `currentId` is per-path (each path's first-incomplete
@@ -645,7 +648,7 @@ function PathTrail({
       meta: `${lesson.estimatedMinutes} min · ${lesson.xpReward} XP${lesson.quizId ? ' · Quiz' : ''}`,
       state,
     };
-  });
+    });
   // ─── CHECKPOINTS (device-test-27) ─────────────────────────────
   //
   //  "They put the treasure boxes in between the lessons." They do, and it
@@ -657,37 +660,37 @@ function PathTrail({
   //  actually done. Rule 2's spirit: never promise the user something the app
   //  does not hand over. The chest is a milestone marker in a game's visual
   //  language, not an IOU.
-  const CHECKPOINT_EVERY = 4;
-  const withCheckpoints: TrailNode[] = [];
-  nodes.forEach((n, i) => {
-    withCheckpoints.push(n);
-    const nth = i + 1;
-    const isLast = nth === nodes.length;
-    if (nth % CHECKPOINT_EVERY === 0 && !isLast) {
-      const reached = nodes.slice(0, nth).every((x) => x.state === 'done');
-      withCheckpoints.push({
-        key: `${path.id}_cp_${nth}`,
-        kind: 'checkpoint',
-        lesson: null,
-        glyph: reached ? '🎉' : '🎁',
-        title: reached ? 'Checkpoint cleared' : 'Checkpoint',
-        meta: `${nth} lessons`,
-        state: reached ? 'reward-on' : 'reward-off',
-      });
-    }
-  });
-  nodes.length = 0;
-  nodes.push(...withCheckpoints);
+    const CHECKPOINT_EVERY = 4;
+    const withCheckpoints: TrailNode[] = [];
+    built.forEach((n, i) => {
+      withCheckpoints.push(n);
+      const nth = i + 1;
+      const isLast = nth === built.length;
+      if (nth % CHECKPOINT_EVERY === 0 && !isLast) {
+        const reached = built.slice(0, nth).every((x) => x.state === 'done');
+        withCheckpoints.push({
+          key: `${path.id}_cp_${nth}`,
+          kind: 'checkpoint',
+          lesson: null,
+          glyph: reached ? '🎉' : '🎁',
+          title: reached ? 'Checkpoint cleared' : 'Checkpoint',
+          meta: `${nth} lessons`,
+          state: reached ? 'reward-on' : 'reward-off',
+        });
+      }
+    });
 
-  nodes.push({
-    key: `${path.id}_reward`,
-    kind: 'reward',
-    lesson: null,
-    glyph: allComplete ? '🏆' : '🎁',
-    title: allComplete ? `${path.title} complete!` : 'Path reward',
-    meta: `+${path.completionXP} XP · +${path.completionGems}💎`,
-    state: allComplete ? 'reward-on' : 'reward-off',
-  });
+    withCheckpoints.push({
+      key: `${path.id}_reward`,
+      kind: 'reward',
+      lesson: null,
+      glyph: allComplete ? '🏆' : '🎁',
+      title: allComplete ? `${path.title} complete!` : 'Path reward',
+      meta: `+${path.completionXP} XP · +${path.completionGems}💎`,
+      state: allComplete ? 'reward-on' : 'reward-off',
+    });
+    return withCheckpoints;
+  }, [lessons, progressMap, guided, isActivePath, currentId, allComplete, path]);
 
   // The "you are here" index = current lesson (or the reward when all done).
   // Stays -1 when this path has no current node (i.e. it isn't the active path)
@@ -702,13 +705,17 @@ function PathTrail({
   // (owner feedback) and reads as a winding journey, not a centred list.
   // Amplitude slightly reduced (device-test #5) so adjacent-node labels have
   // horizontal breathing room and don't overlap when the meander goes tight.
-  const amp = width > 0 ? Math.min(width / 2 - 76, Math.max(36, width * 0.22)) : 0;
   const cx = width / 2;
-  const points = nodes.map((_, i) => ({
-    x: cx + amp * Math.sin(i * 0.9),
-    y: TOP + i * ROW_H + NODE / 2,
-  }));
-  const height = TOP + (nodes.length - 1) * ROW_H + NODE + BOTTOM;
+  const { points, height } = useMemo(() => {
+    const amp = width > 0 ? Math.min(width / 2 - 76, Math.max(36, width * 0.22)) : 0;
+    return {
+      points: nodes.map((_, i) => ({
+        x: width / 2 + amp * Math.sin(i * 0.9),
+        y: TOP + i * ROW_H + NODE / 2,
+      })),
+      height: TOP + (nodes.length - 1) * ROW_H + NODE + BOTTOM,
+    };
+  }, [width, nodes]);
 
   // Once laid out, ask the parent to scroll the current node into view. Re-fires
   // when currentIndex advances (a lesson was just completed) — the parent's
@@ -780,40 +787,29 @@ function PathTrail({
               )}
             </Svg>
 
-            {/* ─── THE CAST LIVES ON THE TRAIL (device-test-27) ─────
-                Owner: "how they add mascots on the left-hand side, on the
-                right-hand side… we are not utilising the complete UI space."
+            {/* ─── THE CAST CAME OFF THE TRAIL (device-test-28) ────
+                DT27 scattered `CompanionCreature` rigs down the side gutters.
+                It looked right in a screenshot and was wrong on a phone: the
+                owner's next build scrolled like treacle.
 
-                The meander leaves a wide empty gutter on the outside of every
-                turn. A companion sits in it at intervals, on the side the
-                trail is NOT using, so it fills dead space instead of fighting
-                the labels (which always go INWARD, toward centre).
+                The cost is not obvious from the call site, which is why I
+                missed it. ONE companion is not one view — the rig splits the
+                creature into a layer PER LIMB GROUP so paint order survives,
+                so each one mounts roughly ten <Svg> surfaces, each with its
+                own Reanimated loops (bob, sway, hop, swing, lag, blink).
+                Six per path, every path mounted in one ScrollView, and the
+                Learn tab was running well over a hundred animated SVG
+                surfaces at once — on the JS-to-native bridge, during a
+                gesture, on a mid-range Android.
 
-                They are decoration with a job: six different species in six
-                different moods, so scrolling the path feels like walking past
-                people rather than past stops. Non-interactive, and skipped
-                near the current node so nothing competes with "YOU'RE HERE". */}
-            {nodes.map((n, i) => {
-              if (i % 3 !== 1 || i === currentIndex || i === currentIndex - 1) return null;
-              const p = points[i];
-              if (!p) return null;
-              const outward = p.x <= cx ? 1 : -1; // away from centre, into the gap
-              const size = 56;
-              const x = outward > 0 ? width - size - 6 : 6;
-              // Only draw when the gutter is genuinely wide enough, so a narrow
-              // phone never gets a companion overlapping the trail.
-              if (Math.abs(x + size / 2 - p.x) < NODE / 2 + 34) return null;
-              const cast = TRAIL_CAST[i % TRAIL_CAST.length]!;
-              return (
-                <View
-                  key={`cast_${n.key}`}
-                  pointerEvents="none"
-                  style={{ position: 'absolute', left: x, top: p.y - size / 2 + 8, opacity: 0.9 }}
-                >
-                  <CompanionCreature type={cast.type} state={cast.state} size={size} />
-                </View>
-              );
-            })}
+                They also collided with the labels, which always run inward:
+                the owl sat on top of "Cervical Mucus" in the owner's photo.
+
+                So the gutters are empty again. The trail keeps its ONE living
+                thing — the hopping companion on the current node, which is
+                the only one that carries meaning ("you are here") rather than
+                decoration. If the cast comes back it has to be a single
+                static Svg per creature, drawn once, with no rig at all. */}
 
             {/* nodes + titles on top */}
             {nodes.map((n, i) => {
@@ -946,7 +942,7 @@ function PathTrail({
       </View>
     </View>
   );
-}
+});
 
 /** Smooth vertical S-curve through the node centres (control points at the mid-Y). */
 function buildTrailPath(pts: { x: number; y: number }[]): string {

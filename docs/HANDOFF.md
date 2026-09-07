@@ -57,10 +57,25 @@ art there, never blind into a 25-minute build.
 8. **Welcome screen.** The first screen now carries the three claims —
    on device, no account, works in airplane mode — above "Let's Get Started",
    and the 🩷 emoji that stood in for a companion is the drawn rig.
-9. **Learn path.** Nodes 62 → 88px, checkpoints every four lessons, and the
-   cast scattered down the side gutters where there was dead space.
+9. **Learn path.** Nodes 62 → 88px and checkpoints every four lessons. The
+   companions I scattered down the gutters in DT27 are GONE — they made the
+   tab scroll like treacle (see below) and overlapped the labels.
 10. **Streak week.** The celebration now shows the seven-day strip with the
    live run in a capsule — built only from days the app actually holds.
+
+### DT28 — the lag, and the fox nobody chose
+- **Learn scroll jank: fixed.** One `CompanionCreature` is ~10 <Svg> surfaces
+  (a layer per limb group) plus six Reanimated loops. Six per path, every path
+  mounted in one ScrollView — well over a hundred animated SVG surfaces during
+  a gesture. Removed. The trail keeps only the hopping companion on the current
+  node, which carries meaning rather than decoration. **If the cast ever comes
+  back it must be ONE static Svg per creature, no rig.** The node model and the
+  trail geometry are memoised now, and `PathTrail` is `memo`'d with a stable
+  `openLesson`, so a scroll no longer rebuilds ninety nodes.
+- **Welcome screen shows the app ICON, not a companion.** The companion is
+  chosen three screens later; leading with one told the user their pick was
+  already made. Five claims now, and the screen scrolls so the CTA can never
+  land under the nav bar.
 
 ### Still owed from DT27
 - The streak strip is only on the celebration modal. Duolingo's real trick is
