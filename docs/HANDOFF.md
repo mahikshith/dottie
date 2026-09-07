@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-06 · DT24–DT27 complete, awaiting device round · branch `gemini-v2`
+**Updated:** 2026-09-07 · DT24–DT29 shipped, DT30 is research-only · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -109,6 +109,44 @@ and the reference doc's own §9 was the to-do list.
 - The add-to-circle condition picker has NOT been moved to `ConditionRow`, so a
   sister's conditions still have no explainer.
 
+### DT30 — is the model the wrong architecture? (research, no app change)
+The owner sent three ML repos and asked whether to combine Bayes with a neural
+net, or move to a transformer / LSTM via TensorFlow Lite, with Bayes as a
+"basic" tier. Answered by measurement, not opinion — **`docs/ML-FEASIBILITY.md`**.
+- Both cycle repos leak: they predict the day of ovulation while keeping
+  `LengthofCycle` and `LengthofLutealPhase` as features (the target is those
+  two subtracted), and split randomly over rows rather than by client, so the
+  same woman is in train and test. One of them then ignores its own model and
+  returns the input unchanged. Neither is evidence of anything.
+- Measured, subject-wise, walk-forward, against **the real engine** over
+  `scripts/research/bayes-bridge.ts`: a cohort-trained model gains **+0.00 /
+  +0.04 / +0.08 / +0.22 days** on i.i.d. cohorts and **+0.38 (autocorrelated) /
+  +0.77 (drifting)**. On the steadiest cohort our model TIES the best learned
+  one (0.92 vs 0.92). A four-lag **ridge beats the gradient-booster in all
+  seven cohorts and matches or beats the MLP in all seven** — the prize is
+  linear, so capacity (LSTM, transformer) buys nothing.
+- Estimating that structure from ONE person's 8 cycles recovers 16–50% of it
+  while making `variable` and `pcos_like` 0.1 days WORSE (mean 3.30 → 3.28,
+  i.e. noise). It robs the irregular bodies to pay the drifting ones. The gain
+  needs cohort data, which is the one thing the welcome screen promises we
+  never take.
+- **§3b is a finding, not just a bug story.** The first run had the bridge
+  passing the reported cycle length under a mistyped option name; `tsx` does
+  not type-check, so the engine silently used the population mean for
+  everyone. Fixing it moved `regular` 1.09 → 0.92 (the whole apparent ML win
+  there was our bug) and moved the irregular cohorts the OTHER way — a
+  self-reported average helps a steady user and hurts a 9-day-spread one. That
+  is now a live engine to-do: weight the reported average by the spread the
+  user's own logs reveal (`buildPopulationPrior`, ~12 lines, harness already
+  committed).
+- **Decision: no TFLite, no LSTM, no transformer, no basic/advanced tiers.**
+  What is worth doing instead is ranked in §6 of that doc — detect drift and
+  widen the ± rather than move the median; measured signals; weight the
+  reported average by the user's own spread; use `predictionErrors`.
+- The scripts are committed so the day real data exists this is a half-hour
+  re-run. Acceptance bar for any future proposal: ≥ 0.5 day MAE, no cohort made
+  worse, and still describable in `what-we-use.ts`.
+
 ### Still owed from DT27
 - The streak strip is only on the celebration modal. Duolingo's real trick is
   that the streak is visible EVERY day, not just on the day it fires — a
@@ -128,8 +166,9 @@ and the reference doc's own §9 was the to-do list.
 - Merging Practice and the quiz into one run (owner's DT19 suggestion).
   Deferred deliberately — structural, and not asked for again.
 - Dead code: `confidence.ts` + `health-adjustments.ts` (747 lines).
-- `PredictionInput.recentWeightChangeKg` is read by the model and collected by
-  nothing; the transparency panel says so.
+- Height is collected and unused, and `about-you.tsx` says so in as many words.
+  (`recentWeightChangeKg` is no longer dead — DT29 wired it to dated weight
+  readings via `engine/prediction/weight-change.ts`.)
 - The ESLint config predates v9 and `npm run lint` cannot run.
 
 ---
@@ -198,6 +237,6 @@ first, don't guess. Everything ruled out is in commit `73e65e8`.
 
 ## 4. Docs (open only when named)
 
-`PREDICTION-ENGINE.md` · `FEATURES-AND-RESEARCH.md` · `DAY-SUGGESTIONS.md` ·
+`PREDICTION-ENGINE.md` · `ML-FEASIBILITY.md` · `FEATURES-AND-RESEARCH.md` · `DAY-SUGGESTIONS.md` ·
 `ONBOARDING-AND-WALKTHROUGH.md` · `LEARN-REDESIGN-*.md` ·
 `BETA-TESTING-GUIDE.md` · `LOTTIE-SOURCING.md` · `SESSION-CONTEXT.md`

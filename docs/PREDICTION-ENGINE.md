@@ -44,6 +44,14 @@ afterwards are worth knowing about when you read it:
   period rather than painting months of confident luteal from one stale
   anchor. §5 onwards is unaffected.
 
+- **`docs/ML-FEASIBILITY.md` (2026-09-07) answers "should this be a neural
+  network instead?"** with a measurement rather than an opinion: the real
+  engine, over a bridge, against a gradient booster, an MLP and a ridge on
+  subject-wise splits across seven cohorts. Short version — a learned model
+  only wins where the cycle sequence carries order structure (drift,
+  autocorrelation), a four-lag ridge collects all of that win, and every
+  version of it needs cohort data we do not have. The model below stays.
+
 Everything else below — the priors, the update, the accuracy tables, the dead
 parameters in §9 — is current.
 
