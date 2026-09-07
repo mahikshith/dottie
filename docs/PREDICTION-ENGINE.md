@@ -24,6 +24,31 @@ on-device in closed form: no ML runtime, no server, no network.
 
 ---
 
+## 1b. Currency — what changed after this was written
+
+This document was written at DT15 and describes the model **as it still is**:
+nothing since has changed a coefficient, a prior, or an input. Two things built
+afterwards are worth knowing about when you read it:
+
+- **`src/engine/prediction/what-we-use.ts` (DT23) is the in-app version of §4.**
+  It renders under the calendar — yours and a sister's — and as a sheet in the
+  Excel export, and it lists the same split this document does: what reaches
+  the model, and what the app collects but the forecast ignores (height,
+  weight, activity, mood). `test:transparency` pins it to the code, so if §4
+  and the screen ever disagree, the screen is the one that is checked. They
+  agree today.
+- **`PHASE_DISPLAY_GRACE_DAYS` (DT24) changed what the CALENDAR draws, not what
+  the model computes.** `calculateCurrentPhase` still extends the last phase
+  forever past the expected cycle — correct for a predictor, because a late
+  period is late — but anything DRAWING a phase now stops after the grace
+  period rather than painting months of confident luteal from one stale
+  anchor. §5 onwards is unaffected.
+
+Everything else below — the priors, the update, the accuracy tables, the dead
+parameters in §9 — is current.
+
+---
+
 ## 2. Where the code lives
 
 | File | Lines | Status | What it does |
