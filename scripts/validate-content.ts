@@ -111,6 +111,47 @@ for (const c of CONDITION_OPTIONS) {
     violations.push({ rule: 'R5', target: c.id, detail: `duplicate label "${c.label}"` });
   }
   seenLabel.set(c.label.toLowerCase(), c.id);
+
+  // ─── R5b — every condition explains itself (device-test-29) ──────
+  //
+  //  Owner: "some users may not know what PCOD or hyperthyroid even is, so
+  //  they could select something random and the prediction confidence goes
+  //  off." A ticked ovulatory condition widens the model's prior for every
+  //  forecast afterwards, so an unexplained row is an invitation to guess.
+  //  Each one now opens into what it is, why we ask, and what it does to the
+  //  maths — and none of the three may be missing or a stub.
+  for (const [field, text] of [
+    ['what', c.what],
+    ['why', c.why],
+    ['predictionEffect', c.predictionEffect],
+  ] as const) {
+    if (!text || text.trim().length < 30) {
+      violations.push({
+        rule: 'R5b',
+        target: c.id,
+        detail: `${field} is missing or too short to be a real explanation`,
+      });
+    }
+  }
+
+  // The explainer must not tell anyone what they have (rule 1). It describes
+  // the condition; a clinician diagnoses the reader.
+  if (/\byou (have|are likely|probably have)\b/i.test(`${c.what} ${c.why}`)) {
+    violations.push({
+      rule: 'R5b',
+      target: c.id,
+      detail: 'the explainer diagnoses the reader — describe the condition, never the person',
+    });
+  }
+
+  // And it must not promise an effect the flag says does not exist.
+  if (!c.affectsPrediction && /widen|lowers the confidence|changes the forecast/i.test(c.predictionEffect)) {
+    violations.push({
+      rule: 'R5b',
+      target: c.id,
+      detail: 'claims a prediction effect while affectsPrediction is false',
+    });
+  }
 }
 
 // ─── REPORT ─────────────────────────────────────────────────────────

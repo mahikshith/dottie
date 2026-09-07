@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 33 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 35 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -33,7 +33,9 @@ EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
 `audit:colour` (no phase colour may collide with a mood colour) ·
 `test:ranges` (the dated calendar list against the grid it describes, cell for
 cell, over 200 random months) · `test:streakweek` (the streak strip only ever
-ticks days the app actually holds)
+ticks days the app actually holds) · `test:improve` (the "how to sharpen your
+forecast" advice — ranked by real effect, and it never promises past the
+biological ceiling)
 
 ## Rules baked into the code (do not undo)
 
@@ -181,6 +183,26 @@ ticks days the app actually holds)
    `test:ranges` fails on one. The list's swatches are the grid's own colours,
    its labels are the legend chips verbatim, and every non-logged row is
    badged ESTIMATED.
+
+34. **Every model input is correctable, and a correction re-runs the model.**
+   `app/(profile)/about-you.tsx` is the ONE place age, cycle length, weight,
+   height and conditions live, all editable, and saving calls
+   `recomputePrediction()` and shows the confidence before → after. A
+   mis-tapped PCOS used to widen the prior forever with no way back. The
+   conditions there and in onboarding share `ConditionRow`, which carries the
+   explainer — what it is, why we ask, what it does to the maths — because a
+   row you cannot understand is a row people guess at, and a guessed condition
+   is a permanently vaguer forecast. `validate:content` R5b fails a condition
+   whose explainer is missing, diagnoses the reader, or claims an effect its
+   `affectsPrediction` flag denies.
+35. **An input the model reads must have a way in, and one that does not must
+   say so.** `age` was read by the prior and collected by NOTHING for the whole
+   life of the app; `recentWeightChangeKg` was a live parameter with no
+   producer, because one weight snapshot is not a change. Both are wired now
+   (weight via dated readings in `Storage.weightLog` →
+   `engine/prediction/weight-change.ts`). Height is collected and unused, and
+   the screen says so in as many words. Before adding a field, write the line
+   that says where it goes — if you cannot, do not ask for it.
 
 ## Design system (never hardcode ad-hoc values)
 

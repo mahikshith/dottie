@@ -10,7 +10,7 @@
 
 ## 1. OPEN
 
-**DT16 through DT27 are done and pushed.**
+**DT16 through DT29 are done and pushed.**
 
 ### Look at this FIRST, and it needs no APK
 `docs/companion-preview.html` — every companion in every expression, from the
@@ -76,6 +76,38 @@ art there, never blind into a 25-minute build.
   chosen three screens later; leading with one told the user their pick was
   already made. Five claims now, and the screen scrolls so the CTA can never
   land under the nav bar.
+
+### DT29 — the prediction round
+The owner's line was "the entire app logistics depends upon the prediction",
+and the reference doc's own §9 was the to-do list.
+- **Two dead parameters are live.** `age` was read by the prior and written by
+  NO screen, ever. `recentWeightChangeKg` needed a history and the profile held
+  one snapshot. Both now have a source; weight is dated readings in
+  `Storage.weightLog`.
+- **Stress and sleep are a 7-day average**, which is what `PredictionInput`
+  always claimed. They were today's single check-in, or nothing.
+- **Every condition explains itself** — what it is, why we ask, what it does to
+  the maths — behind a `?` on its own row, because ticking is the expensive
+  action and finding out should not require it.
+- **`about-you` is now the editable profile.** Age, cycle length, weight,
+  height, conditions. Saving re-runs the forecast and reports the confidence
+  before → after.
+- **You → "How your forecast works"** — the confidence broken down, what the
+  median and ± actually mean, every input including the ignored ones, and a
+  ranked list of what would sharpen it. `test:improve` pins that the advice
+  never promises past the biological ceiling.
+
+### Still owed on the prediction (DT29 deferred)
+- **Measured signals (LH test, waking temperature, cervical fluid).** The
+  reference doc names these as the ONLY way past the variance floor, and the
+  transparency screen now tells the user we do not collect them. That promise
+  is a debt: engine + logging surface + fertile-window re-anchor.
+- **`confidence.ts` and `health-adjustments.ts` (747 lines) are still dead.**
+  Wire the 5-factor confidence in (it includes logging freshness and past
+  accuracy, which the live 3-line heuristic ignores) or delete them.
+- `predictionErrors` is still computed, stored, passed in and ignored.
+- The add-to-circle condition picker has NOT been moved to `ConditionRow`, so a
+  sister's conditions still have no explainer.
 
 ### Still owed from DT27
 - The streak strip is only on the celebration modal. Duolingo's real trick is

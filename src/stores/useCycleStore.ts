@@ -54,7 +54,8 @@ import {
 import { RecentSymptom } from '../engine/content';
 import { logSilentFailure } from '../diagnostics/silent-failure';
 import { detectPremenstrualSignal } from '../engine/symptoms/symptom-recall';
-import { todayCivil } from '../utils/civil-date';
+import { recentWeightChangeKg } from '../engine/prediction/weight-change';
+import { addDays, todayCivil } from '../utils/civil-date';
 import { Storage } from '../database/storage';
 
 // ─── STATE SHAPE ─────────────────────────────────────────────────────
@@ -297,13 +298,48 @@ export const useCycleStore = create<CycleStoreState>((set, get) => ({
       todayCivil()
     );
 
+    // ─── STRESS AND SLEEP ARE A WEEK, NOT A DAY (device-test-29) ──
+    //
+    //  `PredictionInput` documents these as "last 7 days average" and this
+    //  code passed TODAY'S single check-in — so the stress shift fired on one
+    //  data point, or not at all if the user had not checked in yet today.
+    //  `docs/PREDICTION-ENGINE.md` §9 lists it as a documentation-vs-code gap;
+    //  this closes it in the direction the type always promised.
+    //
+    //  A week's average is also the more defensible signal: one bad night is
+    //  noise, a bad week is the thing that actually shifts a cycle.
+    const weekAgo = addDays(todayCivil(), -6);
+    const recentCheckIns = await checkinRepository.getCheckInsInRange(
+      userId,
+      weekAgo,
+      todayCivil()
+    );
+    const mean = (nums: number[]): number | undefined =>
+      nums.length === 0 ? undefined : nums.reduce((a, b) => a + b, 0) / nums.length;
+    const recentStressLevel = mean(
+      recentCheckIns.map((c) => c.stressLevel).filter((n): n is number => n != null)
+    );
+    const recentSleepQuality = mean(
+      recentCheckIns.map((c) => c.sleepQuality).filter((n): n is number => n != null)
+    );
+
+    // ─── AND WEIGHT CHANGE FINALLY HAS A SOURCE ──────────────────
+    //
+    //  A live parameter with no producer since the predictor was written
+    //  (§9 again): the profile held one weight, and a change needs two
+    //  readings. `Storage.weightLog` is that second reading, and
+    //  `recentWeightChangeKg` returns undefined — not zero — when there is
+    //  not enough to say, so the term simply does not fire.
+    const weightChange = recentWeightChangeKg(Storage.weightLog.get(), todayCivil());
+
     const input: PredictionInput = {
       cycleHistory,
       healthProfile: user.healthProfile,
       lastPeriodStart: new Date(lastPeriodStart),
-      recentStressLevel: todayCheckIn?.stressLevel ?? undefined,
-      recentSleepQuality: todayCheckIn?.sleepQuality ?? undefined,
+      recentStressLevel,
+      recentSleepQuality,
       premenstrualSymptomsDetected,
+      recentWeightChangeKg: weightChange,
       predictionErrors,
     };
 

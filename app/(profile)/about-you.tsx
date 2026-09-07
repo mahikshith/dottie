@@ -1,95 +1,157 @@
 /**
- * About You — optional height & weight
+ * Dottie — Your details
  *
- * A calm, judgement-free place for the user to (optionally) share their height
- * and weight. This is B1.5 of the prediction-explainer work: the columns
- * (`weight_kg`, `height_cm`) and the explainer's BMI *context* factor already
- * exist — this screen is the missing capture UI.
+ * ─── WHY THIS SCREEN GREW (device-test-29) ──────────────────────────
  *
- * ─── WHY WE ASK (and how we use it) ─────────────────────────────────
+ *  Owner: "if they have by mistake selected PCOS or PCOD, we should let the
+ *  user find a way to correct their mistakes — height, weight, etcetera — and
+ *  based on the correction the prediction engine has to run again and show the
+ *  new changes."
  *
- *  Some people's cycles shift at a very low or very high body weight. When
- *  shared, Dottie uses it ONLY as gentle context in the prediction explainer
- *  (and to keep its uncertainty window a touch wider at real extremes) — never
- *  to move the predicted date, never to judge, never to diagnose. It's stored
- *  on-device like everything else and is fully optional.
+ *  That is the whole design. Until now, everything the model reads about a
+ *  person was captured ONCE during onboarding and then frozen: the conditions
+ *  screen only ever wrote to the onboarding draft, and this screen held height
+ *  and weight and nothing else. A mis-tapped PCOS silently widened every
+ *  forecast forever, with no way back.
  *
- * ─── AFTER SAVING ───────────────────────────────────────────────────
+ *  So this is now the one place every model input lives, all of it editable:
  *
- *  We call recomputePrediction() so the "How this prediction is made" card
- *  updates immediately with (or without) the body-context factor.
+ *    · age                 — read by the prior, and NEVER COLLECTED BEFORE.
+ *                            The field existed, the model read it, no screen
+ *                            ever wrote it (the owner spotted this).
+ *    · weight              — stored as DATED READINGS, because the model wants
+ *                            a change over time and one snapshot is not one.
+ *    · height              — kept for records; the forecast does not read it,
+ *                            and the screen says so rather than implying.
+ *    · conditions          — with the full explainer on every row, so nobody
+ *                            has to guess what PCOD is to answer honestly.
+ *    · typical cycle length — the single biggest lever before history exists.
+ *
+ *  And saving RE-RUNS the prediction and shows the before → after confidence,
+ *  which is the part that makes correcting a mistake feel worth doing.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter, Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
 import { AuroraBackground, GlassCard, PressableScale } from '../../src/components/ui';
-import { useAurora } from '../../src/theme';
-import { useUserStore, selectHealthProfile, useCycleStore } from '../../src/stores';
+import { A, useAurora } from '../../src/theme';
+import { useUserStore, useCycleStore, selectHealthProfile } from '../../src/stores';
+import { ConditionRow } from '../../src/components/health/ConditionRow';
+import { CONDITION_OPTIONS, type ConditionKey } from '../../src/content/conditions';
+import type { HealthCondition } from '../../src/types/cycle.types';
+import { Storage } from '../../src/database/storage';
+import { todayCivil } from '../../src/utils/civil-date';
+import { recentWeightChangeKg } from '../../src/engine/prediction/weight-change';
+import { logSilentFailure } from '../../src/diagnostics/silent-failure';
 
-// Plausibility guards — match the explainer's computeBmi bounds.
-const H_MIN = 100;
-const H_MAX = 250;
-const W_MIN = 20;
-const W_MAX = 400;
+const LIMITS = {
+  age: { min: 9, max: 60, unit: 'years' },
+  height: { min: 100, max: 220, unit: 'cm' },
+  weight: { min: 25, max: 250, unit: 'kg' },
+  cycle: { min: 18, max: 60, unit: 'days' },
+};
+
+/** Only these keys are real `HealthCondition`s the engines act on. */
+const ENGINE_KEYS = new Set<string>([
+  'pcos', 'pcod', 'thyroid', 'hypothyroid', 'hyperthyroid',
+  'endometriosis', 'adenomyosis', 'fibroids',
+]);
 
 export default function AboutYouScreen(): JSX.Element {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { palette } = useAurora();
   const profile = useUserStore(selectHealthProfile);
+  const prediction = useCycleStore((s) => s.latestPrediction);
 
-  const [height, setHeight] = useState<string>(
-    profile?.heightCm != null ? String(profile.heightCm) : ''
+  const [age, setAge] = useState(profile?.age != null ? String(profile.age) : '');
+  const [height, setHeight] = useState(profile?.heightCm != null ? String(profile.heightCm) : '');
+  const [weight, setWeight] = useState(profile?.weightKg != null ? String(profile.weightKg) : '');
+  const [cycleLen, setCycleLen] = useState(
+    profile?.averageCycleLength != null ? String(profile.averageCycleLength) : ''
   );
-  const [weight, setWeight] = useState<string>(
-    profile?.weightKg != null ? String(profile.weightKg) : ''
+  const [conditions, setConditions] = useState<Set<string>>(
+    () => new Set<string>(profile?.conditions ?? [])
   );
-  const [saved, setSaved] = useState(false);
+  const [open, setOpen] = useState<ConditionKey | null>(null);
+  const [saving, setSaving] = useState(false);
+  /** Before → after, shown once a save has actually moved the number. */
+  const [delta, setDelta] = useState<{ before: number; after: number } | null>(null);
 
-  const heightNum = parseNum(height);
-  const weightNum = parseNum(weight);
-  const heightValid = heightNum === null || (heightNum >= H_MIN && heightNum <= H_MAX);
-  const weightValid = weightNum === null || (weightNum >= W_MIN && weightNum <= W_MAX);
-  const canSave = heightValid && weightValid;
+  const num = (raw: string): number | null => {
+    const t = raw.trim();
+    if (t === '') return null;
+    const n = Number(t);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : null;
+  };
+  const ok = (n: number | null, k: keyof typeof LIMITS): boolean =>
+    n === null || (n >= LIMITS[k].min && n <= LIMITS[k].max);
 
-  const bmi =
-    heightNum && weightNum && heightValid && weightValid
-      ? weightNum / Math.pow(heightNum / 100, 2)
-      : null;
+  const ageN = num(age);
+  const heightN = num(height);
+  const weightN = num(weight);
+  const cycleN = num(cycleLen);
+  const valid = ok(ageN, 'age') && ok(heightN, 'height') && ok(weightN, 'weight') && ok(cycleN, 'cycle');
 
-  const handleSave = async () => {
-    if (!canSave) return;
+  const weightLog = useMemo(() => Storage.weightLog.get(), [delta]);
+  const weightChange = useMemo(
+    () => recentWeightChangeKg(weightLog, todayCivil()),
+    [weightLog]
+  );
+
+  const toggle = (id: string) => {
     Haptics.selectionAsync().catch(() => {});
-    await useUserStore.getState().updateHealthProfile({
-      heightCm: heightNum,
-      weightKg: weightNum,
+    setConditions((prev) => {
+      const next = new Set(prev);
+      if (id === 'nothing' || id === 'prefer_not_say') return next.has(id) ? new Set() : new Set([id]);
+      next.delete('nothing');
+      next.delete('prefer_not_say');
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    // Refresh the prediction so the explainer's body-context factor updates.
-    await useCycleStore.getState().recomputePrediction();
-    setSaved(true);
-    setTimeout(() => router.back(), 650);
   };
 
-  const handleClear = async () => {
-    Haptics.selectionAsync().catch(() => {});
-    setHeight('');
-    setWeight('');
-    await useUserStore.getState().updateHealthProfile({ heightCm: null, weightKg: null });
-    await useCycleStore.getState().recomputePrediction();
+  const save = async () => {
+    if (!valid || !profile || saving) return;
+    setSaving(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const before = prediction?.confidence ?? 0;
+    try {
+      if (weightN !== null) Storage.weightLog.add(todayCivil(), weightN);
+      await useUserStore.getState().updateHealthProfile({
+        ...profile,
+        age: ageN,
+        heightCm: heightN,
+        weightKg: weightN,
+        averageCycleLength: cycleN,
+        conditions: [...conditions].filter((c): c is HealthCondition => ENGINE_KEYS.has(c)),
+      });
+      // ─── THE CORRECTION HAS TO TAKE EFFECT ───────────────────────
+      //  Editing a condition that widens the prior and leaving the old
+      //  forecast on screen would be worse than not offering the edit.
+      const after = await useCycleStore.getState().recomputePrediction();
+      setDelta({ before, after: after?.confidence ?? before });
+    } catch (err) {
+      logSilentFailure('aboutYou.save', err);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const pct = (n: number): number => Math.round(n * 100);
 
   return (
     <AuroraBackground>
       <StatusBar style="light" />
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
-        style={styles.container}
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['3xl'] },
@@ -97,113 +159,134 @@ export default function AboutYouScreen(): JSX.Element {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <PressableScale onPress={() => router.back()} haptic="light" hitSlop={10} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={[styles.back, { color: palette.accent }]}>‹ Back</Text>
-          </PressableScale>
-        </View>
+        <PressableScale onPress={() => router.back()} style={styles.back} accessibilityRole="button" accessibilityLabel="Go back">
+          <Text style={styles.backText}>‹ Back</Text>
+        </PressableScale>
 
-        <Text style={[styles.title, { color: palette.ink }]}>You &amp; your body</Text>
-        <Text style={[styles.subtitle, { color: palette.ink2 }]}>
-          Optional. Sharing your height and weight lets Dottie explain your prediction a little
-          better — some people&apos;s cycles shift at a very low or very high body weight. We never
-          judge, diagnose, or share this. It stays on your phone. 🔒
+        <Text style={styles.title}>Your details</Text>
+        <Text style={styles.sub}>
+          Everything the forecast knows about you, and all of it changeable. Ticked
+          something by mistake? Untick it and the prediction is recalculated on the spot.
         </Text>
 
-        <GlassCard style={styles.card}>
-          <Field
-            label="Height"
-            unit="cm"
-            value={height}
-            onChange={(t) => { setHeight(t); setSaved(false); }}
-            invalid={!heightValid}
-            invalidHint={`Enter a height between ${H_MIN} and ${H_MAX} cm`}
-            palette={palette}
-          />
-          <View style={[styles.divider, { backgroundColor: palette.glass.edge }]} />
-          <Field
-            label="Weight"
-            unit="kg"
-            value={weight}
-            onChange={(t) => { setWeight(t); setSaved(false); }}
-            invalid={!weightValid}
-            invalidHint={`Enter a weight between ${W_MIN} and ${W_MAX} kg`}
-            palette={palette}
-          />
-        </GlassCard>
-
-        {/* Gentle context — only a soft note, only at real extremes. */}
-        {bmi !== null && (
-          <GlassCard style={styles.card} padding={Spacing.md}>
-            <Text style={[styles.bmiNote, { color: palette.ink2 }]}>{bmiNote(bmi)}</Text>
+        {/* ─── WHAT CHANGED, AFTER A SAVE ───────────────────────── */}
+        {delta && (
+          <GlassCard style={styles.deltaCard} padding={Spacing.base}>
+            <Text style={styles.deltaTitle}>Forecast updated</Text>
+            <Text style={styles.deltaBody}>
+              {delta.after === delta.before
+                ? `Confidence stayed at ${pct(delta.after)}% — what you changed does not feed the date.`
+                : `Confidence moved from ${pct(delta.before)}% to ${pct(delta.after)}%.`}
+            </Text>
           </GlassCard>
         )}
 
-        <PressableScale
-          onPress={handleSave}
-          haptic="none"
-          disabled={!canSave}
-          style={[
-            styles.saveBtn,
-            { backgroundColor: canSave ? palette.accent : palette.glass.bg, borderColor: palette.glass.edge },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Save"
-          accessibilityState={{ disabled: !canSave }}
-        >
-          <Text style={[styles.saveText, { color: canSave ? palette.ground : palette.ink3 }]}>
-            {saved ? 'Saved ✓' : 'Save'}
-          </Text>
-        </PressableScale>
+        <Field
+          label="Age" unitLabel="years" value={age} onChange={setAge} feeds
+          note="Read by the forecast. Cycles vary more in the teens and again around the forties, so this lets the model hold an honest range from the first prediction."
+          bad={!ok(ageN, 'age')} badNote={`Between ${LIMITS.age.min} and ${LIMITS.age.max}.`}
+          palette={palette}
+        />
 
-        {(profile?.heightCm != null || profile?.weightKg != null) && (
-          <PressableScale
-            onPress={handleClear}
-            haptic="none"
-            style={styles.clearBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Remove height and weight"
-          >
-            <Text style={[styles.clearText, { color: palette.ink3 }]}>Remove this info</Text>
-          </PressableScale>
+        <Field
+          label="Typical cycle length" unitLabel="days" value={cycleLen} onChange={setCycleLen} feeds
+          note="The starting assumption, and the single biggest lever before you have logged much. Once your own cycles take over it quietly stops mattering."
+          bad={!ok(cycleN, 'cycle')} badNote={`Between ${LIMITS.cycle.min} and ${LIMITS.cycle.max} days.`}
+          palette={palette}
+        />
+
+        <Field
+          label="Weight" unitLabel="kg" value={weight} onChange={setWeight} feeds
+          note="Read as a CHANGE over time, never as a number about you. A swing over about 5 kg in a few months widens the window. Add it again in a few weeks and the model starts using it."
+          bad={!ok(weightN, 'weight')} badNote={`Between ${LIMITS.weight.min} and ${LIMITS.weight.max} kg.`}
+          palette={palette}
+        />
+
+        {weightLog.length > 0 && (
+          <GlassCard style={styles.card} padding={Spacing.base}>
+            <Text style={styles.cardTitle}>Weight readings</Text>
+            {weightLog.slice(-4).reverse().map((r) => (
+              <View key={r.date} style={styles.readingRow}>
+                <Text style={styles.readingDate}>{r.date}</Text>
+                <Text style={styles.readingKg}>{r.kg} kg</Text>
+              </View>
+            ))}
+            <Text style={styles.note}>
+              {weightChange === undefined
+                ? 'Not a trend yet — two readings at least two weeks apart and the model starts reading it.'
+                : `The model is using a change of ${weightChange > 0 ? '+' : ''}${weightChange} kg.${
+                    Math.abs(weightChange) > 5 ? ' Over 5 kg, so the window is wider on purpose.' : ''
+                  }`}
+            </Text>
+          </GlassCard>
         )}
 
-        <View style={{ height: Spacing['3xl'] }} />
+        <Field
+          label="Height" unitLabel="cm" value={height} onChange={setHeight} feeds={false}
+          note="Kept for your own records and your doctor report. The forecast never reads it — we would rather say that than imply it matters."
+          bad={!ok(heightN, 'height')} badNote={`Between ${LIMITS.height.min} and ${LIMITS.height.max} cm.`}
+          palette={palette}
+        />
+
+        {/* ─── CONDITIONS, CORRECTABLE ───────────────────────────── */}
+        <Text style={styles.h2}>Conditions</Text>
+        <Text style={styles.sub}>
+          Tap the <Text style={styles.q}>?</Text> on any row to read what it is before you
+          decide. Only the first eight change the forecast; the rest are kept for your
+          records.
+        </Text>
+        {CONDITION_OPTIONS.map((opt) => (
+          <ConditionRow
+            key={opt.id}
+            option={opt}
+            selected={conditions.has(opt.id)}
+            expanded={open === opt.id}
+            onToggle={() => toggle(opt.id)}
+            onExpand={() => setOpen(open === opt.id ? null : opt.id)}
+          />
+        ))}
+
+        <PressableScale
+          onPress={save}
+          disabled={!valid || saving}
+          style={[styles.save, (!valid || saving) && styles.saveOff]}
+          accessibilityRole="button"
+          accessibilityLabel="Save and recalculate"
+          accessibilityState={{ disabled: !valid || saving }}
+        >
+          <Text style={styles.saveText}>
+            {saving ? 'Recalculating…' : 'Save & recalculate'}
+          </Text>
+        </PressableScale>
       </ScrollView>
     </AuroraBackground>
   );
 }
 
-// ─── FIELD ───────────────────────────────────────────────────────────
-
-type Palette = ReturnType<typeof useAurora>['palette'];
-
 function Field({
-  label,
-  unit,
-  value,
-  onChange,
-  invalid,
-  invalidHint,
-  palette,
+  label, unitLabel, value, onChange, note, feeds, bad, badNote, palette,
 }: {
   label: string;
-  unit: string;
+  unitLabel: string;
   value: string;
-  onChange: (t: string) => void;
-  invalid: boolean;
-  invalidHint: string;
-  palette: Palette;
+  onChange: (s: string) => void;
+  note: string;
+  feeds: boolean;
+  bad: boolean;
+  badNote: string;
+  palette: ReturnType<typeof useAurora>['palette'];
 }): JSX.Element {
   return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: palette.ink }]}>{label}</Text>
-      <View
-        style={[
-          styles.inputWrap,
-          { backgroundColor: palette.glass.bg, borderColor: invalid ? palette.accent2 : palette.glass.edge },
-        ]}
-      >
+    <GlassCard style={styles.card} padding={Spacing.base}>
+      <View style={styles.fieldHead}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        <View style={[styles.tag, feeds ? styles.tagFeeds : styles.tagKept]}>
+          <Text style={[styles.tagText, { color: feeds ? A.accent : A.ink3 }]}>
+            {feeds ? 'FEEDS THE FORECAST' : 'RECORDS ONLY'}
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.inputWrap, { borderColor: bad ? A.error : palette.glass.edge }]}>
         <TextInput
           value={value}
           onChangeText={onChange}
@@ -211,73 +294,61 @@ function Field({
           inputMode="numeric"
           maxLength={5}
           placeholder="—"
-          placeholderTextColor={palette.ink3}
-          style={[styles.input, { color: palette.ink }]}
-          accessibilityLabel={`${label} in ${unit}`}
+          placeholderTextColor={A.ink3}
+          style={styles.input}
+          accessibilityLabel={`${label} in ${unitLabel}`}
         />
-        <Text style={[styles.unit, { color: palette.ink3 }]}>{unit}</Text>
+        <Text style={styles.unit}>{unitLabel}</Text>
       </View>
-      {invalid && <Text style={[styles.invalidHint, { color: palette.accent2 }]}>{invalidHint}</Text>}
-    </View>
+      <Text style={styles.note}>{note}</Text>
+      {bad ? <Text style={styles.bad}>{badNote}</Text> : null}
+    </GlassCard>
   );
 }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────
-
-function parseNum(s: string): number | null {
-  const t = s.trim();
-  if (t === '') return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** A single, kind, non-diagnostic line — only shown when height+weight are set. */
-function bmiNote(bmi: number): string {
-  if (bmi < 18.5) {
-    return 'At a lower body weight, cycles can sometimes lengthen or pause. Dottie will keep its prediction window a little wider — that’s all.';
-  }
-  if (bmi > 30) {
-    return 'At a higher body weight, cycles can sometimes run longer or be less regular. Dottie will keep its prediction window a little wider — that’s all.';
-  }
-  return 'Thanks — in this range, body weight has little effect on cycle timing for most people, so it won’t change your prediction much.';
-}
-
-// ─── STYLES (layout only — colours inline, palette-driven) ───────────
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   content: { paddingHorizontal: Spacing.screenPadding, gap: Spacing.md },
-  header: { marginBottom: Spacing.xs },
-  back: { ...Typography.preset.bodySemibold },
-  title: { ...Typography.preset.h1 },
-  subtitle: { ...Typography.preset.body, lineHeight: 22 },
+  back: { alignSelf: 'flex-start', paddingVertical: Spacing.sm },
+  backText: { ...Typography.preset.body, color: A.accent },
+  title: { ...Typography.preset.h1, color: A.ink },
+  h2: { ...Typography.preset.h2, color: A.ink, marginTop: Spacing.lg },
+  sub: { ...Typography.preset.body, color: A.ink2, lineHeight: 22 },
+  q: { color: A.accent, fontWeight: '800' },
   card: { gap: Spacing.sm },
-  field: { gap: Spacing.xs },
-  fieldLabel: { ...Typography.preset.bodySemibold },
+  cardTitle: { ...Typography.preset.bodySemibold, color: A.ink },
+  deltaCard: { gap: 4, borderWidth: 1, borderColor: `${A.accent}55` },
+  deltaTitle: { ...Typography.preset.bodySemibold, color: A.accent },
+  deltaBody: { ...Typography.preset.caption, color: A.ink, lineHeight: 18 },
+  fieldHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  fieldLabel: { ...Typography.preset.bodySemibold, color: A.ink },
+  tag: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Spacing.radius.full, borderWidth: 1 },
+  tagFeeds: { borderColor: `${A.accent}55`, backgroundColor: `${A.accent}14` },
+  tagKept: { borderColor: A.glass2, backgroundColor: A.glass },
+  tagText: { ...Typography.preset.caption, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.6 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
     borderWidth: 1,
-    borderRadius: Spacing.radius.lg,
-    paddingHorizontal: Spacing.md,
+    borderRadius: Spacing.radius.md,
+    paddingHorizontal: Spacing.base,
+    backgroundColor: A.glass,
   },
-  input: {
-    flex: 1,
-    ...Typography.preset.h3,
-    paddingVertical: Spacing.md,
-  },
-  unit: { ...Typography.preset.body },
-  invalidHint: { ...Typography.preset.caption },
-  divider: { height: 1, marginVertical: Spacing.xs },
-  bmiNote: { ...Typography.preset.caption, lineHeight: 18 },
-  saveBtn: {
-    borderWidth: 1,
+  input: { flex: 1, ...Typography.preset.h2, color: A.ink, paddingVertical: Spacing.sm },
+  unit: { ...Typography.preset.body, color: A.ink3 },
+  note: { ...Typography.preset.caption, fontSize: 12.5, lineHeight: 18, color: A.ink2 },
+  bad: { ...Typography.preset.caption, color: A.error },
+  readingRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  readingDate: { ...Typography.preset.caption, color: A.ink3 },
+  readingKg: { ...Typography.preset.caption, color: A.ink, fontWeight: '600' },
+  save: {
+    marginTop: Spacing.lg,
+    minHeight: 54,
     borderRadius: Spacing.radius.full,
-    paddingVertical: Spacing.md,
     alignItems: 'center',
-    marginTop: Spacing.xs,
+    justifyContent: 'center',
+    backgroundColor: A.accent,
   },
-  saveText: { ...Typography.preset.button },
-  clearBtn: { alignItems: 'center', paddingVertical: Spacing.sm },
-  clearText: { ...Typography.preset.captionBold },
+  saveOff: { opacity: 0.45 },
+  saveText: { ...Typography.preset.bodySemibold, color: A.ground },
 });

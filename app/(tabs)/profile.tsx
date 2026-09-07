@@ -113,6 +113,11 @@ export default function ProfileScreen() {
     router.push('/(profile)/about-you');
   };
 
+  const handleTransparencyTap = () => {
+    Haptics.selectionAsync().catch(() => {});
+    router.push('/(profile)/prediction-transparency');
+  };
+
   const handleDoctorReportTap = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push('/(profile)/doctor-report');
@@ -247,9 +252,23 @@ export default function ProfileScreen() {
           <Animated.View entering={rise(330)}>
             <SettingsItem
               emoji="🫶"
-              title="You & your body"
-              subtitle="Optional height & weight — sharpens your prediction explainer"
+              title="Your details"
+              subtitle="Age, cycle length, weight, conditions — edit any of it and the forecast re-runs"
               onPress={handleAboutYouTap}
+            />
+          </Animated.View>
+
+          {/* ─── TRANSPARENCY (device-test-29) ─────────────────────
+              Owner: "the entire app logistics depends upon the prediction."
+              So the screen that explains it — what it is built from, why the
+              confidence figure is what it is, and what would raise it — is a
+              first-class row, not something buried in a help page. */}
+          <Animated.View entering={rise(345)}>
+            <SettingsItem
+              emoji="🔬"
+              title="How your forecast works"
+              subtitle="What it uses, what it ignores, and how to sharpen it"
+              onPress={handleTransparencyTap}
             />
           </Animated.View>
 

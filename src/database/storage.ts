@@ -205,6 +205,7 @@ const Keys = {
   MOOD_MAP_OPEN: 'ux.mood_map_open',
   QUICK_LOG_MODE: 'ux.quick_log_mode',
   CALENDAR_DATES_VIEW: 'ux.calendar_dates_view',
+  WEIGHT_LOG: 'health.weight_log',
 } as const;
 
 // ─── LOW-LEVEL HELPERS ───────────────────────────────────────────────
@@ -628,6 +629,51 @@ export const Storage = {
    * not an action, so re-choosing it each visit would be pure friction.
    * Defaults OFF: the grid is the primary reading, the words are the option.
    */
+  /**
+   * ─── WEIGHT READINGS OVER TIME (device-test-29) ──────────────────
+   *
+   *  `recentWeightChangeKg` has been a live parameter of the predictor since
+   *  the beginning — a swing over 5 kg widens the window and cuts confidence —
+   *  and NOTHING has ever computed it, because the profile only ever held one
+   *  weight snapshot. A change needs two readings.
+   *
+   *  So readings live here, dated, oldest first, capped. MMKV rather than
+   *  SQLite because it is a handful of numbers read on every prediction, and
+   *  because it stays inside the same encrypted store as every other
+   *  preference.
+   */
+  weightLog: {
+    get: (): { date: string; kg: number }[] => {
+      const raw = db().getString(Keys.WEIGHT_LOG);
+      if (!raw) return [];
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter(
+          (e): e is { date: string; kg: number } =>
+            typeof e === 'object' && e !== null &&
+            typeof (e as { date?: unknown }).date === 'string' &&
+            typeof (e as { kg?: unknown }).kg === 'number' &&
+            Number.isFinite((e as { kg: number }).kg)
+        );
+      } catch {
+        // A corrupt blob is not worth crashing the app over; an empty log
+        // simply means the weight term stays inactive (rule 12).
+        return [];
+      }
+    },
+    /** Adds a reading, replacing any reading already taken that day. */
+    add: (date: string, kg: number): void => {
+      if (!Number.isFinite(kg) || kg <= 0 || kg > 400) return;
+      const rest = Storage.weightLog.get().filter((e) => e.date !== date);
+      const next = [...rest, { date, kg }]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-24);
+      db().set(Keys.WEIGHT_LOG, JSON.stringify(next));
+    },
+    clear: (): void => db().delete(Keys.WEIGHT_LOG),
+  },
+
   calendarDatesView: {
     get: (): boolean => db().getBoolean(Keys.CALENDAR_DATES_VIEW) === true,
     set: (on: boolean): void => db().set(Keys.CALENDAR_DATES_VIEW, on),

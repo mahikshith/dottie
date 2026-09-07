@@ -50,6 +50,10 @@ export default function ConditionsScreen() {
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState<Set<ConditionKey>>(new Set());
 
+  /** Which row is showing its explainer. One at a time — this is a list to
+   *  scan, not a wall of text to read. */
+  const [open, setOpen] = useState<ConditionKey | null>(null);
+
   const toggle = (id: ConditionKey) => {
     Haptics.selectionAsync().catch(() => {});
     setSelected((prev) => {
@@ -131,24 +135,70 @@ export default function ConditionsScreen() {
                 key={opt.id}
                 entering={FadeInDown.duration(420).delay(140 + i * 40).springify().damping(16)}
               >
-                <PressableScale
-                  onPress={() => toggle(opt.id)}
-                  haptic="none"
-                  scaleTo={0.98}
-                  style={[styles.chip, active && styles.chipActive]}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: active }}
-                  accessibilityLabel={opt.label}
-                >
-                  <Text style={styles.chipEmoji}>{opt.emoji}</Text>
-                  <View style={styles.chipText}>
-                    <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{opt.label}</Text>
-                    <Text style={[styles.chipHint, active && styles.chipHintActive]}>{opt.hint}</Text>
-                  </View>
-                  <View style={[styles.tick, active && styles.tickActive]}>
-                    {active ? <Text style={styles.tickMark}>✓</Text> : null}
-                  </View>
-                </PressableScale>
+                <View>
+                  <PressableScale
+                    onPress={() => toggle(opt.id)}
+                    haptic="none"
+                    scaleTo={0.98}
+                    style={[styles.chip, active && styles.chipActive]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={opt.label}
+                  >
+                    <Text style={styles.chipEmoji}>{opt.emoji}</Text>
+                    <View style={styles.chipText}>
+                      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{opt.label}</Text>
+                      <Text style={[styles.chipHint, active && styles.chipHintActive]}>{opt.hint}</Text>
+                    </View>
+                    {/* ─── "WHAT IS THIS?" (device-test-29) ──────────────
+                        A separate target from the row itself, because the
+                        person who does not know what PCOD is must be able to
+                        FIND OUT without ticking it first. Ticking is the
+                        expensive action — an ovulatory condition widens the
+                        model's prior for every forecast afterwards — so the
+                        cheap action gets its own button. */}
+                    <PressableScale
+                      onPress={() => setOpen(open === opt.id ? null : opt.id)}
+                      haptic="none"
+                      scaleTo={0.9}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      style={styles.info}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: open === opt.id }}
+                      accessibilityLabel={`What is ${opt.label}?`}
+                    >
+                      <Text style={styles.infoGlyph}>{open === opt.id ? '×' : '?'}</Text>
+                    </PressableScale>
+                    <View style={[styles.tick, active && styles.tickActive]}>
+                      {active ? <Text style={styles.tickMark}>✓</Text> : null}
+                    </View>
+                  </PressableScale>
+
+                  {open === opt.id && (
+                    <Animated.View entering={FadeInDown.duration(220)} style={styles.explain}>
+                      <Text style={styles.explainBody}>{opt.what}</Text>
+                      <Text style={styles.explainLabel}>WHY WE ASK</Text>
+                      <Text style={styles.explainBody}>{opt.why}</Text>
+                      <Text style={styles.explainLabel}>
+                        {opt.affectsPrediction ? 'WHAT IT DOES TO THE FORECAST' : 'EFFECT ON THE FORECAST'}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.explainBody,
+                          opt.affectsPrediction && styles.explainBodyStrong,
+                        ]}
+                      >
+                        {opt.predictionEffect}
+                      </Text>
+                      {opt.affectsPrediction && (
+                        <Text style={styles.explainWarn}>
+                          Only tick this if a clinician has told you. A guess here changes the
+                          maths for every forecast afterwards.
+                        </Text>
+                      )}
+                    </Animated.View>
+                  )}
+                </View>
               </Animated.View>
             );
           })}
@@ -171,6 +221,59 @@ export default function ConditionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // ─── THE EXPLAINER PANEL ──────────────────────────────────────────
+  //
+  //  Owner: "it should be in a white colour or something, small font — if we
+  //  add any cement colour it won't display" on the deep aurora ground. So the
+  //  body text is the same near-white ink the rest of the app uses at a small
+  //  size, and the SEPARATION comes from a lifted panel and a lit left edge
+  //  rather than from dimming the words.
+  info: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: `${A.accent}55`,
+    backgroundColor: `${A.accent}12`,
+    marginRight: Spacing.sm,
+  },
+  infoGlyph: { color: A.accent, fontSize: 13, fontWeight: '800', lineHeight: 16 },
+  explain: {
+    marginTop: 6,
+    marginBottom: Spacing.sm,
+    marginLeft: Spacing.base,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    gap: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: `${A.accent}88`,
+    borderRadius: Spacing.radius.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  explainLabel: {
+    ...Typography.preset.caption,
+    fontSize: 10,
+    letterSpacing: 0.9,
+    fontWeight: '800',
+    color: A.accent,
+    marginTop: 4,
+  },
+  explainBody: {
+    ...Typography.preset.caption,
+    fontSize: 12.5,
+    lineHeight: 18,
+    color: A.ink,
+  },
+  explainBodyStrong: { color: A.ink, fontWeight: '600' },
+  explainWarn: {
+    ...Typography.preset.caption,
+    fontSize: 12,
+    lineHeight: 17,
+    color: A.gold,
+    marginTop: 6,
+  },
   container: {
     flex: 1,
     backgroundColor: 'transparent',
