@@ -7,8 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { AuroraBackground } from '../../src/components/ui';
-import { CompanionLottie } from '../../src/components/ui';
+import { AuroraBackground, MoodEmoji } from '../../src/components/ui';
 import { QuizAnswerReaction } from '../../src/components/learn/QuizAnswerReaction';
 import { leadFor, reactTo, type Reaction } from '../../src/engine/learn/dialogue';
 import { showCelebration, celebrationTierForMood } from '../../src/components/ui/celebration/celebration';
@@ -23,9 +22,8 @@ import {
   selectStreak,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
-import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
 import { nudgeForScore } from '../../src/engine/learn/encouragement';
-import { CompanionScoreReaction } from '../../src/components/learn/CompanionScoreReaction';
+import { ScoreReaction } from '../../src/components/learn/ScoreReaction';
 import type {
   QuizAttemptSession,
   RenderedQuizQuestion,
@@ -300,10 +298,8 @@ export default function QuizScreen() {
       seed: session.sessionId,
       afterMiss: lastWasMiss,
       streak: answerStreak,
-      // DT22: whose voice. Six companions said the same eight words until now.
-      companion: companionType,
     });
-  }, [session, questionIndex, lastWasMiss, answerStreak, companionType]);
+  }, [session, questionIndex, lastWasMiss, answerStreak]);
 
   // ─── Handlers ───────────────────────────────────────────────────
   const handleOptionTap = (optionIndex: number) => {
@@ -331,7 +327,6 @@ export default function QuizScreen() {
         attempt,
         streak: answerStreak,
         afterMiss: lastWasMiss,
-        companion: companionType,
         explanation: result.explanation,
         explanationEmoji: result.explanationEmoji,
         seed: `${session.sessionId}:${questionIndex}`,
@@ -559,11 +554,9 @@ export default function QuizScreen() {
             entering={FadeInDown.duration(300).springify().damping(16)}
             style={styles.leadRow}
           >
-            <CompanionLottie
-              type={companionType}
+            <MoodEmoji
               state={attempt > 1 ? 'determined' : lastWasMiss ? 'encourage' : 'curious'}
-              size={34}
-              loop={false}
+              size={30}
             />
             <Text style={styles.leadText}>
               {attempt > 1 ? 'One more look — take your time.' : lead}
@@ -629,7 +622,6 @@ export default function QuizScreen() {
             ]}
           >
             <QuizAnswerReaction
-              companionType={companionType}
               correct={lastAnswer.correct}
               headline={reaction?.opener ?? lastAnswer.companionReaction}
               state={reaction?.expression ?? (lastAnswer.correct ? 'celebrate' : 'cozy')}
@@ -774,11 +766,10 @@ function QuizResultScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.resultHero, { backgroundColor: `${accent}11` }]}>
-          {/* The companion reacts to the score (mind-blown at 100 → warm hug on
-              a low landing) instead of a generic leaf/star. Headline
-              ("Amazing!", "Nice progress!", ...) rendered inside the reaction. */}
-          <CompanionScoreReaction
-            companionType={companion.type}
+          {/* The mark reacts to the score (mind-blown at 100 → warm on a low
+              landing) instead of a generic leaf/star. Headline ("Amazing!",
+              "Nice progress!", ...) rendered inside the reaction. */}
+          <ScoreReaction
             score={result.score}
             size={124}
             headlineColor={accent}
@@ -797,19 +788,13 @@ function QuizResultScreen({
           )}
         </View>
 
-        {/* The companion's LINE. It used to sit next to a raw 🐱 emoji, so the
-            screen showed three different faces at once — the drawn creature,
-            the reaction badge, and this emoji — which is what read as "an
-            altogether different companion" (device-test-8). One character per
-            screen; the small rig here is the same creature as the hero above.
-            The line itself now rotates through the encouragement pool instead
-            of repeating one stored sentence. */}
+        {/* The closing LINE. One mark per screen — three faces at once (the
+            drawn creature, a reaction badge and a raw emoji) is what read as
+            "an altogether different companion" in device-test-8. The line
+            rotates through the encouragement pool rather than repeating one
+            stored sentence. */}
         <View style={styles.companionCelebrationCard}>
-          <CompanionCreature
-            type={companion.type}
-            state={result.score >= 0.5 ? 'happy' : 'caring'}
-            size={36}
-          />
+          <MoodEmoji state={result.score >= 0.5 ? 'happy' : 'caring'} size={32} />
           <Text style={styles.companionCelebrationText}>{nudge.text}</Text>
         </View>
 

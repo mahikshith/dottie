@@ -37,9 +37,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { CompanionLottie } from '../ui';
-import type { CompanionAnim } from '../../content/companion-lottie';
-import type { CompanionType } from '../../types/content.types';
+import { MoodEmoji, type MoodState } from '../ui';
 
 // ─── ONE VOICE (device-test-16, device-test-19) ──────────────────────
 //
@@ -56,7 +54,6 @@ import type { CompanionType } from '../../types/content.types';
 //  guess, which it should.
 
 export interface QuizAnswerReactionProps {
-  companionType: CompanionType;
   correct: boolean;
   /**
    * The companion's line, from `reactTo()`. Required: there is no fallback
@@ -65,7 +62,7 @@ export interface QuizAnswerReactionProps {
    */
   headline: string;
   /** The face for this beat, from `reactTo().expression`. */
-  state: CompanionAnim;
+  state: MoodState;
   /** Re-plays the entrance animation when it changes (e.g. question index). */
   seed?: number;
   size?: number;
@@ -73,7 +70,6 @@ export interface QuizAnswerReactionProps {
 }
 
 export function QuizAnswerReaction({
-  companionType,
   correct,
   headline,
   state,
@@ -118,7 +114,7 @@ export function QuizAnswerReaction({
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={headline}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={charStyle}>
-          <CompanionLottie type={companionType} state={state} size={size} loop={!correct} />
+          <MoodEmoji state={state} size={size} />
         </Animated.View>
         {/* Emoji badge removed — the rig's own face shows right/wrong now, and
             a second emoji face beside it read as a different character

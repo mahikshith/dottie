@@ -21,18 +21,11 @@ export type { BreathingViewProps } from './BreathingView';
 export { PopOnChange } from './PopOnChange';
 export type { PopOnChangeProps } from './PopOnChange';
 
-export { CompanionLottie } from './CompanionLottie';
-export type { CompanionLottieProps } from './CompanionLottie';
-
-export { CompanionWave } from './CompanionWave';
-export type { CompanionWaveProps } from './CompanionWave';
-
-export { CompanionBuddy } from './CompanionBuddy';
-export type { CompanionBuddyProps } from './CompanionBuddy';
+// The companions (a drawn rig with limbs, ears and a parametric face) were
+// removed at DT30 — see the header of `MoodEmoji.tsx`. Reactions are emoji.
+export { MoodEmoji, MOOD_EMOJI, stateForScore, stateForMood } from './MoodEmoji';
+export type { MoodEmojiProps, MoodState } from './MoodEmoji';
 
 // ─── Aurora system (design-v2 — mood-driven glass/clay/aurora) ──────
 export * from './aurora';
 
-export * from './creature/CompanionCreature';
-export * from './CompanionExpressions';
-export * from './creature/expressions';

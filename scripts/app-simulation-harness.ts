@@ -62,7 +62,7 @@ import { groupPeriodBlocks, analysePeriodPattern } from '../src/engine/calendar/
 import { buildSisterOverlay } from '../src/engine/calendar/sister-overlay';
 import { nudgeForScore } from '../src/engine/learn/encouragement';
 import { buildMoodMap, buildMoodDynamics } from '../src/engine/mood/mood-map';
-import { stateForScore, stateForMood } from '../src/components/ui/creature/expressions';
+import { stateForScore, stateForMood } from '../src/components/ui/MoodEmoji';
 import * as notifShim from './harness/shims/expo-notifications';
 import { checkinRepository } from '../src/database/repositories/checkin.repo';
 import { cycleRepository } from '../src/database/repositories/cycle.repo';

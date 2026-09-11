@@ -115,7 +115,7 @@ export default function ReadyScreen() {
         </Animated.Text>
 
         <Animated.Text entering={rise(340)} style={styles.subtitle}>
-          Your companion is ready and waiting.{'\n'}
+          Everything is set up on this phone.{'\n'}
           Let's start this journey together!
         </Animated.Text>
 

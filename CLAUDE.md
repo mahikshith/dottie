@@ -20,7 +20,7 @@ non-diagnostic voice throughout.
 
 ## Before every commit
 
-`npm run test:all` — 35 suites, includes `tsc --noEmit`. Non-zero exit on any
+`npm run test:all` — 34 suites, includes `tsc --noEmit`. Non-zero exit on any
 failure. Notable ones:
 
 `validate:content` (lesson `difficulty`, question `level`) · `test:predictor`
@@ -28,7 +28,7 @@ failure. Notable ones:
 test for the period-log freeze) · `test:app:tz` (simulated user, 5 timezones)
 · `test:fertile` · `test:export` · `test:dialogue` (821 content beats checked
 verbatim) · `test:moodmap` · `test:recall` · `audit:ui` · `audit:safearea` · `audit:silent` (rule 18)
-· `test:creature` (the C8 block is the anti-insect audit) · `test:quiz` (opens
+· `test:quiz` (opens
 EVERY lesson's quiz through the real engine — DT22's stuck spinner) ·
 `audit:colour` (no phase colour may collide with a mood colour) ·
 `test:ranges` (the dated calendar list against the grid it describes, cell for
@@ -61,25 +61,23 @@ biological ceiling)
 7. **Never import a native module at module scope on the boot path.**
    expo-router requires every file under `app/` at startup, and
    `requireNativeModule()` throws on import. Load them inside functions.
-8. **Companions: the drawn rig only** (`src/components/ui/creature/`), via
-   `<CompanionLottie type= state= />`. Never a hardcoded emoji, never a Lottie
-   character. The `butterfly` key is kept for saved data but draws a DEER.
-   **The art is DATA in `geometry.ts`** — one source of truth, rendered to the
-   app by `CompanionCreature` and to `docs/companion-preview.html` by
-   `scripts/companion-preview.ts`. **Look at the preview before shipping art;
-   never redraw blind into a 25-minute APK.** The six things that made these
-   read as insects (a full ring of sparkles, wide-set black domes, no neck,
-   symmetric dark shapes flanking the midline, stalked nubs above the head,
-   perfect bilateral symmetry) are asserted by C8 in `test:creature` — read the
-   header of `geometry.ts` before changing a number.
+8. **There are NO companions.** The six drawn characters, the vector rig, the
+   picker screen and the per-character voices were all removed at DT30 —
+   "they look childish ... no more companions." A reaction is ONE emoji, via
+   `<MoodEmoji state= size= />` (`src/components/ui/MoodEmoji.tsx`), which also
+   owns `stateForScore` / `stateForMood`. Never re-introduce a drawn character,
+   a Lottie character, or a second face beside the first. The app speaks as
+   **Dottie** — `getCompanion()` ignores its argument and returns her, so a
+   stored `companionType` on an old install can never put a fox back on
+   screen.
 9. **Lessons are the READER; the QUIZ carries the conversation.** The lesson
    chat was reverted (DT16). `src/engine/learn/dialogue.ts`: `leadFor` opens
    each question, `reactTo` answers it. Never says "wrong", explains on right
    AND wrong, openers never repeat back to back, streaks change tone not facts,
    **two attempts then the answer** — a third go is a trap. The retry scores
    the FIRST attempt only (`quiz-engine.submitAnswer` writes once), so a second
-   go costs nothing and pays no marks. ONE companion per panel: the reaction
-   rig is the voice, there is no second face with its own phrase pool. Every
+   go costs nothing and pays no marks. ONE mark per panel: the reaction emoji
+   is the whole of it, never a second face with its own phrase pool. Every
    factual sentence is verbatim curriculum — `test:dialogue` enforces it.
 10. **Never use a React Native `<Modal>`.** A translucent Modal is a separate
    Android window that can stick over every screen. Use `CelebrationDialog` /
@@ -166,12 +164,12 @@ biological ceiling)
    as a sheet in the export. It lists what is NOT used too — height, weight,
    activity, mood — because a disclosure that only lists the flattering half
    is an advertisement. `test:transparency` pins it to the code.
-32. **A companion is a voice, a face and a body — not a colour.**
-   `src/engine/learn/companion-voice.ts` gives each of the six its own quiz
-   lines, its own expression per beat, its own idle motion and its own streak
-   threshold. Pass `companion` to `leadFor`/`reactTo`. The FACTS never vary —
-   the explanation is verbatim curriculum whoever is speaking (rule 9), and
-   `test:dialogue` D9 asserts both halves.
+32. **One voice, and it still has to move.** The six per-character pools went
+   with the companions (rule 8); `leadFor`/`reactTo` take no speaker now. What
+   `test:dialogue` D9 still pins is the half that mattered: a plain hit, a
+   streak, a recovery and a comeback must all read differently, the face must
+   not be one glyph for everything, no line may repeat back to back, and the
+   explanation stays verbatim curriculum (rule 9).
 33. **The calendar decides what a day IS exactly once.**
    `src/engine/calendar/day-marks.ts` — `dayMark()` resolves the precedence
    (logged > predicted > ovulation > fertile > phase > unknown) and the THREE
@@ -213,9 +211,8 @@ biological ceiling)
 - Primitives in `src/components/ui/`: `AuroraBackground`, `AuroraTabBar`,
   `GlassCard`, `PressableScale` (the standard press for ANY tappable),
   `AuroraSwitch` (the ONLY on/off control — a visible channel with a knob that
-  travels, never a colour fill), `GradientButton`,
-  `CompanionLottie`, `CompanionExpressions` (ONE companion cycling its moods —
-  never a row of copies).
+  travels, never a colour fill), `GradientButton`, `MoodEmoji` (the ONLY
+  reaction art — one emoji, never a character).
 
 ## Conventions
 

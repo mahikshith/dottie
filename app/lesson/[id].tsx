@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { AuroraBackground, CompanionLottie } from '../../src/components/ui';
+import { AuroraBackground, MoodEmoji } from '../../src/components/ui';
 import { useAurora, PHASE_AURORA } from '../../src/theme';
 
 const AURORA_SUCCESS = '#6FE6A8';
@@ -296,9 +296,9 @@ export default function LessonDetailScreen() {
           </Text>
         </View>
 
-        {/* Companion intro — the animated spirit companion greets the lesson */}
+        {/* Lesson intro line. */}
         <View style={[styles.companionIntro, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}>
-          <CompanionLottie type={companionType} state="idle" size={44} style={styles.companionIntroArt} />
+          <MoodEmoji state="curious" size={40} style={styles.companionIntroArt} />
           <Text style={[styles.companionIntroText, { color: palette.ink2 }]}>
             {isComplete
               ? `${companion.name} is proud — you've already learned this! Reviewing is wisdom.`

@@ -53,7 +53,6 @@ import {
   getTeenSafeSpaces,
 } from '../../src/types/community.types';
 import { getCompanion } from '../../src/content/companions';
-import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
 import type { CompanionType } from '../../src/types/content.types';
 
 type FilterKey = SpaceId | 'all';
@@ -448,11 +447,7 @@ function EmptyState({
   const { palette } = useAurora();
   return (
     <View style={styles.emptyState}>
-      {/* The DRAWN companion, not an emoji of one (device-test-19). This
-          rendered `companion.emoji` — so someone whose companion is the dark
-          cat was greeted by a bright orange emoji cat. Rule 8: the rig is the
-          only companion art in the app. */}
-      <CompanionCreature type={companionType} state="caring" size={96} />
+      <Text style={styles.emptyMark}>🫶</Text>
       <Text style={[styles.emptyTitle, { color: palette.ink }]}>It's quiet here right now</Text>
       <Text style={[styles.emptyBody, { color: palette.ink2 }]}>
         {companionName} would love to see the first share in this space.{'\n'}
@@ -708,6 +703,7 @@ const styles = StyleSheet.create({
   emptyEmoji: {
     fontSize: 64,
   },
+  emptyMark: { fontSize: 52, lineHeight: 60, textAlign: 'center' },
   emptyTitle: {
     ...Typography.preset.h4,
     textAlign: 'center',

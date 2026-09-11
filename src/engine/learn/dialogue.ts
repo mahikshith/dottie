@@ -66,9 +66,7 @@ import type {
   QuizQuestion,
   Exercise,
 } from '../../types/content.types';
-import type { CompanionAnim } from '../../content/companion-lottie';
-import type { CompanionType } from '../../types/companion.types';
-import { voiceFor } from './companion-voice';
+import type { MoodState } from '../../components/ui/MoodEmoji';
 
 // ─── THE SCRIPT ──────────────────────────────────────────────────────
 
@@ -84,7 +82,7 @@ export interface CompanionSay {
   kind: 'say';
   id: string;
   text: string;
-  expression: CompanionAnim;
+  expression: MoodState;
   /** True when the text came from the curriculum rather than from this engine. */
   fromContent: boolean;
 }
@@ -127,7 +125,7 @@ export interface FinishStep {
   kind: 'finish';
   id: string;
   text: string;
-  expression: CompanionAnim;
+  expression: MoodState;
 }
 
 export interface LessonScript {
@@ -328,16 +326,6 @@ export interface ReactionInput {
    * that treats it like any other correct answer isn't paying attention.
    */
   afterMiss?: boolean;
-  /**
-   * WHOSE voice this is (device-test-22).
-   *
-   * Until now there wasn't one. Every companion said the same eight words in
-   * the same order, which is what made choosing between six of them
-   * decorative. The pools now come from `companion-voice.ts`, and so does the
-   * face and the streak threshold. Omit it and you get the shared pools —
-   * which is what the old call sites did, so nothing breaks.
-   */
-  companion?: CompanionType;
 }
 
 /**
@@ -361,7 +349,7 @@ export interface Reaction {
   /** The vetted explanation, verbatim. Always present — right OR wrong. */
   explanation: string;
   explanationEmoji?: string;
-  expression: CompanionAnim;
+  expression: MoodState;
   /** True when the user should get another go at this question. */
   offerRetry: boolean;
   /** An optional extra line — a streak note, or a "let's move on". */
@@ -392,10 +380,9 @@ export function reactTo(input: ReactionInput): Reaction {
     explanation: input.explanation,
     explanationEmoji: input.explanationEmoji,
   };
-  // The companion's own pools when we know who is speaking; the shared ones
-  // otherwise. `explanation` is untouched either way — the FACTS never vary by
-  // companion, only the tone around them (CLAUDE.md rule 9).
-  const v = input.companion ? voiceFor(input.companion) : null;
+  // ONE voice. Dottie's. The six companions each had their own tonal pools
+  // until DT30; the art went, and with it the reason to keep six variants of
+  // "nice one" (`explanation` never varied by speaker anyway — rule 9).
 
   if (input.correct) {
     // Got there on the SECOND go. This is the beat the old version could never
@@ -406,8 +393,8 @@ export function reactTo(input: ReactionInput): Reaction {
       return {
         ...base,
         kind: 'recovered',
-        opener: pick(v?.recovered ?? RECOVERED, seed, input.index),
-        expression: v?.faces.recovered ?? 'proud',
+        opener: pick(RECOVERED, seed, input.index),
+        expression: 'proud',
         offerRetry: false,
         aside: 'Second look got it. That counts double with me.',
       };
@@ -420,26 +407,26 @@ export function reactTo(input: ReactionInput): Reaction {
       return {
         ...base,
         kind: 'comeback',
-        opener: pick(v?.comebacks ?? COMEBACKS, seed, input.index),
-        expression: v?.faces.comeback ?? 'proud',
+        opener: pick(COMEBACKS, seed, input.index),
+        expression: 'proud',
         offerRetry: false,
         aside: null,
       };
     }
 
-    // How many in a row it takes to reach the excited register is itself a
-    // trait: Pip notices at two, Sage needs four — and from Sage that means
-    // more.
-    const streaked = input.streak >= (v?.streakAt ?? 2);
+    // Two in a row is enough to switch registers on a REACTION; the lead-in
+    // line waits for three (STREAK_AT), so the tone builds rather than
+    // arriving all at once.
+    const streaked = input.streak >= 2;
     return {
       ...base,
       kind: streaked ? 'streak' : 'hit',
       opener: pick(
-        streaked ? (v?.streakHits ?? STREAK_HITS) : (v?.hits ?? HITS),
+        streaked ? STREAK_HITS : HITS,
         seed,
         input.index
       ),
-      expression: streaked ? (v?.faces.streak ?? 'celebrate') : (v?.faces.hit ?? 'proud'),
+      expression: streaked ? 'celebrate' : 'proud',
       offerRetry: false,
       aside: streaked ? `${input.streak + 1} in a row.` : null,
     };
@@ -450,10 +437,10 @@ export function reactTo(input: ReactionInput): Reaction {
     return {
       ...base,
       kind: 'miss',
-      opener: pick(v?.misses ?? MISSES, seed, input.index),
-      expression: v?.faces.miss ?? 'encourage',
+      opener: pick(MISSES, seed, input.index),
+      expression: 'encourage',
       offerRetry: true,
-      aside: pick(v?.retryAsides ?? RETRY_ASIDES, seed, input.index),
+      aside: pick(RETRY_ASIDES, seed, input.index),
     };
   }
 
@@ -461,10 +448,10 @@ export function reactTo(input: ReactionInput): Reaction {
   return {
     ...base,
     kind: 'told',
-    opener: pick(v?.secondMisses ?? SECOND_MISSES, seed, input.index),
-    expression: v?.faces.told ?? 'cozy',
+    opener: pick(SECOND_MISSES, seed, input.index),
+    expression: 'cozy',
     offerRetry: false,
-    aside: pick(v?.toldAsides ?? TOLD_ASIDES, seed, input.index),
+    aside: pick(TOLD_ASIDES, seed, input.index),
   };
 }
 
@@ -481,8 +468,6 @@ export interface LeadInput {
   afterMiss: boolean;
   /** Consecutive correct answers so far. */
   streak: number;
-  /** Whose voice asks. Omit for the shared pools (device-test-22). */
-  companion?: CompanionType;
 }
 
 /**
@@ -501,16 +486,15 @@ export interface LeadInput {
  */
 export function leadFor(input: LeadInput): string {
   const seed = hash(input.seed) + input.index;
-  const v = input.companion ? voiceFor(input.companion) : null;
-  if (input.index === 0) return pick(v?.firstLeads ?? FIRST_LEADS, seed, input.index);
+  if (input.index === 0) return pick(FIRST_LEADS, seed, input.index);
   if (input.total > 1 && input.index === input.total - 1) {
-    return pick(v?.finalLeads ?? FINAL_LEADS, seed, input.index);
+    return pick(FINAL_LEADS, seed, input.index);
   }
-  if (input.afterMiss) return pick(v?.softLeads ?? SOFT_LEADS, seed, input.index);
-  if (input.streak >= (v?.streakAt ?? 3)) {
-    return pick(v?.streakLeads ?? STREAK_LEADS, seed, input.index);
+  if (input.afterMiss) return pick(SOFT_LEADS, seed, input.index);
+  if (input.streak >= STREAK_AT) {
+    return pick(STREAK_LEADS, seed, input.index);
   }
-  return pick(v?.leads ?? QUESTION_LEADS, seed, input.index);
+  return pick(QUESTION_LEADS, seed, input.index);
 }
 
 // ─── THE COMPANION'S OWN WORDS ───────────────────────────────────────
@@ -566,6 +550,10 @@ const SOFT_LEADS: string[] = [
 ];
 
 /** They're on a run — play with them a bit. */
+/** A run worth naming. Three in a row: often enough to mean it, rare enough
+ *  that the line does not wear out. */
+export const STREAK_AT = 3;
+
 const STREAK_LEADS: string[] = [
   "Alright, let's see if I can catch you out:",
   "You're making this look easy. Try:",

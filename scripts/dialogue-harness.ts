@@ -392,77 +392,55 @@ scenario('D8b · consecutive questions do not open with the same line', () => {
 
 // ─── D9 — SIX COMPANIONS, SIX VOICES (device-test-22) ────────────────
 //
-//  Owner: "IF EVERY COMPANION REMAINS THE SAME THEN WHAT IS THE USE OF HAVING
-//  THESE MANY COMPANIONS?" Before DT22 the answer was: none. leadFor and
-//  reactTo took no companion at all, so Nyx the blunt cat and Pip the sunshine
-//  bunny said the same eight words in the same order.
+//  Owner (DT30): "let's ditch the entire companion thing ... no more
+//  companions." The six drawn characters are gone, and with them the six tonal
+//  pools that made choosing between them mean anything.
 //
-//  This asserts the two halves of rule 9 at once: the TONE must differ per
-//  companion, and the FACTS must not.
+//  What survives is the half that was always load-bearing: ONE voice that
+//  varies with the moment, never repeats itself back to back, never says
+//  "wrong", and never invents a fact. D9 asserts exactly that.
 
-scenario('D9 · every companion has its own voice, and none of them invent facts', () => {
-  const types = ['fox', 'bunny', 'butterfly', 'cat', 'owl', 'blossom'] as const;
+scenario('D9 · one voice, and it never invents a fact', () => {
   const explanation = 'Day 1 is the first day of bleeding.';
 
-  const hits = new Map<string, string>();
-  const leads = new Map<string, string>();
-  const misses = new Map<string, string>();
+  const hit = reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0 });
+  const miss = reactTo({ explanation, seed: 'q1', index: 0, correct: false, attempt: 1, streak: 0 });
 
-  for (const companion of types) {
-    const hit = reactTo({
-      explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0, companion,
-    });
-    const miss = reactTo({
-      explanation, seed: 'q1', index: 0, correct: false, attempt: 1, streak: 0, companion,
-    });
-    const lead = leadFor({ index: 2, total: 5, seed: 'sess', afterMiss: false, streak: 0, companion });
+  ok('a hit carries the explanation verbatim', hit.explanation === explanation);
+  ok('a miss carries the explanation too', miss.explanation === explanation);
+  ok('never says wrong', !/\bwrong\b|\bincorrect\b/i.test(miss.opener), miss.opener);
+  ok('says something on a hit', hit.opener.trim().length > 0);
+  ok('offers the retry on a first miss', miss.offerRetry);
 
-    hits.set(companion, hit.opener);
-    misses.set(companion, miss.opener);
-    leads.set(companion, lead);
+  // The tone still MOVES with the moment — a flat pool would be the same
+  // failure the six voices were built to fix, just with one speaker.
+  const registers = new Set([
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0 }).opener,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 4 }).opener,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 2, streak: 0 }).opener,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0, afterMiss: true }).opener,
+  ]);
+  ok('a plain hit, a streak, a recovery and a comeback all read differently',
+    registers.size === 4, [...registers].join(' | '));
 
-    ok(`${companion}: the explanation is still verbatim`, hit.explanation === explanation);
-    ok(`${companion}: a miss carries the explanation too`, miss.explanation === explanation);
-    ok(`${companion}: never says wrong`, !/\bwrong\b|\bincorrect\b/i.test(miss.opener), miss.opener);
-    ok(`${companion}: says something on a hit`, hit.opener.trim().length > 0);
-    ok(`${companion}: offers the retry on a first miss`, miss.offerRetry);
-  }
-
-  // The point of the whole exercise: they must not all sound the same.
-  ok('all six hit lines are distinct', new Set(hits.values()).size === 6,
-    [...hits.values()].join(' | '));
-  ok('all six question leads are distinct', new Set(leads.values()).size === 6,
-    [...leads.values()].join(' | '));
-  ok('all six miss lines are distinct', new Set(misses.values()).size === 6,
-    [...misses.values()].join(' | '));
-
-  // And they must not all pull the same face.
-  const faces = new Set(
-    types.map((companion) =>
-      reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0, companion })
-        .expression
-    )
-  );
-  ok('the companions do not all wear one face on a correct answer', faces.size >= 3,
-    [...faces].join(', '));
-
-  // Omitting the companion must still work — the shared pools are the default,
-  // and several call sites (and the harness above) rely on that.
-  const anon = reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0 });
-  ok('no companion still produces a line', anon.opener.trim().length > 0);
+  const faces = new Set([
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 0 }).expression,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: true, attempt: 1, streak: 4 }).expression,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: false, attempt: 1, streak: 0 }).expression,
+    reactTo({ explanation, seed: 'q1', index: 0, correct: false, attempt: 2, streak: 0 }).expression,
+  ]);
+  ok('and the face is not one glyph for everything', faces.size >= 3, [...faces].join(', '));
 });
 
-scenario('D9b · a companion never repeats itself back to back', () => {
-  for (const companion of ['fox', 'bunny', 'butterfly', 'cat', 'owl', 'blossom'] as const) {
-    let repeats = 0;
-    let prev = '';
-    for (let i = 0; i < 20; i++) {
-      const line = leadFor({ index: i, total: 30, seed: 'sess', afterMiss: false, streak: 0, companion });
-      if (line === prev) repeats++;
-      prev = line;
-    }
-    ok(`${companion}: no back-to-back repeat across 20 questions`, repeats === 0, `${repeats}`);
+scenario('D9b · the voice never repeats itself back to back', () => {
+  let repeats = 0;
+  let prev = '';
+  for (let i = 0; i < 20; i++) {
+    const line = leadFor({ index: i, total: 30, seed: 'sess', afterMiss: false, streak: 0 });
+    if (line === prev) repeats++;
+    prev = line;
   }
+  ok('no back-to-back repeat across 20 questions', repeats === 0, `${repeats}`);
 });
 
 console.log(

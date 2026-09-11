@@ -44,14 +44,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { CompanionLottie } from '../ui';
-import type { CompanionAnim } from '../../content/companion-lottie';
-import type { CompanionType } from '../../types/content.types';
+import { MoodEmoji, type MoodState } from '../ui';
 
 // ─── SCORE BANDS ─────────────────────────────────────────────────────
 
 export interface ScoreReaction {
-  state: CompanionAnim;
+  state: MoodState;
   badge: string;
   headline: string;
   /** Accent role: a win glows success, a soft landing stays warm/neutral. */
@@ -69,7 +67,6 @@ export function reactionForScore(score: number): ScoreReaction {
 // ─── COMPONENT ───────────────────────────────────────────────────────
 
 export interface CompanionScoreReactionProps {
-  companionType: CompanionType;
   /** 0..1. */
   score: number;
   size?: number;
@@ -78,8 +75,7 @@ export interface CompanionScoreReactionProps {
 
 }
 
-export function CompanionScoreReaction({
-  companionType,
+export function ScoreReaction({
   score,
   size = 128,
   headlineColor,
@@ -122,23 +118,15 @@ export function CompanionScoreReaction({
     <View style={styles.wrap} accessibilityRole="image" accessibilityLabel={r.headline}>
       <View style={{ width: size, height: size }}>
         <Animated.View style={charStyle}>
-          {/* The companion IS the reaction (device-test-19).
-
-              A 🤯 Lottie used to sit on top of it for a perfect run, so the
-              emoji did the celebrating while the drawn character stood behind
-              it — which is exactly the thing the rig was built to stop. The
-              ladder is carried by the rig's own face and body now: `mindblown`
-              at 100% blows its eyes wide, opens its jaw, throws both arms up
-              and fans sparkles over its head; `celebrate` at 80% is visibly
-              smaller; `encourage` and `cozy` below that. No badge. */}
-          <CompanionLottie type={companionType} state={r.state} size={size} loop={!excited} />
+          {/* ONE mark, and it is the reaction (device-test-19, kept at DT30).
+              The drawn companion that used to stand here is gone; the ladder is
+              carried by the glyph and the pop: 🤯 at 100%, 🎉 at 80%, then
+              warmer and quieter below that. Never a second face beside it. */}
+          <MoodEmoji state={r.state} size={size} accessibilityLabel={r.headline} />
         </Animated.View>
-        {/* The emoji badge that used to ride here (🤯/🎉/💪/🫂) is gone. It
-            existed to carry an emotion the old emoji companion could not show;
-            the rig now has real brows, eye openness and mouth curve, so the
-            badge was a SECOND face competing with the first — part of the
-            "different companion showed up" confusion in device-test-8. The
-            `badge` value stays on ScoreReaction for screen-reader copy. */}
+        {/* No badge rides on top: a second glyph beside the first was part of
+            the "a different companion showed up" confusion in device-test-8.
+            `badge` stays on ScoreReaction for screen-reader copy. */}
       </View>
       <Text style={[styles.headline, { color: headlineColor }]}>{r.headline}</Text>
     </View>

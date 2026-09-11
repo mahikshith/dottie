@@ -55,7 +55,7 @@ import {
   PopOnChange,
   AuroraBackground,
   GlassCard,
-  CompanionLottie,
+  MoodEmoji,
 } from '../../src/components/ui';
 import { useAurora } from '../../src/theme';
 import {
@@ -120,10 +120,10 @@ function PulseRing({ color }: { color: string }): JSX.Element {
 }
 
 /**
- * The selected spirit companion perched on the current node, hopping in place
- * (Duolingo-style "you're here" energy). Reduce-Motion → sits still.
+ * The "you are here" marker perched on the current node, hopping in place
+ * (Duolingo-style energy). Reduce-Motion → sits still.
  */
-function HoppingCompanion({ type }: { type: CompanionType }): JSX.Element {
+function HereMarker(): JSX.Element {
   const reduce = useReducedMotion();
   const y = useSharedValue(0);
   useEffect(() => {
@@ -141,7 +141,7 @@ function HoppingCompanion({ type }: { type: CompanionType }): JSX.Element {
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
   return (
     <Animated.View style={style}>
-      <CompanionLottie type={type} state="idle" size={48} />
+      <MoodEmoji state="excited" size={40} accessibilityLabel="You are here" />
     </Animated.View>
   );
 }
@@ -788,7 +788,7 @@ const PathTrail = memo(function PathTrail({
             </Svg>
 
             {/* ─── THE CAST CAME OFF THE TRAIL (device-test-28) ────
-                DT27 scattered `CompanionCreature` rigs down the side gutters.
+                DT27 scattered drawn companion rigs down the side gutters.
                 It looked right in a screenshot and was wrong on a phone: the
                 owner's next build scrolled like treacle.
 
@@ -827,7 +827,7 @@ const PathTrail = memo(function PathTrail({
                   )}
                   {isCurrent && (
                     <View style={[styles.companionPerch, { left: p.x - 24, top: p.y - NODE / 2 - 46 }]} pointerEvents="none">
-                      <HoppingCompanion type={companionType} />
+                      <HereMarker />
                     </View>
                   )}
                   {/* ─── THE GLOW IS A VIEW, NOT A SHADOW (device-test-19) ──

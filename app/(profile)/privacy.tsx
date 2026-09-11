@@ -121,16 +121,11 @@ export default function PrivacyScreen() {
           happen — there's simply nothing on a server to leak. 💛
         </Text>
 
-        {/* CC BY 4.0 requires attribution. A licence obligation that only lives
-            in the repo isn't discharged to the people actually using the app,
-            so it's stated here too. */}
-        <Text style={[styles.sectionLabel, { color: palette.ink3 }]}>CREDITS</Text>
-        <Text style={[styles.footnote, { color: palette.ink3 }]}>
-          Your companion&apos;s animations are from Google&apos;s Noto Animated Emoji, used
-          under the Creative Commons Attribution 4.0 licence (CC BY 4.0). They&apos;re
-          bundled in the app and play entirely on your device — nothing is fetched
-          while you use Dottie.
-        </Text>
+        {/* The CC BY 4.0 credit for Google's Noto Animated Emoji stood here
+            while the companions shipped those Lottie files. The companions and
+            the files are gone (DT31), so the obligation is discharged by
+            removing the claim rather than leaving a credit for art that is no
+            longer in the app. */}
 
         <View style={{ height: Spacing['4xl'] }} />
       </ScrollView>

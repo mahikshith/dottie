@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { AuroraBackground, GlassCard, PressableScale, CompanionLottie } from '../../src/components/ui';
+import { AuroraBackground, GlassCard, PressableScale, MoodEmoji, stateForScore } from '../../src/components/ui';
 import { useAurora } from '../../src/theme';
 import { ExercisePlayer, type ExerciseSummary } from '../../src/components/learn/ExercisePlayer';
 import {
@@ -201,20 +201,13 @@ function ResultCard({
 
   return (
     <View style={styles.resultWrap}>
-      {/* The companion's face is driven by the SCORE. It used to be
+      {/* The mark is driven by the SCORE. It used to be
           `perfect ? 'celebrate' : 'proud'`, so 1-of-3 got a full grin —
           "even if the user got all the wrong answers ... still a smiley face"
-          (device-test-8). `stateForScore` bottoms out at 'caring': supportive,
-          visibly not pleased, never disappointed in the user. */}
-      <CompanionLottie
-        type={companionType}
-        state={perfect ? 'celebrate' : score >= 0.5 ? 'proud' : 'cozy'}
-        size={120}
-        loop={false}
-      />
-      {/* The score sits in its own block below the character. It used to ride
-          on the container's small gap and collided with the companion's feet
-          when the rig bobbed. */}
+          (device-test-8). The bottom of the ladder is supportive, visibly not
+          pleased, and never disappointed in the user. */}
+      <MoodEmoji state={stateForScore(score * 100)} size={96} />
+      {/* The score sits in its own block below the mark. */}
       <View style={styles.resultScore}>
         <Text style={[styles.resultBig, { color: palette.accent }]}>
           {summary.correct}/{summary.total}

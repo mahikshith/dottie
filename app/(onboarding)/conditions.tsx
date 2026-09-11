@@ -95,7 +95,7 @@ export default function ConditionsScreen() {
     Storage.onboardingDraft.merge({
       healthConditions: engine.length > 0 ? engine : [],
     });
-    router.push('/(onboarding)/companion-select');
+    router.push('/(onboarding)/cycle-setup');
   };
 
   const handleContinue = () => {
@@ -108,7 +108,7 @@ export default function ConditionsScreen() {
     // Clear any prior draft conditions on skip so a back-and-forth doesn't
     // leave stale data behind.
     Storage.onboardingDraft.merge({ healthConditions: [] });
-    router.push('/(onboarding)/companion-select');
+    router.push('/(onboarding)/cycle-setup');
   };
 
   return (

@@ -1,30 +1,27 @@
 /**
- * Dottie — Spirit Companion Definitions
+ * Dottie — the voice
  *
- * Six unique companions, each with a distinct personality that shapes
- * how Dottie speaks to the user. The companion is chosen once during
- * onboarding (changeable later) and becomes the user's daily guide.
+ * ─── WHAT THIS FILE USED TO BE (and why it is not, DT30) ────────────
  *
- * DESIGN PHILOSOPHY:
- * Each companion is a "voice layer" on top of shared content.
- * The WHAT (insights, questions, tips) is the same for every user
- * in the same cohort state. The HOW (tone, vocabulary, emoji) is the
- * companion. This is a cheap, local string-template swap — never a
- * server call.
+ *  Six "spirit companions" — Luna the fox, Pip the bunny, Mira, Nyx, Sage and
+ *  Dottie — each with its own name, emoji, accent colour and per-phase
+ *  greetings, chosen once in onboarding and shown on every screen.
  *
- * THE SIX COMPANIONS:
- *   🦊 Fox / "Luna"      — Wise, gentle, encouraging
- *   🐰 Bunny / "Pip"     — Playful, energetic, celebratory
- *   🦋 Butterfly / "Mira" — Calm, poetic, reflective
- *   🐱 Cat / "Nyx"       — Sassy, direct, humorous
- *   🦉 Owl / "Sage"      — Intellectual, factual, teaching-focused
- *   🌸 Blossom / "Dottie" — Warm, caring, big-sister vibe (the OG)
+ *  The owner removed them:
  *
- * USAGE:
- *   import { COMPANIONS, getCompanion } from '@/content/companions';
- *   const luna = getCompanion('fox');
- *   const greeting = luna.greetings.follicular;
+ *      "Let's ditch the entire companion thing ... no more companions.
+ *       Remove the screen."
+ *
+ *  Four device rounds went into that character art and it never landed. So the
+ *  app has ONE voice now — Dottie's, the original — and no character to pick.
+ *  `getCompanion()` ignores its argument and returns her; the saved
+ *  `companionType` on old installs is inert rather than migrated, which keeps
+ *  a stored value from ever putting a fox back on screen.
+ *
+ *  The type union stays because the database column and a few sample rows are
+ *  typed by it. It selects nothing any more.
  */
+
 
 import {
   CompanionType,
@@ -35,155 +32,8 @@ import { Colors } from '../constants/colors';
 
 // ─── COMPANION DEFINITIONS ────────────────────────────────────────────
 
-/**
- * The six core companions, keyed by type.
- * Each has a name, personality archetype, default greetings per phase,
- * and a dialogue style description used by the dialogue engine.
- */
-export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
-  // ─── 🦊 LUNA THE FOX ───────────────────────────────────────────────
-  fox: {
-    type: 'fox',
-    name: 'Luna',
-    personality: 'wise',
-    emoji: '🦊',
-    tagline: 'Your gentle guide through every phase',
-    description:
-      'Luna is the thoughtful one — she notices the small things and ' +
-      'speaks softly. She’ll help you understand your body without ever ' +
-      'making it feel like a science lecture.',
-    accentColor: Colors.companion.fox,
-    dialogueStyle:
-      'Gentle, observant, encouraging. Uses warm metaphors. Asks ' +
-      'questions rather than declaring. Never preachy.',
-    greetings: {
-      menstrual:
-        'Hey, soft soul. Your body is doing brave work today — let’s be gentle together 🦊',
-      follicular:
-        'I see new energy rising in you. What feels possible today? 🦊',
-      ovulatory:
-        'You’re glowing — and I noticed. Today’s a beautiful day to shine 🦊',
-      luteal:
-        'Slow seasons hold wisdom too. I’m here, however the day unfolds 🦊',
-    },
-  },
-
-  // ─── 🐰 PIP THE BUNNY ──────────────────────────────────────────────
-  bunny: {
-    type: 'bunny',
-    name: 'Pip',
-    personality: 'playful',
-    emoji: '🐰',
-    tagline: 'Bouncy, bright, and always cheering you on',
-    description:
-      'Pip is pure sunshine — she celebrates EVERYTHING. Tracked your ' +
-      'mood? YAY! Logged a symptom? AMAZING! Started your period? She’s ' +
-      'bringing you a virtual cup of cocoa.',
-    accentColor: Colors.companion.bunny,
-    dialogueStyle:
-      'Energetic, celebratory, lots of exclamation marks. Uses words like ' +
-      '“YAY!”, “LET’S GO!”, “you’re AMAZING!”. Never sarcastic.',
-    greetings: {
-      menstrual:
-        'Hi hi hi!! Period days = couch + snacks + ALL the love. Got you 🐰💛',
-      follicular:
-        'Heyyy energy!! I can FEEL the spark in you today — let’s gooo!! 🐰✨',
-      ovulatory:
-        'OMG hi! You’re glowing like a disco ball and I am LIVING for it!! 🐰🌟',
-      luteal:
-        'Soft hugs incoming!! Whatever today is, we’re in it together 🐰🤗',
-    },
-  },
-
-  // ─── 🦌 MIRA THE DEER ──────────────────────────────────────────────
-  //
-  //  Mira was a butterfly until device-test-16. The owner's reaction to the
-  //  drawn companions was "all of them look like bugs, real bugs... people
-  //  hate insects" — and for the butterfly that is not a drawing problem that
-  //  can be fixed, it is what the animal IS. The `butterfly` KEY is kept so
-  //  nobody's saved companion breaks; everything a user sees is a deer.
-  butterfly: {
-    type: 'butterfly',
-    name: 'Mira',
-    personality: 'calm',
-    emoji: '🦌',
-    tagline: 'A quiet, poetic presence',
-    description:
-      'Mira speaks like a breeze through wildflowers. She notices ' +
-      'rhythms, transitions, and the beauty in small moments. Perfect ' +
-      'if you want your daily check-in to feel like meditation.',
-    accentColor: Colors.companion.butterfly,
-    dialogueStyle:
-      'Poetic, calm, contemplative. Uses nature imagery. Short, gentle ' +
-      'sentences. Speaks of seasons, tides, and quiet truths.',
-    greetings: {
-      menstrual:
-        'A new tide begins. Soften, rest, let the wave carry you 🦌',
-      follicular:
-        'Buds opening, light returning. What wants to bloom in you today? 🦌',
-      ovulatory:
-        'Still and watchful. You are radiant — let yourself be seen 🦌',
-      luteal:
-        'The day grows quieter. Listen inward. The answers are already there 🦌',
-    },
-  },
-
-  // ─── 🐱 NYX THE CAT ────────────────────────────────────────────────
-  cat: {
-    type: 'cat',
-    name: 'Nyx',
-    personality: 'sassy',
-    emoji: '🐱',
-    tagline: 'Real talk, zero fluff, all heart',
-    description:
-      'Nyx says the things your best friend says when no one’s listening. ' +
-      'Sassy, sharp, secretly soft. She’ll roast your bad sleep habits ' +
-      'and then bring you a heating pad.',
-    accentColor: Colors.companion.cat,
-    dialogueStyle:
-      'Witty, direct, slightly sarcastic but always warm underneath. ' +
-      'Uses casual modern slang. Mocks the “wellness industrial complex.”',
-    greetings: {
-      menstrual:
-        'Day 1 energy: same as me before my 3pm nap. Rest is the move 😼',
-      follicular:
-        'Oh, look who has energy today. Use it wisely — or chaotically. Your call 😼',
-      ovulatory:
-        'You’re main character today. Carry yourself accordingly 😼💅',
-      luteal:
-        'Feeling Some Type Of Way? Same. We’ll get through it together 😼',
-    },
-  },
-
-  // ─── 🦉 SAGE THE OWL ───────────────────────────────────────────────
-  owl: {
-    type: 'owl',
-    name: 'Sage',
-    personality: 'intellectual',
-    emoji: '🦉',
-    tagline: 'For the curious — facts and warmth in equal measure',
-    description:
-      'Sage is the friend who knows exactly why you feel the way you do — ' +
-      'and explains it without ever talking down. Perfect if you want to ' +
-      'understand the science behind your cycle.',
-    accentColor: Colors.companion.owl,
-    dialogueStyle:
-      'Curious, factual, warm. Drops “fun facts” often. Uses precise ' +
-      'language but never clinical. Always connects science to feeling.',
-    greetings: {
-      menstrual:
-        'Fun fact: prostaglandins peak on day 1 — which is why you feel what you feel. Be kind to yourself 🦉',
-      follicular:
-        'Estrogen is climbing — your memory and focus may feel sharper today. Beautiful day to learn something new 🦉',
-      ovulatory:
-        'LH surge time! Your verbal fluency and social ease tend to peak around now. Enjoy it 🦉',
-      luteal:
-        'Progesterone is doing its quiet work. If you feel slower, that’s biology — not weakness 🦉',
-    },
-  },
-
-  // ─── 🌸 DOTTIE THE BLOSSOM ─────────────────────────────────────────
-  blossom: {
+/** The one voice. Warm, caring, big-sister — the original Dottie. */
+export const DOTTIE: CompanionDefinition = {
     type: 'blossom',
     name: 'Dottie',
     personality: 'nurturing',
@@ -206,42 +56,31 @@ export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
         'You’re radiant today — and I hope you can feel it too 🌸',
       luteal:
         'Soft days call for soft love. I’m right here with you 🌸',
-    },
   },
+};
+
+/**
+ * Kept keyed by the old union so the database column and the community sample
+ * rows still type-check. Every key is the same voice — there is nothing to
+ * choose between.
+ */
+export const COMPANIONS: Record<CompanionType, CompanionDefinition> = {
+  fox: DOTTIE, bunny: DOTTIE, butterfly: DOTTIE, cat: DOTTIE, owl: DOTTIE, blossom: DOTTIE,
 };
 
 // ─── COMPANION LOOKUP HELPERS ─────────────────────────────────────────
 
 /**
- * Get a companion definition by type.
+ * The voice. The argument is ignored — it exists only so the call sites that
+ * still pass a stored `companionType` keep compiling (DT30).
  */
-export function getCompanion(type: CompanionType): CompanionDefinition {
-  return COMPANIONS[type] ?? COMPANIONS.blossom;
+export function getCompanion(_type?: CompanionType): CompanionDefinition {
+  return DOTTIE;
 }
 
-/**
- * Get all companions as an array (for selection screens).
- */
-export function getAllCompanions(): CompanionDefinition[] {
-  return Object.values(COMPANIONS);
-}
-
-/**
- * Get the default companion (Blossom/Dottie — the OG).
- */
+/** The default. Same as every other answer. */
 export function getDefaultCompanion(): CompanionDefinition {
-  return COMPANIONS.blossom;
-}
-
-/**
- * Find a companion by name (case-insensitive).
- * Returns null if no match.
- */
-export function findCompanionByName(name: string): CompanionDefinition | null {
-  const normalized = name.toLowerCase().trim();
-  return (
-    getAllCompanions().find(c => c.name.toLowerCase() === normalized) ?? null
-  );
+  return DOTTIE;
 }
 
 // ─── DEFAULT COMPANION OUTFITS ────────────────────────────────────────

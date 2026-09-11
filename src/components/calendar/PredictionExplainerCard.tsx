@@ -27,7 +27,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { PressableScale, PopOnChange, CompanionBuddy } from '../ui';
+import { PressableScale, PopOnChange } from '../ui';
 import { useAurora } from '../../theme';
 import {
   useCycleStore,
@@ -192,7 +192,6 @@ export function PredictionExplainerCard({
         style={[styles.card, { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge }]}
       >
         <View style={styles.header}>
-          <CompanionBuddy type={companionType} size={40} accessibilityLabel="Your companion" />
           <Text style={[styles.title, { color: palette.ink }]}>
             {subject ? `How ${subject.name}'s prediction will work` : 'How your prediction will work'}
           </Text>
@@ -258,13 +257,7 @@ export function PredictionExplainerCard({
         { backgroundColor: palette.glass.bg, borderColor: palette.glass.edge },
       ]}
     >
-      {/* Header — the companion GUIDES the explanation (taps to peek). */}
       <View style={styles.header}>
-        <CompanionBuddy
-          type={companionType}
-          size={40}
-          accessibilityLabel="Your companion explains your prediction"
-        />
         <Text style={[styles.title, { color: palette.ink }]}>
           {subject ? `How ${subject.name}'s prediction is made` : 'How this prediction is made'}
         </Text>

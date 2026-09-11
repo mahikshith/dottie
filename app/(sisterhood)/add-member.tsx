@@ -39,7 +39,6 @@ import { KindCard } from '../../src/components/sisterhood/KindCard';
 import { EmojiPicker } from '../../src/components/sisterhood/EmojiPicker';
 import { PrivacyLevelCard } from '../../src/components/sisterhood/PrivacyLevelCard';
 import { logSilentFailure } from '../../src/diagnostics/silent-failure';
-import { CompanionCreature } from '../../src/components/ui/creature/CompanionCreature';
 import type { CompanionType } from '../../src/types/content.types';
 import { CONDITION_OPTIONS } from '../../src/content/conditions';
 
@@ -856,9 +855,6 @@ function CelebrationStep({
   return (
     <View style={styles.celebration}>
       <View style={styles.celebrationEmojiRow}>
-        {/* The companion celebrates as itself — an emoji of it was a second,
-            different-looking character on the same screen (device-test-19). */}
-        <CompanionCreature type={companionType} state="celebrate" size={72} />
         <Text style={styles.celebrationHeart}>🩷</Text>
         <Text style={styles.celebrationEmoji}>{memberEmoji}</Text>
       </View>

@@ -13,8 +13,8 @@ import {
   ClayButton,
   GlowRing,
   BreathingView,
-  CompanionWave,
-  CompanionLottie,
+  MoodEmoji,
+  stateForMood,
   PopOnChange,
   PressableScale,
 } from '../../src/components/ui';
@@ -39,7 +39,6 @@ import {
   selectPredictsDeck,
 } from '../../src/stores';
 import { getCompanion } from '../../src/content/companions';
-import { animForMood } from '../../src/content/companion-lottie';
 import { getTimeGreeting, getTimeOfDay } from '../../src/engine/content';
 import { buildWeatherView } from '../../src/engine/phase-weather/aggregator';
 import { PhaseWeatherCard } from '../../src/components/home/PhaseWeatherCard';
@@ -318,15 +317,10 @@ export default function HomeScreen() {
             ring is its own column, both vertically centred. */}
         <Animated.View entering={rise(60)} style={styles.hero}>
           <View style={styles.heroLeft}>
-            {/* The DRAWN companion, reacting to how the user said they feel.
-                Always the creature the user chose — see CompanionLottie. */}
-            <CompanionWave>
-              <CompanionLottie
-                type={companionType}
-                state={animForMood(todayCheckIn?.moodScore ?? null)}
-                size={64}
-              />
-            </CompanionWave>
+            {/* One mark, reacting to how the user said they feel. The drawn
+                companion that stood here was removed at DT30 — see the header
+                of `MoodEmoji.tsx`. */}
+            <MoodEmoji state={stateForMood(todayCheckIn?.moodScore ?? null)} size={56} />
             <Text style={[styles.greetingText, { color: palette.ink }]}>{greeting}</Text>
           </View>
           {hasCycleData && (

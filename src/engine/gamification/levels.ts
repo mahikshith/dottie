@@ -79,8 +79,8 @@ export const LEVEL_UNLOCKS: LevelUnlock[] = [
     level: 10,
     unlockType: 'cosmetic',
     unlockId: 'outfit_starter_pack',
-    title: 'Companion Gift!',
-    description: 'A special outfit for your companion — you earned it! 🎁',
+    title: 'A little gift!',
+    description: 'A starter pack, unlocked — you earned it! 🎁',
     emoji: '🎁',
   },
   {
@@ -135,8 +135,8 @@ export const LEVEL_UNLOCKS: LevelUnlock[] = [
     level: 30,
     unlockType: 'cosmetic',
     unlockId: 'companion_legendary_skin',
-    title: 'Legendary Companion Skin!',
-    description: 'An exclusive shimmering skin for your spirit companion 🦋',
+    title: 'Legendary shimmer!',
+    description: 'An exclusive shimmering theme, yours at this level ✨',
     emoji: '🦋',
   },
   {

@@ -1,6 +1,6 @@
 # 🌱 Dottie — Session Handoff
 
-**Updated:** 2026-09-07 · DT24–DT29 shipped, DT30 is research-only · branch `gemini-v2`
+**Updated:** 2026-09-11 · DT30: the companions are gone · branch `gemini-v2`
 **Owner device:** Nothing Phone (Android). Not MIUI.
 
 > This file + `CLAUDE.md` is everything. Do NOT re-explore the codebase.
@@ -12,10 +12,27 @@
 
 **DT16 through DT29 are done and pushed.**
 
-### Look at this FIRST, and it needs no APK
-`docs/companion-preview.html` — every companion in every expression, from the
-same geometry the app draws (`npx tsx scripts/companion-preview.ts`). Review
-art there, never blind into a 25-minute build.
+### DT31 — THE COMPANIONS ARE GONE (verify on the next APK)
+Owner: *"let's ditch the entire companion thing ... they look childish ...
+remove them from the entire app itself. No more companions. Remove the screen.
+Just follow with simple emojis."* Done, everywhere:
+- The drawn rig (`creature/`, ~1,800 lines of geometry + the Reanimated rig),
+  `CompanionLottie`, `CompanionExpressions`, `CompanionBuddy`, `CompanionWave`,
+  the Lottie manifest and the per-character voice pools are **deleted**.
+- **Both picker screens are gone** — `(onboarding)/companion-select` (the
+  onboarding step now goes conditions → cycle-setup) and `(profile)/companion`,
+  along with the You-tab row that opened it.
+- Every render site is now `<MoodEmoji state= size= />` — Home hero, Learn's
+  "you are here" marker, the quiz lead-in / answer reaction / score result, the
+  exercise result and feedback, the lesson intro, the empty states.
+- The app speaks as **Dottie** everywhere: `getCompanion()` ignores its
+  argument and returns her, so a saved `companionType` from an old install
+  cannot put a fox back on screen. The DB column stays, inert.
+- `test:creature` (the anti-insect audit) is deleted with the art it guarded;
+  `test:dialogue` D9 now pins one voice that still changes register.
+- Worth a look on the device: Home hero, a quiz from start to result, the
+  Learn path marker, and the Profile header (its companion hero and name are
+  gone — the mode badge carries it now).
 
 ### Verify on the next APK — DT24
 1. **Mark ONE day.** Only that day goes solid. The estimated bleed around it
@@ -49,33 +66,23 @@ art there, never blind into a 25-minute build.
    over 200 random months.
 
 ### Verify on the next APK — DT26 / DT27
-7. **The companions were redrawn.** Each species has its own build now — a
-   leggy fawn, a squat barn owl (no more teddy ears), a slim cat. Bigger heads,
-   bigger eyes. And the motion has weight: they crouch before a jump, land
-   heavy, and their ears and tails lag a beat behind the body.
-   `docs/companion-preview.html` shows every one without a build.
+7. ~~The companions were redrawn.~~ Withdrawn at DT31 — the whole cast is gone.
 8. **Welcome screen.** The first screen now carries the three claims —
    on device, no account, works in airplane mode — above "Let's Get Started",
    and the 🩷 emoji that stood in for a companion is the drawn rig.
-9. **Learn path.** Nodes 62 → 88px and checkpoints every four lessons. The
-   companions I scattered down the gutters in DT27 are GONE — they made the
-   tab scroll like treacle (see below) and overlapped the labels.
+9. **Learn path.** Nodes 62 → 88px and checkpoints every four lessons.
 10. **Streak week.** The celebration now shows the seven-day strip with the
    live run in a capsule — built only from days the app actually holds.
 
 ### DT28 — the lag, and the fox nobody chose
-- **Learn scroll jank: fixed.** One `CompanionCreature` is ~10 <Svg> surfaces
-  (a layer per limb group) plus six Reanimated loops. Six per path, every path
+- **Learn scroll jank: fixed.** One `CompanionCreature` was ~10 <Svg> surfaces
+  (a layer per limb group) plus six Reanimated loops, six per path, every path
   mounted in one ScrollView — well over a hundred animated SVG surfaces during
-  a gesture. Removed. The trail keeps only the hopping companion on the current
-  node, which carries meaning rather than decoration. **If the cast ever comes
-  back it must be ONE static Svg per creature, no rig.** The node model and the
-  trail geometry are memoised now, and `PathTrail` is `memo`'d with a stable
+  a gesture. All of it is gone now (DT31). The node model and the trail
+  geometry are memoised, and `PathTrail` is `memo`'d with a stable
   `openLesson`, so a scroll no longer rebuilds ninety nodes.
-- **Welcome screen shows the app ICON, not a companion.** The companion is
-  chosen three screens later; leading with one told the user their pick was
-  already made. Five claims now, and the screen scrolls so the CTA can never
-  land under the nav bar.
+- **Welcome screen shows the app ICON.** Five claims, and the screen scrolls
+  so the CTA can never land under the nav bar.
 
 ### DT29 — the prediction round
 The owner's line was "the entire app logistics depends upon the prediction",
@@ -206,8 +213,6 @@ Each was added after the same bug came back for the third or fourth time:
 - `audit:silent` — rule 18. `__DEV__` is false in the owner's build, so
   `if (__DEV__) console.warn` in a catch is silence. The rule was written after
   DT15 and applied to a handful of sites; DT18 found **62** still in place.
-- And in `test:creature`, the C8 block: the six geometry signals that made the
-  companions read as insects. Every one of them failed on the old rig.
 
 **The white screen (DT15) was never root-caused.** It stopped after the root
 error boundary + lazy native loads landed. If it returns, the boundary now
@@ -227,16 +232,13 @@ first, don't guess. Everything ruled out is in commit `73e65e8`.
 - **Learn content** — 77 lessons / 74 quizzes / 427 questions. 51 came from
   `npx tsx scripts/import-curriculum.ts` → `src/content/curriculum.generated.ts`.
   **Never hand-edit the generated file.**
-- **Companions** — `src/components/ui/creature/`. The art is DATA in
-  `geometry.ts` (pure shapes, one source of truth); `CompanionCreature` maps it
-  to react-native-svg and `scripts/companion-preview.ts` maps the same data to
-  `docs/companion-preview.html`. 26 expressions in `expressions.ts`; limbs
-  swing from tagged joints. The C8 block in `test:creature` guards the
-  anti-insect rules — read that file's header before touching the drawing.
+- **Reactions** — `src/components/ui/MoodEmoji.tsx`. One emoji per state, plus
+  `stateForScore` / `stateForMood`. That file's header is the record of why the
+  companions were removed; read it before anyone proposes drawing them again.
 - **Export** — `src/export/` writes a real .xlsx with native charts, by hand.
 
 ## 4. Docs (open only when named)
 
 `PREDICTION-ENGINE.md` · `ML-FEASIBILITY.md` · `FEATURES-AND-RESEARCH.md` · `DAY-SUGGESTIONS.md` ·
 `ONBOARDING-AND-WALKTHROUGH.md` · `LEARN-REDESIGN-*.md` ·
-`BETA-TESTING-GUIDE.md` · `LOTTIE-SOURCING.md` · `SESSION-CONTEXT.md`
+`BETA-TESTING-GUIDE.md` · `SESSION-CONTEXT.md`

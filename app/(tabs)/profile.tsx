@@ -33,7 +33,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../src/constants/typography';
 import { Spacing } from '../../src/constants/spacing';
-import { PressableScale, PopOnChange, CompanionBuddy, AuroraBackground, GlassCard } from '../../src/components/ui';
+import { PressableScale, PopOnChange, AuroraBackground, GlassCard } from '../../src/components/ui';
 import { showAppDialog } from '../../src/components/ui/appDialog';
 import { Storage } from '../../src/database/storage';
 import { useAurora } from '../../src/theme';
@@ -153,11 +153,6 @@ export default function ProfileScreen() {
     router.push('/(profile)/diagnostics');
   };
 
-  const handleCompanionTap = () => {
-    Haptics.selectionAsync().catch(() => {});
-    router.push('/(profile)/companion');
-  };
-
   const handleAboutBuildTap = () => {
     Haptics.selectionAsync().catch(() => {});
     router.push('/(profile)/about-build');
@@ -185,17 +180,10 @@ export default function ProfileScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Companion & Identity */}
+        {/* Identity. The companion hero that stood here (a drawn creature
+            plus its name) went at DT30 — the section is the user's own
+            standing now, not a mascot's. */}
         <Animated.View entering={rise(60)} style={styles.profileHeader}>
-          {/* Interactive companion — greets on open, peeks periodically to
-              draw the eye toward the sections below, and bounces when tapped. */}
-          <CompanionBuddy
-            type={companionType}
-            size={68}
-            accessibilityLabel={`${companion.name}, your companion`}
-          />
-          <View style={{ height: Spacing.sm }} />
-          <Text style={[styles.companionName, { color: palette.ink }]}>{companion.name}</Text>
           <View style={[styles.modeBadge, { backgroundColor: companion.accentColor }]}>
             <Text style={styles.modeBadgeText}>{formatMode(userMode)}</Text>
           </View>
@@ -372,17 +360,6 @@ export default function ProfileScreen() {
                 useWalkthroughStore.getState().restart();
                 router.push('/(tabs)/home');
               }}
-            />
-          </Animated.View>
-          {/* Change the spirit companion. It was a one-shot choice in
-              onboarding, which is the wrong call for a character you see on
-              every screen every day (device-test-8). */}
-          <Animated.View entering={rise(705)}>
-            <SettingsItem
-              emoji="🐾"
-              title={`Your companion · ${companion.name}`}
-              subtitle="Switch to a different spirit animal any time"
-              onPress={handleCompanionTap}
             />
           </Animated.View>
           <Animated.View entering={rise(710)}>

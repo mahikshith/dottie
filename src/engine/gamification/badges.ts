@@ -291,16 +291,6 @@ export const BADGE_DEFINITIONS: BadgeDefinition[] = [
     gemReward: 10,
   },
   {
-    id: 'companion_chosen',
-    name: 'Spirit Connected',
-    emoji: '🦊',
-    description: 'You chose your spirit companion. A friendship begins!',
-    category: 'milestone',
-    requirement: 'Select spirit companion',
-    xpReward: 10,
-    gemReward: 5,
-  },
-  {
     id: 'sisterhood_created',
     name: 'Circle Starter',
     emoji: '👯‍♀️',
@@ -646,7 +636,6 @@ export interface BadgeCheckState {
   sisterhoodCreated: boolean;
   careNudgesSent: number;
   doctorReportsGenerated: number;
-  companionChosen: boolean;
   onboardingComplete: boolean;
   checkInHour: number;            // 0-23 (for time-based hidden badges)
   checkInDate: string;            // ISO date (for date-based hidden badges)
@@ -728,7 +717,6 @@ function evaluateBadgeCondition(badgeId: string, state: BadgeCheckState): boolea
 
     // Milestone badges
     case 'onboarding_complete': return state.onboardingComplete;
-    case 'companion_chosen': return state.companionChosen;
     case 'sisterhood_created': return state.sisterhoodCreated;
     case 'first_care_nudge': return state.careNudgesSent >= 1;
     case 'doctor_report': return state.doctorReportsGenerated >= 1;

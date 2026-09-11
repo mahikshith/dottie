@@ -332,7 +332,7 @@ export default function NewPostScreen() {
             <Text style={styles.anonymousHint}>
               {mode === 'anonymous'
                 ? 'Your name is hidden. People still see your streak, points, and badges so they know you\'re a real Dottie friend.'
-                : 'Your name and companion show on this post. Tap to go anonymous instead.'}
+                : 'Your name shows on this post. Tap to go anonymous instead.'}
             </Text>
           </View>
           <View

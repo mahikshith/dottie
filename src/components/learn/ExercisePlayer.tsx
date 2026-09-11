@@ -5,7 +5,7 @@
  * (`renderExercise` / `checkExerciseAnswer`). One player sequences a lesson's
  * exercises with the Duolingo loop: build an answer → Check → instant grade +
  * companion reaction + explanation → Next. Aurora-themed; the companion is a
- * `<CompanionLottie>` (emoji today, illustrated Lottie when art lands).
+ * `<MoodEmoji>` — one emoji, no character (DT31).
  *
  * ─── ENGINEERING NOTES (decisions made in-flight) ───────────────────
  *
@@ -30,7 +30,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
-import { PressableScale, CompanionLottie } from '../ui';
+import { PressableScale, MoodEmoji } from '../ui';
 import { useAurora } from '../../theme';
 import {
   renderExercise,
@@ -195,7 +195,7 @@ export function ExercisePlayer({
           ]}
         >
           <View style={styles.feedbackHead}>
-            <CompanionLottie type={companionType} state={companionState} size={44} loop={false} />
+            <MoodEmoji state={companionState} size={40} />
             <Text style={[styles.feedbackVerdict, { color: feedback.correct ? '#6FE6A8' : palette.ink }]}>
               {feedback.correct
                 ? 'Correct!'
