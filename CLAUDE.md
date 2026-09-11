@@ -204,6 +204,11 @@ biological ceiling)
 
 ## Design system (never hardcode ad-hoc values)
 
+**Full reference: `docs/DESIGN.md` · every screen: `docs/SCREENS.md` · the
+visual version: `docs/design-system.html`. Two repo skills carry the working
+rules: `.claude/skills/dottie-design` (building UI) and
+`.claude/skills/dottie-device-round` (turning an owner report into a fix).**
+
 - `src/theme/aurora-static.ts` → `A.*` (ground `#0C0A16`, ink/ink2/ink3,
   glass/glass2/edge, accent `#54E6C8`, accent2, gold, rose, success, error).
 - `useAurora()` → `{ palette }` (mood-driven). `PHASE_AURORA[phase]`.

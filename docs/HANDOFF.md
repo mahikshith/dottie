@@ -239,6 +239,7 @@ first, don't guess. Everything ruled out is in commit `73e65e8`.
 
 ## 4. Docs (open only when named)
 
-`PREDICTION-ENGINE.md` · `ML-FEASIBILITY.md` · `FEATURES-AND-RESEARCH.md` · `DAY-SUGGESTIONS.md` ·
+`DESIGN.md` · `SCREENS.md` (+ `design-system.html`) · `PREDICTION-ENGINE.md` ·
+`ML-FEASIBILITY.md` · `FEATURES-AND-RESEARCH.md` · `DAY-SUGGESTIONS.md` ·
 `ONBOARDING-AND-WALKTHROUGH.md` · `LEARN-REDESIGN-*.md` ·
 `BETA-TESTING-GUIDE.md` · `SESSION-CONTEXT.md`

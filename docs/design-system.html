@@ -1,0 +1,419 @@
+<title>Mood Aurora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#0C0A16; --ground2:#120E20; --raised:#171227;
+    --ink:#F3EEFF; --ink2:#B8AED6; --ink3:#8B82A8;
+    --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.09);
+    --edge:rgba(255,255,255,.13); --edgeBright:rgba(255,255,255,.28);
+    --mint:#54E6C8; --violet:#9B7BFF; --gold:#FFC24D; --rose:#FF6FA5;
+    --display:"Fraunces","Iowan Old Style",Georgia,serif;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding-inline:20px; padding-block:0;
+  }
+  .bloom{
+    position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background:
+      radial-gradient(58vw 42vw at 12% -6%, rgba(155,123,255,.30), transparent 62%),
+      radial-gradient(46vw 34vw at 88% 4%, rgba(84,230,200,.18), transparent 60%),
+      radial-gradient(40vw 30vw at 60% 40%, rgba(255,111,165,.10), transparent 65%);
+  }
+  .wrap{position:relative; z-index:1; max-width:var(--maxw); margin-inline:auto}
+
+  /* ── masthead ─────────────────────────────────────────── */
+  header{padding-block:64px 40px; border-bottom:1px solid var(--edge)}
+  .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--mint); margin:0 0 18px}
+  h1{
+    font-family:var(--display); font-weight:300; font-size:clamp(46px,9vw,86px);
+    line-height:.98; letter-spacing:-.02em; margin:0; text-wrap:balance;
+  }
+  h1 em{font-style:italic; font-weight:500; color:var(--violet)}
+  .thesis{
+    font-family:var(--display); font-size:clamp(19px,2.6vw,25px); font-weight:300;
+    line-height:1.42; color:var(--ink2); margin:26px 0 0; max-width:46ch; text-wrap:pretty;
+  }
+  .thesis b{color:var(--ink); font-weight:500}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 26px; margin-top:30px; font-family:var(--mono); font-size:12px; color:var(--ink3)}
+  .meta span{white-space:nowrap}
+
+  /* ── layout ───────────────────────────────────────────── */
+  .cols{display:grid; grid-template-columns:1fr; gap:0}
+  @media(min-width:900px){ .cols{grid-template-columns:184px 1fr; gap:56px} }
+  nav{display:none}
+  @media(min-width:900px){
+    nav{display:block; position:sticky; top:0; align-self:start; padding-block:56px; font-family:var(--mono); font-size:12px}
+    nav ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:11px}
+    nav a{color:var(--ink3); text-decoration:none; display:block; border-left:1px solid var(--edge); padding-left:12px}
+    nav a:hover,nav a:focus-visible{color:var(--mint); border-left-color:var(--mint)}
+  }
+  main{min-width:0}
+  section{padding-block:56px; border-bottom:1px solid var(--edge)}
+  section:last-child{border-bottom:0}
+  h2{
+    font-family:var(--display); font-weight:500; font-size:clamp(26px,3.6vw,34px);
+    letter-spacing:-.01em; line-height:1.15; margin:0 0 6px; text-wrap:balance;
+  }
+  .lede{color:var(--ink2); margin:0 0 28px; max-width:64ch}
+  .lede code,p code,li code,td code{font-family:var(--mono); font-size:.88em; color:var(--mint)}
+  h3{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink3); margin:36px 0 14px; font-weight:500}
+  p{margin:0 0 14px; max-width:66ch}
+  .note{border-left:2px solid var(--violet); padding-left:16px; color:var(--ink2); max-width:62ch; margin:22px 0 0}
+  .note b{color:var(--ink)}
+
+  /* ── swatches ─────────────────────────────────────────── */
+  .swatches{display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:12px}
+  .sw{border:1px solid var(--edge); border-radius:16px; overflow:hidden; background:var(--glass)}
+  .sw .chip{height:64px; display:block}
+  .sw .lbl{padding:10px 12px 12px}
+  .sw .nm{font-size:13px; font-weight:600; letter-spacing:-.01em}
+  .sw .hex{font-family:var(--mono); font-size:11px; color:var(--ink3); margin-top:2px}
+  .sw .use{font-size:12px; color:var(--ink2); margin-top:6px; line-height:1.45}
+
+  /* ── mood palettes ────────────────────────────────────── */
+  .moods{display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:14px}
+  .mood{border:1px solid var(--edge); border-radius:20px; padding:18px; position:relative; overflow:hidden}
+  .mood .band{height:5px; border-radius:99px; margin-bottom:16px}
+  .mood .emo{font-size:22px; line-height:1}
+  .mood h4{font-family:var(--display); font-weight:500; font-size:22px; margin:10px 0 2px; letter-spacing:-.01em}
+  .mood .feel{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink3)}
+  .dots{display:flex; gap:7px; margin-top:16px}
+  .dots i{width:22px; height:22px; border-radius:99px; display:block; border:1px solid rgba(255,255,255,.18)}
+  .mood .hexes{font-family:var(--mono); font-size:10.5px; color:var(--ink3); margin-top:12px; line-height:1.7}
+
+  /* ── calendar demo ────────────────────────────────────── */
+  .cal{display:flex; flex-wrap:wrap; gap:10px; margin-top:6px}
+  .cell{width:74px}
+  .cell .box{
+    height:74px; border-radius:18px; display:grid; place-items:center;
+    font-family:var(--mono); font-size:15px; font-weight:500; position:relative;
+  }
+  .cell .cap{font-size:11.5px; color:var(--ink2); margin-top:8px; line-height:1.35}
+  .cell .cap b{display:block; color:var(--ink); font-weight:600; font-size:12px}
+  .ring{position:absolute; inset:5px; border-radius:14px; border:2.5px solid #E0D022}
+  .ring.dash{border:2px dashed #FF3D71; opacity:.85}
+  .pip{position:absolute; right:9px; top:9px; width:9px; height:9px; border-radius:99px; background:#E0D022}
+
+  /* ── type ramp ────────────────────────────────────────── */
+  .ramp{display:flex; flex-direction:column; gap:2px}
+  .row{display:grid; grid-template-columns:96px 1fr; gap:18px; align-items:baseline; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.06)}
+  .row .tk{font-family:var(--mono); font-size:11px; color:var(--ink3); padding-top:6px}
+  .row .spec{font-family:var(--mono); font-size:10.5px; color:var(--ink3)}
+  .sample{font-family:var(--sans)}
+
+  /* ── scales ───────────────────────────────────────────── */
+  .bars{display:flex; flex-direction:column; gap:7px; font-family:var(--mono); font-size:11px; color:var(--ink3)}
+  .bar{display:flex; align-items:center; gap:12px}
+  .bar i{height:11px; background:linear-gradient(90deg,var(--mint),var(--violet)); border-radius:3px; display:block}
+  .radii{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end}
+  .radii div{width:76px; height:58px; background:var(--glass); border:1px solid var(--edge); display:grid; place-items:end center; padding-bottom:7px; font-family:var(--mono); font-size:10.5px; color:var(--ink3)}
+
+  /* ── tables ───────────────────────────────────────────── */
+  .tblwrap{overflow-x:auto; margin-top:8px}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:14px}
+  th,td{text-align:left; padding:12px 14px 12px 0; border-bottom:1px solid rgba(255,255,255,.07); vertical-align:top}
+  th{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); font-weight:500}
+  td:first-child{color:var(--mint); font-family:var(--mono); font-size:12.5px; white-space:nowrap; padding-right:20px}
+  td.no{color:var(--ink3); text-decoration:line-through; text-decoration-color:rgba(255,122,138,.7)}
+  td:last-child{color:var(--ink2)}
+
+  /* ── screen map ───────────────────────────────────────── */
+  .stacks{display:grid; grid-template-columns:repeat(auto-fit,minmax(268px,1fr)); gap:14px}
+  .stack{border:1px solid var(--edge); border-radius:20px; padding:18px 18px 8px; background:var(--glass)}
+  .stack header{padding:0; border:0; display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px}
+  .stack h4{font-family:var(--display); font-size:20px; font-weight:500; margin:0; letter-spacing:-.01em}
+  .stack .n{font-family:var(--mono); font-size:11px; color:var(--ink3)}
+  .stack ul{list-style:none; margin:0; padding:0}
+  .stack li{display:grid; grid-template-columns:1fr auto; gap:10px; padding:9px 0; border-top:1px solid rgba(255,255,255,.06); font-size:13.5px}
+  .stack li span{color:var(--ink2)}
+  .stack li em{font-style:normal; font-family:var(--mono); font-size:10.5px; color:var(--ink3)}
+  .stack li b{font-weight:600; color:var(--ink)}
+
+  footer{padding-block:44px 72px; color:var(--ink3); font-family:var(--mono); font-size:11.5px; line-height:1.9}
+  footer b{color:var(--ink2); font-weight:500}
+  a{color:var(--mint)}
+  :focus-visible{outline:2px solid var(--mint); outline-offset:3px; border-radius:6px}
+  @media (prefers-reduced-motion:no-preference){ .stack,.mood,.sw{transition:border-color .25s ease} }
+  .stack:hover,.mood:hover{border-color:var(--edgeBright)}
+</style>
+
+<div class="bloom" aria-hidden="true"></div>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Dottie · design system · branch gemini-v2</p>
+  <h1>Mood <em>Aurora</em></h1>
+  <p class="thesis"><b>Mood owns the atmosphere. Phase owns the data.</b> Log how you feel and the whole app recolours. The cycle never does — a phase that changes colour with a mood is a chart that lies.</p>
+  <div class="meta">
+    <span>41 screens</span><span>5 mood palettes</span><span>4 phase colours</span><span>34 test suites</span><span>updated 11 Sep 2026</span>
+  </div>
+</header>
+
+<div class="cols">
+  <nav aria-label="Sections">
+    <ol>
+      <li><a href="#ground">Ground &amp; surfaces</a></li>
+      <li><a href="#moods">The five moods</a></li>
+      <li><a href="#phase">Phase &amp; calendar</a></li>
+      <li><a href="#type">Typography</a></li>
+      <li><a href="#space">Space &amp; radius</a></li>
+      <li><a href="#parts">The primitives</a></li>
+      <li><a href="#laws">Laws</a></li>
+      <li><a href="#screens">Every screen</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+  <section id="ground">
+    <h2>Ground &amp; surfaces</h2>
+    <p class="lede">A near-black violet ground so nothing glares at 2am, with light glass on top. Every navigator surface is forced to the ground colour, so the app can never flash white between screens. From <code>src/theme/aurora-static.ts</code>.</p>
+    <div class="swatches">
+      <div class="sw"><span class="chip" style="background:#0C0A16"></span><div class="lbl"><div class="nm">ground</div><div class="hex">#0C0A16</div><div class="use">Everything falls back to this.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#120E20"></span><div class="lbl"><div class="nm">ground2</div><div class="hex">#120E20</div><div class="use">Sheets, raised sections.</div></div></div>
+      <div class="sw"><span class="chip" style="background:rgba(255,255,255,.06)"></span><div class="lbl"><div class="nm">glass</div><div class="hex">rgba(255,255,255,.06)</div><div class="use">The standard card fill.</div></div></div>
+      <div class="sw"><span class="chip" style="background:rgba(255,255,255,.14)"></span><div class="lbl"><div class="nm">edge</div><div class="hex">rgba(255,255,255,.14)</div><div class="use">The 1px hairline that makes glass a surface.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#F3EEFF"></span><div class="lbl"><div class="nm">ink</div><div class="hex">#F3EEFF</div><div class="use">Primary text.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#B8AED6"></span><div class="lbl"><div class="nm">ink2</div><div class="hex">#B8AED6</div><div class="use">Secondary.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#8B82A8"></span><div class="lbl"><div class="nm">ink3</div><div class="hex">#8B82A8</div><div class="use">Supporting only — never load-bearing.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#54E6C8"></span><div class="lbl"><div class="nm">accent</div><div class="hex">#54E6C8</div><div class="use">The action colour.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#9B7BFF"></span><div class="lbl"><div class="nm">accent2</div><div class="hex">#9B7BFF</div><div class="use">The second voice.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#6FE6A8"></span><div class="lbl"><div class="nm">success</div><div class="hex">#6FE6A8</div><div class="use">Tinted toward the aurora.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#FF7A8A"></span><div class="lbl"><div class="nm">error</div><div class="hex">#FF7A8A</div><div class="use">Never a raw red — a warning is not an alarm.</div></div></div>
+      <div class="sw"><span class="chip" style="background:#B48264"></span><div class="lbl"><div class="nm">shadow</div><div class="hex">#B48264</div><div class="use">Shadows are WARM. Neutral reads as dirt here.</div></div></div>
+    </div>
+  </section>
+
+  <section id="moods">
+    <h2>The five moods</h2>
+    <p class="lede">One palette per check-in answer, <code>nocturne</code> before anything is logged. Each carries its own ground, four bloom colours, accents, ink and glass — so a recolour is total, not an accent swap.</p>
+    <div class="moods">
+      <article class="mood" style="background:linear-gradient(180deg,rgba(155,123,255,.10),transparent 60%),#0C0A16">
+        <div class="band" style="background:linear-gradient(90deg,#9B7BFF,#54E6C8,#FF6FA5,#FFB27A)"></div>
+        <div class="emo">😐</div><h4>Nocturne</h4><div class="feel">okay · steady · default</div>
+        <div class="dots"><i style="background:#0C0A16"></i><i style="background:#54E6C8"></i><i style="background:#9B7BFF"></i><i style="background:#F3EEFF"></i></div>
+        <div class="hexes">#0C0A16 · #54E6C8 · #9B7BFF</div>
+      </article>
+      <article class="mood" style="background:linear-gradient(180deg,rgba(255,194,77,.12),transparent 60%),#170F08">
+        <div class="band" style="background:linear-gradient(90deg,#FFC24D,#FF9A5B,#FF6FA5,#FFE08A)"></div>
+        <div class="emo">😊</div><h4>Radiance</h4><div class="feel">great · radiant</div>
+        <div class="dots"><i style="background:#170F08"></i><i style="background:#FFC24D"></i><i style="background:#FF8A5B"></i><i style="background:#FFF6E9"></i></div>
+        <div class="hexes">#170F08 · #FFC24D · #FF8A5B</div>
+      </article>
+      <article class="mood" style="background:linear-gradient(180deg,rgba(111,230,168,.12),transparent 60%),#07160F">
+        <div class="band" style="background:linear-gradient(90deg,#6FE6A8,#54E6C8,#8CE06B,#B9F0C4)"></div>
+        <div class="emo">🙂</div><h4>Meadow</h4><div class="feel">good · fresh</div>
+        <div class="dots"><i style="background:#07160F"></i><i style="background:#54E6C8"></i><i style="background:#6FE6A8"></i><i style="background:#EAFFF4"></i></div>
+        <div class="hexes">#07160F · #54E6C8 · #6FE6A8</div>
+      </article>
+      <article class="mood" style="background:linear-gradient(180deg,rgba(159,176,255,.13),transparent 60%),#0B0D1C">
+        <div class="band" style="background:linear-gradient(90deg,#8FA3FF,#B79BFF,#7FD0FF,#C9B8FF)"></div>
+        <div class="emo">😔</div><h4>Twilight</h4><div class="feel">low · held</div>
+        <div class="dots"><i style="background:#0B0D1C"></i><i style="background:#9FB0FF"></i><i style="background:#B79BFF"></i><i style="background:#EFF0FF"></i></div>
+        <div class="hexes">#0B0D1C · #9FB0FF · #B79BFF</div>
+      </article>
+      <article class="mood" style="background:linear-gradient(180deg,rgba(255,138,122,.13),transparent 60%),#160810">
+        <div class="band" style="background:linear-gradient(90deg,#FF8A6B,#FF6FA5,#C86BFF,#FFB27A)"></div>
+        <div class="emo">😤</div><h4>Ember</h4><div class="feel">rough · grounded</div>
+        <div class="dots"><i style="background:#160810"></i><i style="background:#FF8A7A"></i><i style="background:#FF6FA5"></i><i style="background:#FFF0EC"></i></div>
+        <div class="hexes">#160810 · #FF8A7A · #FF6FA5</div>
+      </article>
+    </div>
+    <p class="note"><b>A rough day must not make the app look angry.</b> Ember is warm and grounding — a hug, not a warning. Twilight is soft, never grey.</p>
+  </section>
+
+  <section id="phase">
+    <h2>Phase &amp; calendar</h2>
+    <p class="lede">The four phase colours never follow the mood. They were chosen by measurement, not by eye: DT22 compared every phase colour against every colour in every mood palette in CIELAB and found <b>three of four were byte-identical to a mood colour</b> — ΔE 0.0, the same paint. <code>audit:colour</code> now fails the build below ΔE 18.</p>
+    <div class="swatches" style="grid-template-columns:repeat(auto-fill,minmax(148px,1fr))">
+      <div class="sw"><span class="chip" style="background:#FF3D71"></span><div class="lbl"><div class="nm">menstrual</div><div class="hex">#FF3D71</div><div class="use">rose-red — the one convention worth keeping</div></div></div>
+      <div class="sw"><span class="chip" style="background:#22D3EE"></span><div class="lbl"><div class="nm">follicular</div><div class="hex">#22D3EE</div><div class="use">cyan: rising, clear, nothing like the mint moods</div></div></div>
+      <div class="sw"><span class="chip" style="background:#EBDA23"></span><div class="lbl"><div class="nm">ovulatory</div><div class="hex">#EBDA23</div><div class="use">citron: the peak, far from Radiance's amber</div></div></div>
+      <div class="sw"><span class="chip" style="background:#9D4EFF"></span><div class="lbl"><div class="nm">luteal</div><div class="hex">#9D4EFF</div><div class="use">violet, deeper than Twilight's lavenders</div></div></div>
+    </div>
+
+    <h3>A fact is solid. An estimate is a wash.</h3>
+    <p>Every calendar fill is composited against the ground ahead of time and drawn <b>opaque</b> — never an 8-hex alpha over a drifting bloom, which is how the audit measured a token while the eye saw something else (DT23). These are the real values the grid paints, from <code>src/theme/blend.ts</code>:</p>
+    <div class="cal">
+      <div class="cell"><div class="box" style="background:#FF3D71;color:#FFFFFF">14</div><div class="cap"><b>Logged</b>#FF3D71 · full strength</div></div>
+      <div class="cell"><div class="box" style="background:#79213F;color:#FFFFFF">15</div><div class="cap"><b>Menstrual est.</b>#79213F · 45%</div></div>
+      <div class="cell"><div class="box" style="background:#331225;color:#B8AED6">16<span class="ring dash"></span></div><div class="cap"><b>Predicted</b>#331225 · 16% + ring</div></div>
+      <div class="cell"><div class="box" style="background:#1EABC3;color:#0C0A16">17</div><div class="cap"><b>Follicular</b>#1EABC3 · 80%</div></div>
+      <div class="cell"><div class="box" style="background:#6A611B;color:#F3EEFF">18</div><div class="cap"><b>Fertile</b>#6A611B · 42%</div></div>
+      <div class="cell"><div class="box" style="background:#6A611B;color:#F3EEFF">19<span class="ring"></span><span class="pip"></span></div><div class="cap"><b>Ovulation</b>same fill + ring &amp; pip</div></div>
+      <div class="cell"><div class="box" style="background:#8040D0;color:#FFFFFF">20</div><div class="cap"><b>Luteal</b>#8040D0 · 80%</div></div>
+    </div>
+    <p class="note"><b>Why the ovulation day keeps the fertile fill.</b> It used to replace it with a brighter one of the same hue, so a day that was two things looked like one. Shape carries the single day; colour carries the span. And ink is never assumed — <code>inkOn(fill)</code> picks white or ground per cell.</p>
+  </section>
+
+  <section id="type">
+    <h2>Typography</h2>
+    <p class="lede">System faces, weights only — no bundled fonts. Eleven presets in <code>src/constants/typography.ts</code>; one preset per role is what keeps forty screens looking like one app. <b>Never hardcode a font size.</b></p>
+    <div class="ramp">
+      <div class="row"><div class="tk">h1<div class="spec">36/43 · 700</div></div><div class="sample" style="font-size:36px;line-height:1.05;font-weight:700;letter-spacing:-.5px">Your next period</div></div>
+      <div class="row"><div class="tk">h2<div class="spec">30/36 · 700</div></div><div class="sample" style="font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.3px">Learn &amp; Grow</div></div>
+      <div class="row"><div class="tk">h3<div class="spec">24/29 · 600</div></div><div class="sample" style="font-size:24px;line-height:1.2;font-weight:600">This month in words</div></div>
+      <div class="row"><div class="tk">h4<div class="spec">20/24 · 600</div></div><div class="sample" style="font-size:20px;line-height:1.2;font-weight:600">How this prediction is made</div></div>
+      <div class="row"><div class="tk">bodyLarge<div class="spec">17/26 · 400</div></div><div class="sample" style="font-size:17px;line-height:1.53">Many people report cramps easing over the first two days.</div></div>
+      <div class="row"><div class="tk">body<div class="spec">15/23 · 400</div></div><div class="sample" style="font-size:15px;line-height:1.53">Estimated from your own logged cycle lengths — not from anyone else's.</div></div>
+      <div class="row"><div class="tk">caption<div class="spec">13/18 · 400</div></div><div class="sample" style="font-size:13px;line-height:1.4;color:#B8AED6">29–31 Aug · 3 days · Luteal</div></div>
+      <div class="row"><div class="tk">overline<div class="spec">11/14 · 600 · +1.0</div></div><div class="sample" style="font-size:11px;line-height:1.3;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8B82A8">Recorded by you</div></div>
+      <div class="row"><div class="tk">numberLarge<div class="spec">48 · 700</div></div><div class="sample" style="font-size:48px;line-height:1;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums">14</div></div>
+    </div>
+  </section>
+
+  <section id="space">
+    <h2>Space &amp; radius</h2>
+    <p class="lede">A 4px grid, and a handful of named uses that matter more than the raw numbers.</p>
+    <div class="bars">
+      <div class="bar"><i style="width:4px"></i> xs 4</div>
+      <div class="bar"><i style="width:8px"></i> sm 8 · inlineGap</div>
+      <div class="bar"><i style="width:12px"></i> md 12 · itemGap</div>
+      <div class="bar"><i style="width:16px"></i> base 16 · cardPadding</div>
+      <div class="bar"><i style="width:20px"></i> lg 20 · screenPadding</div>
+      <div class="bar"><i style="width:24px"></i> xl 24 · sectionGap · cardPaddingLarge</div>
+      <div class="bar"><i style="width:32px"></i> 2xl 32</div>
+      <div class="bar"><i style="width:48px"></i> 4xl 48</div>
+      <div class="bar"><i style="width:96px"></i> tabBarClearance 96 — the bottom padding that keeps the last row out from under the floating tab pill</div>
+    </div>
+    <h3>Radius — nothing in this app has a sharp corner</h3>
+    <div class="radii">
+      <div style="border-radius:8px">sm 8</div>
+      <div style="border-radius:12px">md 12</div>
+      <div style="border-radius:16px">lg 16</div>
+      <div style="border-radius:24px">2xl 24 · cards</div>
+      <div style="border-radius:32px">3xl 32 · sheets</div>
+      <div style="border-radius:9999px">full</div>
+    </div>
+  </section>
+
+  <section id="parts">
+    <h2>The primitives</h2>
+    <p class="lede">The whole vocabulary lives in <code>src/components/ui/</code>. The middle column is not style advice — each one is a component that shipped, broke on the owner's phone, and is now banned.</p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Use</th><th>Not</th><th>Because</th></tr></thead>
+        <tbody>
+          <tr><td>AuroraBackground</td><td class="no">a View + background</td><td>owns the ground, the bloom, and an opaque status veil of exactly <code>insets.top</code> — the fade tail read as the app eating the UI</td></tr>
+          <tr><td>PressableScale</td><td class="no">TouchableOpacity</td><td>one press for every tappable: a scale dip and the right haptic. Opacity on glass looks like a rendering bug</td></tr>
+          <tr><td>AuroraSwitch</td><td class="no">&lt;Switch&gt;</td><td>the Android track tinted with a glass edge is a 10% white hairline on near-black — the control vanished and read as a bullet</td></tr>
+          <tr><td>showAppDialog()</td><td class="no">&lt;Modal&gt;</td><td>a translucent Modal is a separate Android window that can stick over every screen</td></tr>
+          <tr><td>SHEET_PRESENTATION</td><td class="no">presentation:'modal'</td><td>on Android that screen's insets read ZERO, so correct-looking padding silently does nothing — it hid a CTA under the nav bar for four rounds</td></tr>
+          <tr><td>MoodEmoji</td><td class="no">a drawn character</td><td>six companions, four device rounds, one verdict: “they look childish.” One emoji, one mark per panel, never a second face beside it</td></tr>
+          <tr><td>GlassCard</td><td class="no">a hand-rolled card</td><td>one fill / edge / radius recipe</td></tr>
+          <tr><td>AuroraTabBar</td><td class="no">the stock tab bar</td><td>the moving glass pill carries the travel — a scene cross-fade showed as a white glitch at the bottom</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="laws">
+    <h2>Laws</h2>
+    <p class="lede">Each of these cost a 25-minute build and a round with the owner. Four of them are now enforced by audits that fail <code>npm run test:all</code>.</p>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Audit</th><th>Fails when</th></tr></thead>
+        <tbody>
+          <tr><td>audit:safearea</td><td colspan="2">a scrolling screen misses an inset at either end, or a route uses <code>presentation:'modal'</code></td></tr>
+          <tr><td>audit:colour</td><td colspan="2">a phase colour lands within ΔE 18 of any mood colour · phases within ΔE 40 of each other · a logged day within ΔE 20 of an estimate</td></tr>
+          <tr><td>audit:ui</td><td colspan="2">a tappable has no press handler or no accessibility props</td></tr>
+          <tr><td>audit:silent</td><td colspan="2">a catch swallows an error behind <code>if (__DEV__) console.warn</code> — <code>__DEV__</code> is false in the owner's build, so that is silence</td></tr>
+          <tr><td>test:ranges</td><td colspan="2">the dated calendar list disagrees with the grid it describes, cell for cell, over 200 random months</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>And the ones a human has to hold</h3>
+    <p>A row that toggles something is tappable across its full width and never under 48pt tall. No empty shells — a feature with no data shows one honest line, never a chart-shaped skeleton. Non-diagnostic copy, always: “many people report”, never “your body does X”. No invented statistics; insight speaks about the user's own history with the sample size attached, and stays silent at n=1. The fertile window never appears without its caveat, verbatim.</p>
+  </section>
+
+  <section id="screens">
+    <h2>Every screen</h2>
+    <p class="lede">41 screens across seven stacks. The number beside each is its line count — a rough proxy for how much lives there.</p>
+    <div class="stacks">
+
+      <div class="stack">
+        <header><h4>Onboarding</h4><span class="n">6 screens</span></header>
+        <ul>
+          <li><span><b>welcome</b> — the pitch: five claims above the CTA</span><em>242</em></li>
+          <li><span><b>mode-select</b> — full or Ghost</span><em>186</em></li>
+          <li><span><b>conditions</b> — each row explains itself</span><em>331</em></li>
+          <li><span><b>cycle-setup</b> — names the exact date it records</span><em>363</em></li>
+          <li><span><b>reminders</b> — six types, was three</span><em>363</em></li>
+          <li><span><b>ready</b></span><em>213</em></li>
+        </ul>
+      </div>
+
+      <div class="stack">
+        <header><h4>The five tabs</h4><span class="n">5 screens</span></header>
+        <ul>
+          <li><span><b>Today</b> — hero, phase bar, streak, quick mood, mood map</span><em>912</em></li>
+          <li><span><b>Cycle</b> — the month grid, the key, the words view, the explainer</span><em>2713</em></li>
+          <li><span><b>Learn</b> — the path: 88px nodes, checkpoints, spotlight</span><em>1075</em></li>
+          <li><span><b>Circle</b> — the shared feed</span><em>716</em></li>
+          <li><span><b>You</b> — level, streak, and every setting</span><em>590</em></li>
+        </ul>
+      </div>
+
+      <div class="stack">
+        <header><h4>Learning stack</h4><span class="n">3 screens</span></header>
+        <ul>
+          <li><span><b>lesson</b> — the reader, deliberately not a chat</span><em>643</em></li>
+          <li><span><b>quiz</b> — lead-in, reaction, two attempts then the answer</span><em>1236</em></li>
+          <li><span><b>exercise</b> — drag, match, order</span><em>321</em></li>
+        </ul>
+      </div>
+
+      <div class="stack">
+        <header><h4>You → profile</h4><span class="n">10 screens</span></header>
+        <ul>
+          <li><span><b>about-you</b> — every model input, editable; saving re-runs it</span><em>354</em></li>
+          <li><span><b>prediction-transparency</b> — what it uses, what it ignores</span><em>359</em></li>
+          <li><span><b>reminders</b> · <b>medications</b></span><em>744·422</em></li>
+          <li><span><b>export-data</b> · <b>doctor-report</b></span><em>331·413</em></li>
+          <li><span><b>ghost-mode</b> — the decoy, the PIN, the way out</span><em>723</em></li>
+          <li><span><b>privacy</b> · <b>diagnostics</b> · <b>about-build</b></span><em>204·269·133</em></li>
+        </ul>
+      </div>
+
+      <div class="stack">
+        <header><h4>Circle → sisterhood</h4><span class="n">5 screens</span></header>
+        <ul>
+          <li><span><b>circle</b> — the roster</span><em>490</em></li>
+          <li><span><b>add-member</b> — the longest flow in the app</span><em>1195</em></li>
+          <li><span><b>member</b> — her profile and cycle</span><em>895</em></li>
+          <li><span><b>shadow check-in</b> — logging for someone else</span><em>304</em></li>
+          <li><span><b>transfer</b> — handing the log over</span><em>603</em></li>
+        </ul>
+      </div>
+
+      <div class="stack">
+        <header><h4>Community &amp; modals</h4><span class="n">8 screens</span></header>
+        <ul>
+          <li><span><b>new-post</b> · <b>post</b> — named or anonymous</span><em>617·899</em></li>
+          <li><span><b>daily-checkin</b> · <b>checkin-recap</b></span><em>575·310</em></li>
+          <li><span><b>streak-celebration</b> · <b>level-up</b></span><em>216·205</em></li>
+          <li><span><b>ghost-lock</b> · <b>decoy-home</b> — the two halves of Ghost Mode</span><em>40·34</em></li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <b>Sources.</b> Tokens read from <code>src/theme/aurora-static.ts</code>, <code>palettes.ts</code>, <code>blend.ts</code>, <code>src/constants/{typography,spacing,shadows}.ts</code>.
+    Screen list from <code>app/</code> at DT31.<br>
+    <b>Full docs.</b> docs/DESIGN.md · docs/SCREENS.md · docs/HANDOFF.md · CLAUDE.md
+  </footer>
+
+  </main>
+</div>
+</div>
